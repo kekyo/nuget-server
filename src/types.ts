@@ -1,0 +1,40 @@
+// nuget-server - NuGet server on Node.js
+// Copyright (c) Kouji Matsui (@kekyo@mi.kekyo.net)
+// License under MIT.
+
+/**
+ * Logger interface
+ */
+export interface Logger {
+  /**
+   * Log an debug message
+   * @param msg - The message to log
+   */
+  readonly debug: (msg: string) => void;
+  /**
+   * Log an info message
+   * @param msg - The message to log
+   */
+  readonly info: (msg: string) => void;
+  /**
+   * Log a warning message
+   * @param msg - The message to log
+   */
+  readonly warn: (msg: string) => void;
+  /**
+   * Log an error message
+   * @param msg - The message to log
+   */
+  readonly error: (msg: string) => void;
+}
+
+/**
+ * Server configuration
+ */
+export interface ServerConfig {
+  port: number;
+  baseUrl?: string;
+  packageDir?: string;
+  configDir?: string;
+  trustedProxies?: string[];
+}

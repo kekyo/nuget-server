@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<configuration>
+  <packageSources>
+    <clear />
+    <add key="local-nuget-server" value="{{SERVER_URL}}" />
+    <add key="nuget.org" value="https://api.nuget.org/v3/index.json" />
+  </packageSources>
+  <packageSourceCredentials>
+    <local-nuget-server>
+      <add key="Username" value="test" />
+      <add key="ClearTextPassword" value="test" />
+    </local-nuget-server>
+  </packageSourceCredentials>
+</configuration>

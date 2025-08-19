@@ -1,0 +1,39 @@
+# Node modules
+node_modules
+npm-debug.log*
+
+# Build output is pre-built on host and copied to container
+# dist
+
+# Test results and coverage
+test-results
+coverage
+
+# Git
+.git
+.gitignore
+
+# IDE files
+.vscode
+.idea
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# Temporary files
+*.tmp
+.tmp
+
+# Package artifacts
+artifacts
+
+# Environment files
+.env
+.env.local
+.env.*.local
