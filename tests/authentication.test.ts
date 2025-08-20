@@ -199,14 +199,23 @@ describe('Authentication Integration Tests', () => {
       
       serverInstance = await startServer(serverPort, testBaseDir, undefined, packageDir, configDir);
       
+      // Validate server startup and port
+      if (!serverInstance || !serverInstance.port) {
+        throw new Error(`Server failed to start properly. ServerInstance: ${!!serverInstance}, Port: ${serverInstance?.port || 'undefined'}`);
+      }
+      
+      // Use the port from serverInstance to ensure consistency
+      const actualPort = serverInstance.port;
+      logger.info(`Server started successfully on port ${actualPort}`);
+      
       // Initial user should work
-      const response1 = await makeAuthenticatedRequest(`http://localhost:${serverPort}/api/index.json`, {
+      const response1 = await makeAuthenticatedRequest(`http://localhost:${actualPort}/api/index.json`, {
         auth: 'user1:pass1'
       });
       expect(response1.status).toBe(200);
       
       // user2 should not exist yet
-      const response2 = await makeAuthenticatedRequest(`http://localhost:${serverPort}/api/index.json`, {
+      const response2 = await makeAuthenticatedRequest(`http://localhost:${actualPort}/api/index.json`, {
         auth: 'user2:pass2'
       });
       expect(response2.status).toBe(401);
@@ -221,18 +230,18 @@ describe('Authentication Integration Tests', () => {
       await wait(2000);
       
       // Check if file watcher picked up the changes
-      const testOldPassword = await makeAuthenticatedRequest(`http://localhost:${serverPort}/api/index.json`, {
+      const testOldPassword = await makeAuthenticatedRequest(`http://localhost:${actualPort}/api/index.json`, {
         auth: 'user1:pass1'
       });
       
       if (testOldPassword.status === 401) {
         // File watcher worked - test new credentials
-        const response4 = await makeAuthenticatedRequest(`http://localhost:${serverPort}/api/index.json`, {
+        const response4 = await makeAuthenticatedRequest(`http://localhost:${actualPort}/api/index.json`, {
           auth: 'user1:newpass1'
         });
         expect(response4.status).toBe(200);
         
-        const response5 = await makeAuthenticatedRequest(`http://localhost:${serverPort}/api/index.json`, {
+        const response5 = await makeAuthenticatedRequest(`http://localhost:${actualPort}/api/index.json`, {
           auth: 'user2:pass2'
         });
         expect(response5.status).toBe(200);
@@ -250,8 +259,16 @@ describe('Authentication Integration Tests', () => {
       
       serverInstance = await startServer(serverPort, testBaseDir, undefined, packageDir, configDir);
       
+      // Validate server startup and port
+      if (!serverInstance || !serverInstance.port) {
+        throw new Error(`Server failed to start properly. ServerInstance: ${!!serverInstance}, Port: ${serverInstance?.port || 'undefined'}`);
+      }
+      
+      const actualPort = serverInstance.port;
+      logger.info(`Server started successfully on port ${actualPort} for deletion test`);
+      
       // Should require auth initially
-      const response1 = await makeAuthenticatedRequest(`http://localhost:${serverPort}/api/index.json`);
+      const response1 = await makeAuthenticatedRequest(`http://localhost:${actualPort}/api/index.json`);
       expect(response1.status).toBe(401);
       
       // Delete auth file
@@ -261,7 +278,7 @@ describe('Authentication Integration Tests', () => {
       await wait(500);
       
       // Should allow access without auth after file deletion
-      const response2 = await makeAuthenticatedRequest(`http://localhost:${serverPort}/api/index.json`);
+      const response2 = await makeAuthenticatedRequest(`http://localhost:${actualPort}/api/index.json`);
       expect([200, 401]).toContain(response2.status); // Either is acceptable
     });
   });
