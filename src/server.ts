@@ -62,8 +62,7 @@ export const startServer = async (config: ServerConfig, logger: Logger): Promise
 
   // Add request logging middleware
   app.use((req, _res, next) => {
-    const timestamp = new Date().toISOString();
-    logger.info(`[${timestamp}] ${req.method} ${req.url}`);
+    logger.info(`${req.method} ${req.url}`);
     next();
   });
 
@@ -96,13 +95,15 @@ export const startServer = async (config: ServerConfig, logger: Logger): Promise
       // Ensure auth service is fully initialized before reporting status
       await authService.waitForInitialization();
       
-      logger.info(`${packageName} [${version}-${git_commit_hash}]`);
+      logger.info(`${packageName} [${version}-${git_commit_hash}] Starting...`);
       logger.info(`Listening on port ${config.port}`);
       
       if (config.baseUrl) {
-        logger.info(`Fixed API endpoint: ${config.baseUrl}`);
+        logger.info(`Fixed Base URL: ${config.baseUrl}`);
+        logger.info(`Example register command: dotnet nuget add source ${config.baseUrl}/api -n "local"${config.baseUrl.startsWith('https:') ? ' --allow-insecure-connections' : ''}`);
       } else {
-        logger.info(`API endpoint: http://localhost:${config.port}/api`);
+        logger.info(`Base URL: http://localhost:${config.port}`);
+        logger.info(`Example register command: dotnet nuget add source http://localhost:${config.port}/api -n "local" --allow-insecure-connections`);
       }
       
       if (config.trustedProxies && config.trustedProxies.length > 0) {
