@@ -40,9 +40,6 @@ nuget-server
 
 # Custom port
 nuget-server --port 3000
-
-# Custom package storage directory
-nuget-server --package-dir /custom/path/to/storage
 ```
 
 The NuGet V3 API is served on the `/api` path.
