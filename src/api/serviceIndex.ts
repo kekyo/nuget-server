@@ -53,4 +53,14 @@ router.get('/index.json', (req: Request, res: Response) => {
   res.json(serviceIndex);
 });
 
+// Redirect root API path to index.json for convenience
+router.get('/', (req: Request, res: Response) => {
+  res.redirect(301, '/api/index.json');
+});
+
+// Handle trailing slash
+router.get('/index.json/', (req: Request, res: Response) => {
+  res.redirect(301, '/api/index.json');
+});
+
 export { router as serviceIndexRouter };
