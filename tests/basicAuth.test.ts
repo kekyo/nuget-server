@@ -127,7 +127,7 @@ describe('Basic Auth Middleware', () => {
       
       expect(res.status).toHaveBeenCalledWith(401);
       expect(mockLogger.warn).toHaveBeenCalledWith(
-        expect.stringMatching(/^\[.*\] Basic auth: Empty username or password$/)
+        'Basic auth: Empty username or password'
       );
       expect(next).not.toHaveBeenCalled();
     });
@@ -151,7 +151,7 @@ describe('Basic Auth Middleware', () => {
       
       expect(res.status).toHaveBeenCalledWith(401);
       expect(mockLogger.warn).toHaveBeenCalledWith(
-        expect.stringMatching(/^\[.*\] Basic auth: User not found: user \(available users: admin\)$/)
+        'Basic auth: User not found: user (available users: admin)'
       );
       expect(next).not.toHaveBeenCalled();
     });
@@ -175,7 +175,7 @@ describe('Basic Auth Middleware', () => {
       
       expect(res.status).toHaveBeenCalledWith(401);
       expect(mockLogger.warn).toHaveBeenCalledWith(
-        expect.stringMatching(/^\[.*\] Basic auth: Invalid password for user: admin$/)
+        'Basic auth: Invalid password for user: admin'
       );
       expect(next).not.toHaveBeenCalled();
     });
@@ -200,7 +200,7 @@ describe('Basic Auth Middleware', () => {
       expect(next).toHaveBeenCalled();
       expect(req.user).toEqual({ username: 'admin' });
       expect(mockLogger.debug).toHaveBeenCalledWith(
-        expect.stringMatching(/^\[.*\] Basic auth: Successfully authenticated user: admin$/)
+        'Basic auth: Successfully authenticated user: admin'
       );
     });
 
