@@ -24,13 +24,12 @@ export const createBasicAuthMiddleware = (config: BasicAuthConfig) => {
   const realm = config.realm || 'NuGet Server';
   
   return async (req: Request, res: Response, next: NextFunction) => {
-    const timestamp = new Date().toISOString();
     const authHeader = req.headers.authorization;
     
-    config.logger.debug(`[${timestamp}] Auth check for ${req.method} ${req.path} - Users available: ${config.users.size}`);
+    config.logger.debug(`Auth check for ${req.method} ${req.path} - Users available: ${config.users.size}`);
     
     if (!authHeader || !authHeader.startsWith('Basic ')) {
-      config.logger.debug(`[${timestamp}] No Basic auth header provided`);
+      config.logger.debug(`No Basic auth header provided`);
       return sendUnauthorized(res, realm);
     }
     
@@ -49,35 +48,35 @@ export const createBasicAuthMiddleware = (config: BasicAuthConfig) => {
       const password = decodedCredentials.substring(colonIndex + 1);
       
       if (!username || !password) {
-        config.logger.warn(`[${timestamp}] Basic auth: Empty username or password`);
+        config.logger.warn(`Basic auth: Empty username or password`);
         return sendUnauthorized(res, realm);
       }
       
-      config.logger.debug(`[${timestamp}] Basic auth: Attempting authentication for user: ${username}`);
+      config.logger.debug(`Basic auth: Attempting authentication for user: ${username}`);
       
       // Look up user
       const user = config.users.get(username);
       if (!user) {
-        config.logger.warn(`[${timestamp}] Basic auth: User not found: ${username} (available users: ${Array.from(config.users.keys()).join(', ')})`);
+        config.logger.warn(`Basic auth: User not found: ${username} (available users: ${Array.from(config.users.keys()).join(', ')})`);
         return sendUnauthorized(res, realm);
       }
       
-      config.logger.debug(`[${timestamp}] Basic auth: Found user ${username} with ${user.hashType} hash`);
+      config.logger.debug(`Basic auth: Found user ${username} with ${user.hashType} hash`);
       
       // Verify password
       const isValid = await verifyPassword(password, user);
       if (!isValid) {
-        config.logger.warn(`[${timestamp}] Basic auth: Invalid password for user: ${username}`);
+        config.logger.warn(`Basic auth: Invalid password for user: ${username}`);
         return sendUnauthorized(res, realm);
       }
       
       // Authentication successful
-      config.logger.debug(`[${timestamp}] Basic auth: Successfully authenticated user: ${username}`);
+      config.logger.debug(`Basic auth: Successfully authenticated user: ${username}`);
       (req as any).user = { username };
       next();
       
     } catch (error) {
-      config.logger.error(`[${timestamp}] Basic auth error: ${error}`);
+      config.logger.error(`Basic auth error: ${error}`);
       return sendUnauthorized(res, realm);
     }
   };
@@ -105,8 +104,7 @@ export const createOptionalBasicAuthMiddleware = (config: BasicAuthConfig) => {
   // If no users configured, skip authentication
   if (config.users.size === 0) {
     return (req: Request, _res: Response, next: NextFunction) => {
-      const timestamp = new Date().toISOString();
-      config.logger.debug(`[${timestamp}] No auth required for ${req.method} ${req.path} - no users configured`);
+      config.logger.debug(`No auth required for ${req.method} ${req.path} - no users configured`);
       next();
     };
   }

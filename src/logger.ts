@@ -2,7 +2,10 @@
 // Copyright (c) Kouji Matsui (@kekyo@mi.kekyo.net)
 // License under MIT.
 
+import dayjs from "dayjs";
 import { Logger } from "./types";
+
+const nowDate = () => dayjs().format('YYYY/MM/DD HH:mm:ss.SSS');
 
 /**
  * Create a console logger
@@ -11,14 +14,14 @@ import { Logger } from "./types";
  */
 export const createConsoleLogger = (prefix?: string) : Logger => {
   return prefix ? {
-    debug: msg => console.debug(`[${prefix}]: ${msg}`),
-    info: msg => console.info(`[${prefix}]: ${msg}`),
-    warn: msg =>console.warn(`[${prefix}]: ${msg}`),
-    error: msg =>console.error(`[${prefix}]: ${msg}`)
+    debug: msg => console.debug(`[${prefix}]: [${nowDate()}]: debug: ${msg}`),
+    info: msg => console.info(`[${prefix}]: [${nowDate()}]: ${msg}`),
+    warn: msg =>console.warn(`[${prefix}]: [${nowDate()}]: warning: ${msg}`),
+    error: msg =>console.error(`[${prefix}]: [${nowDate()}]: error: ${msg}`)
   } : {
-    debug: console.debug,
-    info: console.info,
-    warn: console.warn,
-    error: console.error
+    debug: msg => console.debug(`[${nowDate()}]: ${msg}`),
+    info: msg => console.info(`[${nowDate()}]: ${msg}`),
+    warn: msg => console.warn(`[${nowDate()}]: ${msg}`),
+    error: msg => console.error(`[${nowDate()}]: ${msg}`),
   };
 };

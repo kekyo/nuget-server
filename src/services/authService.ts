@@ -57,7 +57,7 @@ export const createAuthService = (config: AuthServiceConfig): AuthService => {
     const filePath = join(configDir, filename);
     const loadStartTime = Date.now();
     
-    logger.debug(`[${new Date().toISOString()}] Loading ${filename} for ${type} authentication`);
+    logger.debug(`Loading ${filename} for ${type} authentication`);
     
     try {
       // Check if file exists
@@ -70,30 +70,30 @@ export const createAuthService = (config: AuthServiceConfig): AuthService => {
       
       if (type === 'publish') {
         publishUsers = userMap;
-        logger.info(`[${new Date().toISOString()}] Loaded ${users.length} users from ${filename} for publish authentication`);
+        logger.info(`Loaded ${users.length} users from ${filename} for publish authentication`);
       } else {
         generalUsers = userMap;
-        logger.info(`[${new Date().toISOString()}] Loaded ${users.length} users from ${filename} for general authentication`);
+        logger.info(`Loaded ${users.length} users from ${filename} for general authentication`);
       }
       
       // Log user details (without passwords)
       for (const user of users) {
-        logger.debug(`[${new Date().toISOString()}] User: ${user.username} (${user.hashType} hash) - ${type} auth`);
+        logger.debug(`User: ${user.username} (${user.hashType} hash) - ${type} auth`);
       }
       
       const loadDuration = Date.now() - loadStartTime;
-      logger.debug(`[${new Date().toISOString()}] ${filename} loaded successfully in ${loadDuration}ms`);
+      logger.debug(`${filename} loaded successfully in ${loadDuration}ms`);
       
     } catch (error: any) {
       if (error.code === 'ENOENT') {
-        logger.info(`[${new Date().toISOString()}] ${filename} not found - ${type} authentication disabled`);
+        logger.info(`${filename} not found - ${type} authentication disabled`);
         if (type === 'publish') {
           publishUsers.clear();
         } else {
           generalUsers.clear();
         }
       } else {
-        logger.error(`[${new Date().toISOString()}] Failed to load ${filename}: ${error.message}`);
+        logger.error(`Failed to load ${filename}: ${error.message}`);
         throw error;
       }
     }
@@ -104,7 +104,7 @@ export const createAuthService = (config: AuthServiceConfig): AuthService => {
    * to avoid race conditions when both files exist
    */
   const loadHtpasswdFiles = async (): Promise<void> => {
-    logger.debug(`[${new Date().toISOString()}] Starting htpasswd files loading`);
+    logger.debug(`Starting htpasswd files loading`);
     
     // Load publish authentication file first
     try {
@@ -122,7 +122,7 @@ export const createAuthService = (config: AuthServiceConfig): AuthService => {
       // Don't throw - partial initialization is acceptable
     }
     
-    logger.info(`[${new Date().toISOString()}] Htpasswd files loading completed - publish: ${publishUsers.size} users, general: ${generalUsers.size} users`);
+    logger.info(`Htpasswd files loading completed - publish: ${publishUsers.size} users, general: ${generalUsers.size} users`);
   };
 
   /**
@@ -159,22 +159,22 @@ export const createAuthService = (config: AuthServiceConfig): AuthService => {
     // Set new timer for 500ms debounce
     const timer = setTimeout(async () => {
       debounceTimers.delete(debounceKey);
-      logger.info(`[${new Date().toISOString()}] ${filename} changed - reloading (debounced)`);
+      logger.info(`${filename} changed - reloading (debounced)`);
       
       try {
         await loadHtpasswdFile(filename, type);
-        logger.info(`[${new Date().toISOString()}] ${filename} reloaded successfully`);
+        logger.info(`${filename} reloaded successfully`);
       } catch (error) {
-        logger.error(`[${new Date().toISOString()}] Failed to reload ${filename}: ${error}`);
+        logger.error(`Failed to reload ${filename}: ${error}`);
         
         // If file was deleted, clear users and try to set up watcher again
         if ((error as any).code === 'ENOENT') {
           if (type === 'publish') {
             publishUsers.clear();
-            logger.info(`[${new Date().toISOString()}] Cleared publish users due to missing file`);
+            logger.info(`Cleared publish users due to missing file`);
           } else {
             generalUsers.clear();
-            logger.info(`[${new Date().toISOString()}] Cleared general users due to missing file`);
+            logger.info(`Cleared general users due to missing file`);
           }
           
           // Retry setting up watcher
@@ -200,15 +200,15 @@ export const createAuthService = (config: AuthServiceConfig): AuthService => {
       });
       
       watchers.push(watcher);
-      logger.debug(`[${new Date().toISOString()}] Watching ${filename} for changes`);
+      logger.debug(`Watching ${filename} for changes`);
       
     } catch (error: any) {
       if (error.code === 'ENOENT') {
-        logger.debug(`[${new Date().toISOString()}] Could not watch ${filename}: file does not exist (will retry if created)`);
+        //logger.debug(`Could not watch ${filename}: file does not exist (will retry if created)`);
       } else {
-        logger.warn(`[${new Date().toISOString()}] Could not watch ${filename}: ${error}`);
+        logger.warn(`Could not watch ${filename}: ${error}`);
       }
-      
+
       // Set up periodic retry for file creation
       scheduleFileWatcherRetry(filename, type);
     }
@@ -234,14 +234,14 @@ export const createAuthService = (config: AuthServiceConfig): AuthService => {
     }
 
     const startTime = Date.now();
-    logger.info(`[${new Date().toISOString()}] Initializing auth service with config directory: ${configDir}`);
+    logger.info(`Initializing auth service with config directory: ${configDir}`);
     
     await loadHtpasswdFiles();
     setupFileWatchers();
     
     isInitialized = true;
     const duration = Date.now() - startTime;
-    logger.info(`[${new Date().toISOString()}] Auth service initialization completed in ${duration}ms`);
+    logger.info(`Auth service initialization completed in ${duration}ms`);
   };
 
   return {
