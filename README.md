@@ -48,7 +48,7 @@ nuget-server --package-dir /custom/path/to/storage
 The NuGet V3 API is served on the `/api` path.
 
 * Default nuget-server served URL: `http://localhost:5963`
-* Actual NuGet V3 API endpoint: `http://localhost:5963/api`
+* Actual NuGet V3 API endpoint: `http://localhost:5963/api/index.json`
 
 Default nuget-server served URL can change with `--base-url` option, it shows below section.
 
@@ -59,7 +59,7 @@ Default nuget-server served URL can change with `--base-url` option, it shows be
 Add as package source:
 
 ```bash
-dotnet nuget add source http://localhost:5963/api \
+dotnet nuget add source http://localhost:5963/api/index.json \
   -n "local" --allow-insecure-connections
 ```
 
@@ -69,7 +69,7 @@ Or specify in `nuget.config`:
 <?xml version="1.0" encoding="utf-8"?>
 <configuration>
   <packageSources>
-    <add key="local" value="http://localhost:5963/api"
+    <add key="local" value="http://localhost:5963/api/index.json"
       allowInsecureConnections="true" />
   </packageSources>
 </configuration>
@@ -190,7 +190,7 @@ htpasswd -c htpasswd reader
 Add package source with credentials:
 
 ```bash
-dotnet nuget add source http://localhost:5963/api \
+dotnet nuget add source http://localhost:5963/api/index.json \
   -n "local" \
   -u "reader" \
   -p "your-password" \
@@ -204,7 +204,7 @@ Or specify `nuget.config` with credentials:
 <?xml version="1.0" encoding="utf-8"?>
 <configuration>
   <packageSources>
-    <add key="local" value="http://localhost:5963/api"
+    <add key="local" value="http://localhost:5963/api/index.json"
       allowInsecureConnections="true" />
   </packageSources>
   <packageSourceCredentials>
@@ -248,7 +248,7 @@ The server resolves URLs using the following priority order:
 For example `--base-url` option:
 
 * nuget-server served public base URL: `https://packages.example.com`
-* Actual NuGet V3 API endpoint: `https://packages.example.com/api`
+* Actual NuGet V3 API endpoint: `https://packages.example.com/api/index.json`
 
 ```bash
 # Configure served URL (do not include /api path)
@@ -274,7 +274,7 @@ export NUGET_SERVER_CONFIG_DIR=/path/to/config
 
 The server implements a subset of the NuGet V3 API protocol:
 
-* Service index: `/api`
+* Service index: `/api/index.json`
 * Package content: `/api/package/{id}/index.json`
 * Package downloads: `/api/package/{id}/{version}/{filename}`
 * Registration index: `/api/registrations/{id}/index.json`

@@ -100,10 +100,10 @@ export const startServer = async (config: ServerConfig, logger: Logger): Promise
       
       if (config.baseUrl) {
         logger.info(`Fixed Base URL: ${config.baseUrl}`);
-        logger.info(`Example register command: dotnet nuget add source ${config.baseUrl}/api -n "local"${config.baseUrl.startsWith('https:') ? ' --allow-insecure-connections' : ''}`);
+        logger.info(`Example register command: dotnet nuget add source ${config.baseUrl}/api/index.json -n "local"${config.baseUrl.startsWith('https:') ? ' --allow-insecure-connections' : ''}`);
       } else {
         logger.info(`Base URL: http://localhost:${config.port}`);
-        logger.info(`Example register command: dotnet nuget add source http://localhost:${config.port}/api -n "local" --allow-insecure-connections`);
+        logger.info(`Example register command: dotnet nuget add source http://localhost:${config.port}/api/index.json -n "local" --allow-insecure-connections`);
       }
       
       if (config.trustedProxies && config.trustedProxies.length > 0) {
