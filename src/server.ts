@@ -104,10 +104,7 @@ export const startServer = async (config: ServerConfig, logger: Logger): Promise
   const imagesPath = path.join(__dirname, '..', 'images');
   app.use('/images', express.static(imagesPath));
 
-  // Serve favicon
-  app.get('/favicon.ico', (_req, res) => {
-    res.sendFile(path.join(imagesPath, 'nuget-server.ico'));
-  });
+  // Favicon is served by the UI static files (from public directory)
 
   // API endpoint to get server configuration for UI
   app.get('/api/config', (req, res) => {
