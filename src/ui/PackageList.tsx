@@ -2,7 +2,7 @@
 // Copyright (c) Kouji Matsui (@kekyo@mi.kekyo.net)
 // License under MIT.
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useImperativeHandle, forwardRef } from 'react';
 import {
   Typography,
   Accordion,
@@ -57,29 +57,39 @@ interface SearchResponse {
   data: SearchResult[];
 }
 
-const PackageList = () => {
+export interface PackageListRef {
+  refresh: () => void;
+}
+
+const PackageList = forwardRef<PackageListRef>((props, ref) => {
   const [packages, setPackages] = useState<SearchResult[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchPackages = async () => {
-      try {
-        const response = await fetch('/api/search');
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        const data: SearchResponse = await response.json();
-        setPackages(data.data);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Unknown error occurred');
-      } finally {
-        setLoading(false);
+  const fetchPackages = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const response = await fetch('/api/search');
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
-    };
+      const data: SearchResponse = await response.json();
+      setPackages(data.data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unknown error occurred');
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     fetchPackages();
   }, []);
+
+  useImperativeHandle(ref, () => ({
+    refresh: fetchPackages,
+  }));
 
   if (loading) {
     return (
@@ -204,6 +214,8 @@ const PackageList = () => {
       ))}
     </Box>
   );
-};
+});
+
+PackageList.displayName = 'PackageList';
 
 export default PackageList;
