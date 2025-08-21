@@ -74,6 +74,7 @@ const UploadDrawer = ({ open, onClose, onUploadSuccess }: UploadDrawerProps) => 
           'Content-Type': 'application/octet-stream',
         },
         body: fileBuffer,
+        credentials: 'same-origin'
       });
 
       if (response.ok) {
@@ -84,6 +85,10 @@ const UploadDrawer = ({ open, onClose, onUploadSuccess }: UploadDrawerProps) => 
           message: `${result.message}\nResolved: ${result.id} ${result.version}`,
         });
         onUploadSuccess();
+      } else if (response.status === 401) {
+        // Authentication required - reload to trigger browser's Basic auth popup
+        window.location.reload();
+        return;
       } else {
         const errorText = await response.text();
         setResult({

@@ -287,10 +287,23 @@ export const createAuthService = (config: AuthServiceConfig): AuthService => {
 
     /**
      * Gets users configured for general authentication
-     * @returns Map of general users
+     * Includes both htpasswd users and htpasswd-publish users for unified access
+     * @returns Map of general users (htpasswd + htpasswd-publish users)
      */
     getGeneralUsers(): Map<string, HtpasswdUser> {
-      return generalUsers;
+      const combinedUsers = new Map<string, HtpasswdUser>();
+      
+      // Add general users first
+      for (const [username, user] of generalUsers) {
+        combinedUsers.set(username, user);
+      }
+      
+      // Add publish users (they override general users if same username)
+      for (const [username, user] of publishUsers) {
+        combinedUsers.set(username, user);
+      }
+      
+      return combinedUsers;
     },
 
     /**

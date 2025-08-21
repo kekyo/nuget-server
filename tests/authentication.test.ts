@@ -298,11 +298,11 @@ describe('Authentication Integration Tests', () => {
       // Give auth service time to initialize and read htpasswd files
       await wait(1000);
       
-      // Publisher creds should not work for general access
+      // Publisher creds should now work for general access (unified auth)
       const response1 = await makeAuthenticatedRequest(`http://localhost:${serverPort}/api/index.json`, {
         auth: 'publisher:pubpass'
       });
-      expect(response1.status).toBe(401);
+      expect(response1.status).toBe(200);
       
       // Reader creds should not work for publish
       const response2 = await makeAuthenticatedRequest(`http://localhost:${serverPort}/api/publish`, {
@@ -341,8 +341,8 @@ describe('Authentication Integration Tests', () => {
         console.log('Testing if this is a timing issue by comparing with working test case...');
       }
       
-      // Verify domain separation and functionality
-      expect(response1.status).toBe(401); // Publisher fails on general access
+      // Verify unified authentication and domain separation  
+      expect(response1.status).toBe(200); // Publisher now succeeds on general access (unified auth)
       expect(response2.status).toBe(401); // Reader fails on publish access  
       expect(response3.status).toBe(200); // Reader succeeds on general access
       
@@ -351,9 +351,9 @@ describe('Authentication Integration Tests', () => {
       // For now, we verify that domain separation is working correctly
       if (response4.status === 401) {
         console.log('KNOWN ISSUE: Multiple htpasswd files may not load correctly simultaneously');
-        console.log('Domain separation is still verified by response1, response2, response3 tests');
-        // Test passes if domain separation is working (other responses are correct)
-        expect(response1.status).toBe(401); // Publisher fails on general
+        console.log('Unified authentication is still verified by response1, response2, response3 tests');
+        // Test passes if unified authentication is working (other responses are correct)
+        expect(response1.status).toBe(200); // Publisher succeeds on general (unified auth)
         expect(response2.status).toBe(401); // Reader fails on publish  
         expect(response3.status).toBe(200); // Reader succeeds on general
       } else {

@@ -33,7 +33,9 @@ const App = () => {
   useEffect(() => {
     const fetchServerConfig = async () => {
       try {
-        const response = await fetch('/api/config');
+        const response = await fetch('/api/config', {
+          credentials: 'same-origin'
+        });
         if (response.ok) {
           const config = await response.json();
           setServerConfig(config);
@@ -41,6 +43,10 @@ const App = () => {
           if (config.realm) {
             document.title = config.realm;
           }
+        } else if (response.status === 401) {
+          // Authentication required - reload to trigger browser's Basic auth popup
+          window.location.reload();
+          return;
         }
       } catch (error) {
         console.error('Failed to fetch server config:', error);

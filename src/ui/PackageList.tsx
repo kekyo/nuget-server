@@ -165,7 +165,14 @@ const PackageList = forwardRef<PackageListRef, PackageListProps>(({ serverConfig
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch('/api/search');
+      const response = await fetch('/api/search', {
+        credentials: 'same-origin'
+      });
+      if (response.status === 401) {
+        // Authentication required - reload to trigger browser's Basic auth popup
+        window.location.reload();
+        return;
+      }
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
