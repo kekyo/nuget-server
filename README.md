@@ -50,11 +50,17 @@ nuget-server
 
 # Custom port
 nuget-server --port 3000
+
+# Disable UI (V3 API only mode)
+nuget-server --no-ui
+
+# Custom log level (debug, info, warn, error, ignore - default: info)
+nuget-server --log debug
 ```
 
 The NuGet V3 API is served on the `/api` path.
 
-* Default nuget-server served URL: `http://localhost:5963`
+* Default nuget-server served URL (Show UI): `http://localhost:5963`
 * Actual NuGet V3 API endpoint: `http://localhost:5963/api/index.json`
 
 Default nuget-server served URL can change with `--base-url` option, it shows below section.
@@ -108,7 +114,7 @@ You can customize this location using the `--package-dir` option:
 nuget-server
 
 # Use custom directory (relative or absolute path)
-nuget-server --package-dir ./package-storage
+nuget-server --package-dir /another/package/location
 ```
 
 ### Package storage layout
@@ -116,18 +122,21 @@ nuget-server --package-dir ./package-storage
 Packages are stored in the filesystem using the following structure:
 
 ```
-[package-dir]/
+packages/
 ├── PackageName/
 │   ├── 1.0.0/
 │   │   ├── PackageName.1.0.0.nupkg
-│   │   └── PackageName.nuspec
+│   │   ├── PackageName.nuspec
+│   │   └── icon.png            # Package icon (if present)
 │   └── 2.0.0/
 │       ├── PackageName.2.0.0.nupkg
-│       └── PackageName.nuspec
+│       ├── PackageName.nuspec
+│       └── icon.jpg            # Package icon (if present)
 └── AnotherPackage/
     └── 1.5.0/
         ├── AnotherPackage.1.5.0.nupkg
-        └── AnotherPackage.nuspec
+        ├── AnotherPackage.nuspec
+        └── icon.png            # Package icon (if present)
 ```
 
 ### Backup and Restore
@@ -136,7 +145,7 @@ You can backup the package directory using simply `tar`:
 
 ```bash
 cd /your/server/base/dir
-tar -cf - ./packages | lz4 -9 > backup-packages.tar.lz4
+tar -cf - ./packages | lz4 > backup-packages.tar.lz4
 ```
 
 Restore is simply extract it and re-run nuget-server with the same package directory configuration.
