@@ -33,7 +33,8 @@
   "files": [
     "dist",
     "README_pack.md",
-    "images/*.png"
+    "images/nuget-server-120.png",
+    "images/nuget-server-ss-1.png"
   ],
   "scripts": {
     "build": "npm run build:server && npm run build:ui",
