@@ -32,7 +32,8 @@
   },
   "files": [
     "dist",
-    "README_pack.md"
+    "README_pack.md",
+    "images/*.png"
   ],
   "scripts": {
     "build": "npm run build:server && npm run build:ui",

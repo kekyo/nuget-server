@@ -1,6 +1,6 @@
 # nuget-server
 
-Lightweight NuGet server implementation on Node.js
+Simple modenized NuGet server implementation on Node.js
 
 ![nuget-server](images/nuget-server-120.png)
 
@@ -15,6 +15,10 @@ Lightweight NuGet server implementation on Node.js
 A simple NuGet server implementation built on Node.js that provides essential NuGet v3 API endpoints.
 
 Compatible with `dotnet restore` and standard NuGet clients for package publishing, querying, and downloading.
+
+![nuget-server-ss-1](images/nuget-server-ss-1.png)
+
+![nuget-server-ss-2](images/nuget-server-ss-2.png)
 
 ### Key Features
 
