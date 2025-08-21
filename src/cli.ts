@@ -64,7 +64,7 @@ program.
       realm,
       trustedProxies,
       logLevel: options.log as LogLevel,
-      noUi: options.noUi
+      noUi: !options.ui
     };
     
     try {
