@@ -171,7 +171,7 @@ export const createMetadataService = (packagesRoot: string = './packages', baseU
       
       // Extract tags
       const tags = metadata.tags ? 
-        (typeof metadata.tags === 'string' ? metadata.tags.split(/[\s,]+/).filter(t => t) : []) : 
+        (typeof metadata.tags === 'string' ? metadata.tags.split(/[\s,;]+/).filter(t => t) : []) : 
         [];
 
       const actualPackageId = metadata.id || packageId;

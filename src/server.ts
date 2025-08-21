@@ -66,6 +66,14 @@ export const startServer = async (config: ServerConfig, logger: Logger): Promise
   const realm = config.realm || `${packageName} ${version}`;
   const apiRouterInstance = apiRouter(logger, metadataService, packagesRoot, authService, realm);
 
+  // Generate the add source command example (same logic as in server startup logs)
+  let addSourceCommand: string;
+  if (config.baseUrl) {
+    addSourceCommand = `dotnet nuget add source "${config.baseUrl}/api/index.json" -n "ref1"${config.baseUrl.startsWith('https:') ? '' : ' --allow-insecure-connections'}`;
+  } else {
+    addSourceCommand = `dotnet nuget add source "http://localhost:${config.port}/api/index.json" -n "ref1" --allow-insecure-connections`;
+  }
+
   // Add request logging middleware
   app.use((req, _res, next) => {
     logger.info(`${req.method} ${req.url}`);
@@ -92,13 +100,23 @@ export const startServer = async (config: ServerConfig, logger: Logger): Promise
   const uiPath = path.join(__dirname, 'ui');
   app.use(express.static(uiPath));
 
+  // Serve images from project root
+  const imagesPath = path.join(__dirname, '..', 'images');
+  app.use('/images', express.static(imagesPath));
+
+  // Serve favicon
+  app.get('/favicon.ico', (_req, res) => {
+    res.sendFile(path.join(imagesPath, 'nuget-server.ico'));
+  });
+
   // API endpoint to get server configuration for UI
-  app.get('/api/config', (_req, res) => {
+  app.get('/api/config', (req, res) => {
     res.json({
       realm: realm,
       name: packageName,
       version: version,
-      git_commit_hash: git_commit_hash
+      git_commit_hash: git_commit_hash,
+      addSourceCommand: addSourceCommand
     });
   });
 
@@ -117,16 +135,16 @@ export const startServer = async (config: ServerConfig, logger: Logger): Promise
       
       if (config.baseUrl) {
         logger.info(`Fixed Base URL: ${config.baseUrl}`);
-        logger.info(`Example register command: dotnet nuget add source ${config.baseUrl}/api/index.json -n "local"${config.baseUrl.startsWith('https:') ? ' --allow-insecure-connections' : ''}`);
       } else {
         logger.info(`Base URL: http://localhost:${config.port}`);
-        logger.info(`Example register command: dotnet nuget add source http://localhost:${config.port}/api/index.json -n "local" --allow-insecure-connections`);
       }
       
       if (config.trustedProxies && config.trustedProxies.length > 0) {
         logger.info(`Trusted proxies: ${config.trustedProxies.join(', ')}`);
       }
-      
+
+      logger.info(`Example register command: ${addSourceCommand}`);
+
       if (authService.isPublishAuthEnabled()) {
         logger.info(`Publish authentication: enabled (${authService.getPublishUsers().size} users)`);
       } else {

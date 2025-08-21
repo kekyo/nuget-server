@@ -2,7 +2,7 @@
 // Copyright (c) Kouji Matsui (@kekyo@mi.kekyo.net)
 // License under MIT.
 
-import { useEffect, useState, useImperativeHandle, forwardRef } from 'react';
+import { useEffect, useState, useImperativeHandle, forwardRef, useCallback } from 'react';
 import {
   Typography,
   Accordion,
@@ -13,10 +13,16 @@ import {
   Chip,
   Box,
   Button,
+  Paper,
+  IconButton,
+  Stack,
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import PackageIcon from '@mui/icons-material/Inventory';
+import PackageSourceIcon from '@mui/icons-material/Source';
 import DownloadIcon from '@mui/icons-material/Download';
+import ContentCopyIcon from '@mui/icons-material/ContentCopy';
+import { EditNote } from '@mui/icons-material';
 
 interface SearchResultVersion {
   version: string;
@@ -34,6 +40,7 @@ interface SearchResult {
   title: string;
   iconUrl?: string;
   licenseUrl?: string;
+  license?: string;
   projectUrl?: string;
   tags: string[];
   authors: string[];
@@ -56,11 +63,68 @@ interface SearchResponse {
   data: SearchResult[];
 }
 
+interface ServerConfig {
+  realm: string;
+  name: string;
+  version: string;
+  git_commit_hash: string;
+  addSourceCommand: string;
+}
+
 export interface PackageListRef {
   refresh: () => void;
 }
 
-const PackageList = forwardRef<PackageListRef>((props, ref) => {
+interface PackageListProps {
+  serverConfig?: ServerConfig | null;
+}
+
+// Component for displaying package icons with fallback
+interface PackageIconDisplayProps {
+  packageId: string;
+  version: string;
+}
+
+const PackageIconDisplay: React.FC<PackageIconDisplayProps> = ({ packageId, version }) => {
+  const [hasError, setHasError] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  
+  const iconUrl = `/api/package/${packageId.toLowerCase()}/${version}/icon`;
+  
+  const handleImageLoad = useCallback(() => {
+    setIsLoading(false);
+    setHasError(false);
+  }, []);
+  
+  const handleImageError = useCallback(() => {
+    setIsLoading(false);
+    setHasError(true);
+  }, []);
+  
+  if (hasError || !iconUrl) {
+    return <PackageSourceIcon sx={{ height: 40, width: 40, mr: 2, color: 'text.secondary' }} />;
+  }
+  
+  return (
+    <Box sx={{ height: 40, width: 40, mr: 2, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+      {isLoading && <PackageSourceIcon sx={{ height: 40, width: 40, color: 'text.secondary' }} />}
+      <img 
+        src={iconUrl}
+        alt={`${packageId} icon`}
+        style={{ 
+          height: 40, 
+          width: 40, 
+          objectFit: 'contain',
+          display: isLoading ? 'none' : 'block'
+        }}
+        onLoad={handleImageLoad}
+        onError={handleImageError}
+      />
+    </Box>
+  );
+};
+
+const PackageList = forwardRef<PackageListRef, PackageListProps>(({ serverConfig }, ref) => {
   const [packages, setPackages] = useState<SearchResult[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -153,8 +217,56 @@ const PackageList = forwardRef<PackageListRef>((props, ref) => {
     );
   }
 
+  const handleCopyCommand = () => {
+    if (serverConfig?.addSourceCommand) {
+      navigator.clipboard.writeText(serverConfig.addSourceCommand);
+    }
+  };
+
   return (
     <Box>
+      {serverConfig?.addSourceCommand && (
+        <Paper 
+          sx={{ 
+            p: 2, 
+            mb: 3, 
+            backgroundColor: (theme) => theme.palette.mode === 'dark' ? 'grey.900' : 'grey.100',
+            border: 1,
+            borderColor: 'divider'
+          }}
+          elevation={0}
+        >
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <Box sx={{ flexGrow: 1 }}>
+              <Stack direction="row">
+                <EditNote fontSize="small" />
+                <Typography variant="body2" color="text.secondary" gutterBottom marginLeft="0.3rem">
+                  Add this server as a NuGet source:
+                </Typography>
+              </Stack>
+              <Typography 
+                variant="body2" marginLeft="0.5rem"
+                sx={{ 
+                  fontFamily: 'monospace',
+                  fontSize: '0.875rem',
+                  wordBreak: 'break-all'
+                }}
+              >
+                `{serverConfig.addSourceCommand}`
+              </Typography>
+            </Box>
+            <IconButton 
+              size="small" 
+              onClick={handleCopyCommand}
+              aria-label="copy command"
+              sx={{ ml: 1 }}
+            >
+              <ContentCopyIcon fontSize="small" />
+            </IconButton>
+          </Box>
+        </Paper>
+      )}
+
       <Typography variant="h4" component="h1" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
         <PackageIcon />
         Packages ({packages.length})
@@ -167,9 +279,12 @@ const PackageList = forwardRef<PackageListRef>((props, ref) => {
             aria-controls={`panel-${pkg.id}-content`}
             id={`panel-${pkg.id}-header`}
           >
-            <Typography variant="h6" component="div">
-              {pkg.id}
-            </Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', width: '100%' }}>
+              <PackageIconDisplay packageId={pkg.id} version={pkg.version} />
+              <Typography variant="h6" component="div">
+                {pkg.id}
+              </Typography>
+            </Box>
           </AccordionSummary>
           <AccordionDetails>
             <Box>
@@ -230,11 +345,11 @@ const PackageList = forwardRef<PackageListRef>((props, ref) => {
                         color="primary"
                       />
                     )}
-                    {pkg.licenseUrl && (
+                    {(pkg.licenseUrl || pkg.license) && (
                       <Chip
-                        label="License"
+                        label={pkg.license ? `License: ${pkg.license}` : "License"}
                         component="a"
-                        href={pkg.licenseUrl}
+                        href={pkg.licenseUrl || (pkg.license ? `https://spdx.org/licenses/${pkg.license}` : undefined)}
                         target="_blank"
                         rel="noopener noreferrer"
                         clickable

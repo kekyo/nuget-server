@@ -4,16 +4,18 @@
 
 import { useRef, useState, useEffect } from 'react';
 import { CssBaseline, ThemeProvider, createTheme, useMediaQuery } from '@mui/material';
-import { AppBar, Toolbar, Typography, Container, IconButton, Box } from '@mui/material';
+import { AppBar, Toolbar, Typography, Container, IconButton, Box, Tooltip } from '@mui/material';
 import { CloudUpload as UploadIcon, GitHub as GitHubIcon } from '@mui/icons-material';
 import PackageList, { PackageListRef } from './PackageList';
 import UploadDrawer from './components/UploadDrawer';
+import NUGET_SERVER_ICON_BASE64 from '../../images/nuget-server-120.png';
 
 interface ServerConfig {
   realm: string;
   name: string;
   version: string;
   git_commit_hash: string;
+  addSourceCommand: string;
 }
 
 const App = () => {
@@ -35,6 +37,10 @@ const App = () => {
         if (response.ok) {
           const config = await response.json();
           setServerConfig(config);
+          // Update document title with realm
+          if (config.realm) {
+            document.title = config.realm;
+          }
         }
       } catch (error) {
         console.error('Failed to fetch server config:', error);
@@ -58,17 +64,24 @@ const App = () => {
       <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
         <AppBar position="fixed">
           <Toolbar>
+            <img 
+              src={NUGET_SERVER_ICON_BASE64} 
+              alt="NuGet Server" 
+              style={{ height: 40, width: 40, marginRight: 16 }}
+            />
             <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
               {serverConfig?.realm || 'NuGet Server'}
             </Typography>
-            <IconButton
-              color="inherit"
-              aria-label="view source code"
-              onClick={() => window.open('https://github.com/kekyo/nuget-server', '_blank')}
-              sx={{ mr: 1 }}
-            >
-              <GitHubIcon />
-            </IconButton>
+            <Tooltip title={serverConfig ? `${serverConfig.name}-${serverConfig.version}` : 'NuGet Server'}>
+              <IconButton
+                color="inherit"
+                aria-label="view source code"
+                onClick={() => window.open('https://github.com/kekyo/nuget-server', '_blank')}
+                sx={{ mr: 1 }}
+              >
+                <GitHubIcon />
+              </IconButton>
+            </Tooltip>
             <IconButton
               color="inherit"
               aria-label="upload package"
@@ -87,7 +100,7 @@ const App = () => {
             pr: drawerOpen ? '400px' : undefined
           }}
         >
-          <PackageList ref={packageListRef} />
+          <PackageList ref={packageListRef} serverConfig={serverConfig} />
         </Container>
 
         <UploadDrawer

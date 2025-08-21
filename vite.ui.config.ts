@@ -21,6 +21,10 @@ export default defineConfig({
       '/api': {
         target: 'http://localhost:5963',
         changeOrigin: true
+      },
+      '/favicon.ico': {
+        target: 'http://localhost:5963',
+        changeOrigin: true
       }
     }
   }

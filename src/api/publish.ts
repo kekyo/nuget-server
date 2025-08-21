@@ -119,6 +119,25 @@ router.post('/', async (req: Request, res: Response) => {
       const nuspecPath = join(packageDir, `${packageId}.nuspec`);
       await writeFile(nuspecPath, nuspecContent);
 
+      // Extract icon if present
+      if (packageMetadata.icon) {
+        try {
+          const iconEntry = zip.getEntries().find(entry => entry.entryName === packageMetadata.icon);
+          if (iconEntry) {
+            const iconData = iconEntry.getData();
+            const iconExtension = packageMetadata.icon.split('.').pop()?.toLowerCase() || 'png';
+            const iconFileName = `icon.${iconExtension}`;
+            const iconPath = join(packageDir, iconFileName);
+            await writeFile(iconPath, iconData);
+            logger.info(`Extracted icon: ${iconFileName} for package ${packageId} ${version}`);
+          } else {
+            logger.warn(`Icon file ${packageMetadata.icon} specified in nuspec but not found in package ${packageId} ${version}`);
+          }
+        } catch (error) {
+          logger.error(`Failed to extract icon for package ${packageId} ${version}: ${error}`);
+        }
+      }
+
       // Update package content URL
       const baseUrl = req.baseUrl;
       packageMetadata.packageContentUrl = `${baseUrl}/package/${packageId.toLowerCase()}/${version}/${packageId.toLowerCase()}.${version}.nupkg`;

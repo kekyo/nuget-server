@@ -28,6 +28,7 @@ export interface SearchResult {
   title: string;
   iconUrl?: string;
   licenseUrl?: string;
+  license?: string;
   projectUrl?: string;
   tags: string[];
   authors: string[];
@@ -98,6 +99,7 @@ export const createSearchRouter = (logger: Logger) => {
       title: latestVersion.id,
       iconUrl: latestVersion.iconUrl,
       licenseUrl: latestVersion.licenseUrl,
+      license: latestVersion.licenseExpression,
       projectUrl: latestVersion.projectUrl,
       tags: latestVersion.tags || [],
       authors: latestVersion.authors ? latestVersion.authors.split(',').map(a => a.trim()) : [],
