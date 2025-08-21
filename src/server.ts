@@ -3,12 +3,17 @@
 // License under MIT.
 
 import express from 'express';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { apiRouter } from './api/index';
 import { name as packageName, version, git_commit_hash } from './generated/packageMetadata';
 import { createMetadataService } from './services/metadataService';
 import { createAuthService } from './services/authService';
 import { Logger, ServerConfig } from './types';
 import { createUrlResolver } from './utils/urlResolver';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 /**
  * Server instance with cleanup functionality
@@ -82,12 +87,13 @@ export const startServer = async (config: ServerConfig, logger: Logger): Promise
   
   app.use('/api', apiRouterInstance);
 
+  // Serve static UI files
+  const uiPath = path.join(__dirname, 'ui');
+  app.use(express.static(uiPath));
+
+  // Serve UI at root path
   app.get('/', (_req, res) => {
-    res.json({
-      message: 'NuGet Server',
-      version: version,
-      apiEndpoint: '/api'
-    });
+    res.sendFile(path.join(uiPath, 'index.html'));
   });
 
   return new Promise((resolve) => {
