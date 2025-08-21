@@ -86,7 +86,7 @@ router.get('/:id/:version/icon', async (req: Request, res: Response) => {
 
       // Send the icon file
       res.sendFile(iconPath);
-      logger.info(`Icon served successfully: ${packageId} ${version} (${iconFile})`);
+      logger.debug(`Icon served successfully: ${packageId} ${version} (${iconFile})`);
       
     } catch (fsError) {
       logger.warn(`Icon directory read error for ${packageId} ${version}: ${fsError}`);
