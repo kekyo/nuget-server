@@ -4,7 +4,7 @@
 
 import { useRef, useState } from 'react';
 import { CssBaseline, ThemeProvider, createTheme } from '@mui/material';
-import { AppBar, Toolbar, Typography, Container, Fab } from '@mui/material';
+import { AppBar, Toolbar, Typography, Container, IconButton } from '@mui/material';
 import { CloudUpload as UploadIcon } from '@mui/icons-material';
 import PackageList, { PackageListRef } from './PackageList';
 import UploadDrawer from './components/UploadDrawer';
@@ -36,24 +36,18 @@ const App = () => {
           <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
             {name} {version}
           </Typography>
+          <IconButton
+            color="inherit"
+            aria-label="upload package"
+            onClick={() => setDrawerOpen(true)}
+          >
+            <UploadIcon />
+          </IconButton>
         </Toolbar>
       </AppBar>
       <Container maxWidth="lg" sx={{ mt: 4, mb: 4, pr: drawerOpen ? '400px' : undefined }}>
         <PackageList ref={packageListRef} />
       </Container>
-      
-      <Fab
-        color="primary"
-        aria-label="upload"
-        sx={{
-          position: 'fixed',
-          bottom: 16,
-          right: 16,
-        }}
-        onClick={() => setDrawerOpen(true)}
-      >
-        <UploadIcon />
-      </Fab>
 
       <UploadDrawer
         open={drawerOpen}

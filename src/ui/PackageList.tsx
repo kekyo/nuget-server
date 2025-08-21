@@ -8,16 +8,15 @@ import {
   Accordion,
   AccordionSummary,
   AccordionDetails,
-  List,
-  ListItem,
-  ListItemText,
   CircularProgress,
   Alert,
   Chip,
   Box,
+  Button,
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import PackageIcon from '@mui/icons-material/Inventory';
+import DownloadIcon from '@mui/icons-material/Download';
 
 interface SearchResultVersion {
   version: string;
@@ -66,6 +65,38 @@ const PackageList = forwardRef<PackageListRef>((props, ref) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const sortVersions = (versions: SearchResultVersion[]): SearchResultVersion[] => {
+    return [...versions].sort((a, b) => {
+      const parseVersion = (version: string) => {
+        const [main, prerelease] = version.split('-');
+        const parts = main.split('.').map(Number);
+        return { parts, prerelease };
+      };
+
+      const versionA = parseVersion(a.version);
+      const versionB = parseVersion(b.version);
+
+      // Compare main version parts (major.minor.patch)
+      for (let i = 0; i < Math.max(versionA.parts.length, versionB.parts.length); i++) {
+        const partA = versionA.parts[i] || 0;
+        const partB = versionB.parts[i] || 0;
+        
+        if (partA !== partB) {
+          return partB - partA; // Descending order (latest first)
+        }
+      }
+
+      // If main versions are equal, handle prerelease
+      if (versionA.prerelease && !versionB.prerelease) return 1; // stable comes before prerelease
+      if (!versionA.prerelease && versionB.prerelease) return -1; // stable comes before prerelease
+      if (versionA.prerelease && versionB.prerelease) {
+        return versionA.prerelease.localeCompare(versionB.prerelease); // alphabetical for prerelease
+      }
+
+      return 0;
+    });
+  };
+
   const fetchPackages = async () => {
     setLoading(true);
     setError(null);
@@ -75,7 +106,14 @@ const PackageList = forwardRef<PackageListRef>((props, ref) => {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       const data: SearchResponse = await response.json();
-      setPackages(data.data);
+      
+      // Sort versions for each package
+      const packagesWithSortedVersions = data.data.map(pkg => ({
+        ...pkg,
+        versions: sortVersions(pkg.versions)
+      }));
+      
+      setPackages(packagesWithSortedVersions);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error occurred');
     } finally {
@@ -198,16 +236,22 @@ const PackageList = forwardRef<PackageListRef>((props, ref) => {
               <Typography variant="subtitle2" gutterBottom>
                 Versions ({pkg.versions.length}):
               </Typography>
-              <List dense>
+              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
                 {pkg.versions.map((version) => (
-                  <ListItem key={version.version} sx={{ pl: 0 }}>
-                    <ListItemText
-                      primary={version.version}
-                      secondary={`Downloads: ${version.downloads.toLocaleString()}`}
-                    />
-                  </ListItem>
+                  <Button
+                    key={version.version}
+                    variant="outlined"
+                    size="small"
+                    startIcon={<DownloadIcon />}
+                    onClick={() => {
+                      const downloadUrl = `/api/package/${pkg.id.toLowerCase()}/${version.version}/${pkg.id.toLowerCase()}.${version.version}.nupkg`;
+                      window.open(downloadUrl, '_blank');
+                    }}
+                  >
+                    {version.version}
+                  </Button>
                 ))}
-              </List>
+              </Box>
             </Box>
           </AccordionDetails>
         </Accordion>

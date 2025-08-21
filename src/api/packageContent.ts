@@ -81,10 +81,14 @@ router.get('/:id/:version/:filename', async (req: Request, res: Response) => {
         return res.status(404).json({ error: 'Package not found' });
       }
 
-      logger.info(`Package served successfully: ${packageId} ${version} (${packageData.length} bytes)`);
+      // Get the actual filename from PackageEntry
+      const entry = metadataService?.getPackageEntry(packageId, version);
+      const downloadFileName = entry?.storage.fileName || filename;
+
+      logger.info(`Package served successfully: ${packageId} ${version} (${packageData.length} bytes) as "${downloadFileName}"`);
       res.set({
         'Content-Type': 'application/zip',
-        'Content-Disposition': `attachment; filename="${filename}"`
+        'Content-Disposition': `attachment; filename="${downloadFileName}"`
       });
 
       res.send(packageData);

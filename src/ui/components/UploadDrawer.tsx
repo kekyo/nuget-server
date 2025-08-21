@@ -149,7 +149,7 @@ const UploadDrawer = ({ open, onClose, onUploadSuccess }: UploadDrawerProps) => 
             />
 
             {selectedFile && (
-              <Paper sx={{ p: 2, mb: 3, bgcolor: 'grey.50' }}>
+              <Paper sx={{ p: 2, mb: 3 }} variant="outlined" elevation={0}>
                 <Typography variant="body2" color="text.secondary">
                   Selected file:
                 </Typography>
@@ -184,7 +184,7 @@ const UploadDrawer = ({ open, onClose, onUploadSuccess }: UploadDrawerProps) => 
             </Alert>
 
             {result.success && result.packageName && (
-              <Paper sx={{ p: 2, mb: 3, bgcolor: 'success.50' }}>
+              <Paper sx={{ p: 2, mb: 3 }} variant="outlined" elevation={0}>
                 <Typography variant="body2" color="text.secondary" gutterBottom>
                   Package Details:
                 </Typography>
@@ -204,19 +204,25 @@ const UploadDrawer = ({ open, onClose, onUploadSuccess }: UploadDrawerProps) => 
                 <Typography variant="body2" color="text.secondary" gutterBottom>
                   Details:
                 </Typography>
-                <Typography
-                  variant="body2"
+                <Paper
                   sx={{
-                    fontFamily: 'monospace',
-                    fontSize: '0.75rem',
-                    bgcolor: 'grey.100',
                     p: 1,
                     borderRadius: 1,
-                    whiteSpace: 'pre-wrap',
                   }}
+                  variant="outlined"
+                  elevation={0}
                 >
-                  {result.message}
-                </Typography>
+                  <Typography
+                    variant="body2"
+                    sx={{
+                      fontFamily: 'monospace',
+                      fontSize: '0.75rem',
+                      whiteSpace: 'pre-wrap',
+                    }}
+                  >
+                    {result.message}
+                  </Typography>
+                </Paper>
               </Box>
             )}
 

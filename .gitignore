@@ -56,3 +56,7 @@ temp/
 test-results/
 playwright-report/
 artifacts/
+
+# Running nuget-server
+packages/
+config/
