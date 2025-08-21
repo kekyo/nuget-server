@@ -19,9 +19,10 @@ import { createSearchRouter } from './search';
  * @param metadataService - Metadata service for package information management
  * @param packagesRoot - Root directory for package storage
  * @param authService - Authentication service for Basic auth
+ * @param realm - Authentication realm for Basic auth challenges
  * @returns Configured Express router with all API endpoints
  */
-export const apiRouter = (logger: Logger, metadataService: MetadataService, packagesRoot: string, authService: AuthService) => {
+export const apiRouter = (logger: Logger, metadataService: MetadataService, packagesRoot: string, authService: AuthService, realm: string) => {
   const router = Router();
 
   const registrationsRouterInfo = createRegistrationsRouter(logger);
@@ -39,7 +40,7 @@ export const apiRouter = (logger: Logger, metadataService: MetadataService, pack
   // Create authentication middlewares that dynamically get users
   const publishAuthMiddleware = (req: Request, res: Response, next: NextFunction) => {
     const middleware = createOptionalBasicAuthMiddleware({
-      realm: 'NuGet Server - Publish',
+      realm: `${realm} - Publish`,
       users: authService.getPublishUsers(),
       logger
     });
@@ -48,7 +49,7 @@ export const apiRouter = (logger: Logger, metadataService: MetadataService, pack
 
   const generalAuthMiddleware = (req: Request, res: Response, next: NextFunction) => {
     const middleware = createOptionalBasicAuthMiddleware({
-      realm: 'NuGet Server',
+      realm: realm,
       users: authService.getGeneralUsers(),
       logger
     });

@@ -37,4 +37,5 @@ export interface ServerConfig {
   packageDir?: string;
   configDir?: string;
   trustedProxies?: string[];
+  realm?: string;
 }

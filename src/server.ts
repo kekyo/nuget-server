@@ -63,7 +63,8 @@ export const startServer = async (config: ServerConfig, logger: Logger): Promise
   }
 
   // Create API router with all dependencies
-  const apiRouterInstance = apiRouter(logger, metadataService, packagesRoot, authService);
+  const realm = config.realm || `${packageName} ${version}`;
+  const apiRouterInstance = apiRouter(logger, metadataService, packagesRoot, authService, realm);
 
   // Add request logging middleware
   app.use((req, _res, next) => {
@@ -90,6 +91,16 @@ export const startServer = async (config: ServerConfig, logger: Logger): Promise
   // Serve static UI files
   const uiPath = path.join(__dirname, 'ui');
   app.use(express.static(uiPath));
+
+  // API endpoint to get server configuration for UI
+  app.get('/api/config', (_req, res) => {
+    res.json({
+      realm: realm,
+      name: packageName,
+      version: version,
+      git_commit_hash: git_commit_hash
+    });
+  });
 
   // Serve UI at root path
   app.get('/', (_req, res) => {
