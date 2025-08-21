@@ -64,7 +64,7 @@ export const startServer = async (config: ServerConfig, logger: Logger): Promise
 
   // Create API router with all dependencies
   const realm = config.realm || `${packageName} ${version}`;
-  const apiRouterInstance = apiRouter(logger, metadataService, packagesRoot, authService, realm);
+  const apiRouterInstance = apiRouter(logger, metadataService, packagesRoot, authService, realm, config.configDir);
 
   // Generate the add source command example (same logic as in server startup logs)
   let addSourceCommand: string;

@@ -159,6 +159,28 @@ const generateApr1Hash = (password: string, salt: string): string => {
 };
 
 /**
+ * Generates SHA1 hash for a password in htpasswd format
+ * @param password - Plain text password
+ * @returns SHA1 hash in {SHA}base64 format
+ */
+export const generateSha1Hash = (password: string): string => {
+  const sha1 = createHash('sha1');
+  sha1.update(password);
+  const hash = sha1.digest('base64');
+  return `{SHA}${hash}`;
+};
+
+/**
+ * Creates a htpasswd entry string
+ * @param username - Username
+ * @param passwordHash - Password hash
+ * @returns Formatted htpasswd entry
+ */
+export const formatHtpasswdEntry = (username: string, passwordHash: string): string => {
+  return `${username}:${passwordHash}`;
+};
+
+/**
  * Creates a user lookup map from htpasswd users array
  * @param users - Array of htpasswd users
  * @returns Map with username as key and user object as value

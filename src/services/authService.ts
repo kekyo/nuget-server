@@ -27,10 +27,12 @@ export interface AuthService {
   destroy(): void;
   getPublishUsers(): Map<string, HtpasswdUser>;
   getGeneralUsers(): Map<string, HtpasswdUser>;
+  getAdminUsers(): Map<string, HtpasswdUser>;
   isReady(): boolean;
   waitForInitialization(): Promise<void>;
   isPublishAuthEnabled(): boolean;
   isGeneralAuthEnabled(): boolean;
+  isAdminAuthEnabled(): boolean;
   reload(): Promise<void>;
 }
 
@@ -43,6 +45,7 @@ export const createAuthService = (config: AuthServiceConfig): AuthService => {
   const { configDir, logger } = config;
   let publishUsers: Map<string, HtpasswdUser> = new Map();
   let generalUsers: Map<string, HtpasswdUser> = new Map();
+  let adminUsers: Map<string, HtpasswdUser> = new Map();
   const watchers: FSWatcher[] = [];
   let isInitialized = false;
   let initializationPromise: Promise<void> | null = null;
@@ -51,9 +54,9 @@ export const createAuthService = (config: AuthServiceConfig): AuthService => {
   /**
    * Loads a specific htpasswd file
    * @param filename - Name of the htpasswd file
-   * @param type - Type of authentication (publish or general)
+   * @param type - Type of authentication (publish, general, or admin)
    */
-  const loadHtpasswdFile = async (filename: string, type: 'publish' | 'general'): Promise<void> => {
+  const loadHtpasswdFile = async (filename: string, type: 'publish' | 'general' | 'admin'): Promise<void> => {
     const filePath = join(configDir, filename);
     const loadStartTime = Date.now();
     
@@ -71,6 +74,9 @@ export const createAuthService = (config: AuthServiceConfig): AuthService => {
       if (type === 'publish') {
         publishUsers = userMap;
         logger.info(`Loaded ${users.length} users from ${filename} for publish authentication`);
+      } else if (type === 'admin') {
+        adminUsers = userMap;
+        logger.info(`Loaded ${users.length} users from ${filename} for admin authentication`);
       } else {
         generalUsers = userMap;
         logger.info(`Loaded ${users.length} users from ${filename} for general authentication`);
@@ -89,6 +95,8 @@ export const createAuthService = (config: AuthServiceConfig): AuthService => {
         logger.info(`${filename} not found - ${type} authentication disabled`);
         if (type === 'publish') {
           publishUsers.clear();
+        } else if (type === 'admin') {
+          adminUsers.clear();
         } else {
           generalUsers.clear();
         }
@@ -101,12 +109,20 @@ export const createAuthService = (config: AuthServiceConfig): AuthService => {
 
   /**
    * Loads htpasswd files from the configuration directory sequentially
-   * to avoid race conditions when both files exist
+   * to avoid race conditions when multiple files exist
    */
   const loadHtpasswdFiles = async (): Promise<void> => {
     logger.debug(`Starting htpasswd files loading`);
     
-    // Load publish authentication file first
+    // Load admin authentication file first
+    try {
+      await loadHtpasswdFile('htpasswd-admin', 'admin');
+    } catch (error) {
+      logger.error(`Failed to load htpasswd-admin: ${error}`);
+      // Continue with other files even if admin fails
+    }
+    
+    // Load publish authentication file
     try {
       await loadHtpasswdFile('htpasswd-publish', 'publish');
     } catch (error) {
@@ -122,13 +138,13 @@ export const createAuthService = (config: AuthServiceConfig): AuthService => {
       // Don't throw - partial initialization is acceptable
     }
     
-    logger.info(`Htpasswd files loading completed - publish: ${publishUsers.size} users, general: ${generalUsers.size} users`);
+    logger.info(`Htpasswd files loading completed - admin: ${adminUsers.size} users, publish: ${publishUsers.size} users, general: ${generalUsers.size} users`);
   };
 
   /**
    * Schedules a retry to set up file watcher after a delay
    */
-  const scheduleFileWatcherRetry = (filename: string, type: 'publish' | 'general'): void => {
+  const scheduleFileWatcherRetry = (filename: string, type: 'publish' | 'general' | 'admin'): void => {
     const retryKey = `retry-${filename}`;
     
     // Clear existing retry timer
@@ -148,7 +164,7 @@ export const createAuthService = (config: AuthServiceConfig): AuthService => {
   /**
    * Debounced reload function to prevent multiple rapid reloads
    */
-  const debouncedReload = (filename: string, type: 'publish' | 'general'): void => {
+  const debouncedReload = (filename: string, type: 'publish' | 'general' | 'admin'): void => {
     const debounceKey = `reload-${filename}`;
     
     // Clear existing timer
@@ -172,6 +188,9 @@ export const createAuthService = (config: AuthServiceConfig): AuthService => {
           if (type === 'publish') {
             publishUsers.clear();
             logger.info(`Cleared publish users due to missing file`);
+          } else if (type === 'admin') {
+            adminUsers.clear();
+            logger.info(`Cleared admin users due to missing file`);
           } else {
             generalUsers.clear();
             logger.info(`Cleared general users due to missing file`);
@@ -189,7 +208,7 @@ export const createAuthService = (config: AuthServiceConfig): AuthService => {
   /**
    * Sets up a file watcher for a specific htpasswd file with debouncing
    */
-  const setupFileWatcher = (filename: string, type: 'publish' | 'general'): void => {
+  const setupFileWatcher = (filename: string, type: 'publish' | 'general' | 'admin'): void => {
     const filePath = join(configDir, filename);
     
     try {
@@ -219,6 +238,7 @@ export const createAuthService = (config: AuthServiceConfig): AuthService => {
    */
   const setupFileWatchers = (): void => {
     const filesToWatch = [
+      { filename: 'htpasswd-admin', type: 'admin' as const },
       { filename: 'htpasswd-publish', type: 'publish' as const },
       { filename: 'htpasswd', type: 'general' as const }
     ];
@@ -278,22 +298,14 @@ export const createAuthService = (config: AuthServiceConfig): AuthService => {
     },
 
     /**
-     * Gets users configured for publish authentication
-     * @returns Map of publish users
-     */
-    getPublishUsers(): Map<string, HtpasswdUser> {
-      return publishUsers;
-    },
-
-    /**
      * Gets users configured for general authentication
-     * Includes both htpasswd users and htpasswd-publish users for unified access
-     * @returns Map of general users (htpasswd + htpasswd-publish users)
+     * Includes all user types with privilege escalation (admin > publish > general)
+     * @returns Map of general users (htpasswd + htpasswd-publish + htpasswd-admin users)
      */
     getGeneralUsers(): Map<string, HtpasswdUser> {
       const combinedUsers = new Map<string, HtpasswdUser>();
       
-      // Add general users first
+      // Add general users first (lowest priority)
       for (const [username, user] of generalUsers) {
         combinedUsers.set(username, user);
       }
@@ -303,7 +315,41 @@ export const createAuthService = (config: AuthServiceConfig): AuthService => {
         combinedUsers.set(username, user);
       }
       
+      // Add admin users (highest priority - they override both general and publish users)
+      for (const [username, user] of adminUsers) {
+        combinedUsers.set(username, user);
+      }
+      
       return combinedUsers;
+    },
+
+    /**
+     * Gets users configured for publish authentication
+     * Includes both htpasswd-publish and htpasswd-admin users
+     * @returns Map of publish users (htpasswd-publish + htpasswd-admin users)
+     */
+    getPublishUsers(): Map<string, HtpasswdUser> {
+      const combinedUsers = new Map<string, HtpasswdUser>();
+      
+      // Add publish users first
+      for (const [username, user] of publishUsers) {
+        combinedUsers.set(username, user);
+      }
+      
+      // Add admin users (they have publish privileges)
+      for (const [username, user] of adminUsers) {
+        combinedUsers.set(username, user);
+      }
+      
+      return combinedUsers;
+    },
+
+    /**
+     * Gets users configured for admin authentication (highest privilege level)
+     * @returns Map of admin users
+     */
+    getAdminUsers(): Map<string, HtpasswdUser> {
+      return adminUsers;
     },
 
     /**
@@ -337,6 +383,14 @@ export const createAuthService = (config: AuthServiceConfig): AuthService => {
      */
     isGeneralAuthEnabled(): boolean {
       return generalUsers.size > 0;
+    },
+
+    /**
+     * Checks if admin authentication is enabled
+     * @returns True if admin authentication is configured
+     */
+    isAdminAuthEnabled(): boolean {
+      return adminUsers.size > 0;
     },
 
     /**

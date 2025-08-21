@@ -5,9 +5,10 @@
 import { useRef, useState, useEffect } from 'react';
 import { CssBaseline, ThemeProvider, createTheme, useMediaQuery } from '@mui/material';
 import { AppBar, Toolbar, Typography, Container, IconButton, Box, Tooltip } from '@mui/material';
-import { CloudUpload as UploadIcon, GitHub as GitHubIcon } from '@mui/icons-material';
+import { CloudUpload as UploadIcon, GitHub as GitHubIcon, PersonAdd as PersonAddIcon } from '@mui/icons-material';
 import PackageList, { PackageListRef } from './PackageList';
 import UploadDrawer from './components/UploadDrawer';
+import UserRegistrationDrawer from './components/UserRegistrationDrawer';
 import NUGET_SERVER_ICON_BASE64 from '../../images/nuget-server-120.png';
 
 interface ServerConfig {
@@ -21,7 +22,9 @@ interface ServerConfig {
 const App = () => {
   const prefersDarkMode = useMediaQuery('(prefers-color-scheme: dark)');
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [userRegDrawerOpen, setUserRegDrawerOpen] = useState(false);
   const [serverConfig, setServerConfig] = useState<ServerConfig | null>(null);
+  const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
   const packageListRef = useRef<PackageListRef>(null);
   
   const theme = createTheme({
@@ -53,7 +56,38 @@ const App = () => {
       }
     };
 
+    // Check user role by attempting to access admin endpoint
+    const checkUserRole = async () => {
+      try {
+        // Try to access the useradd endpoint to check if user has admin privileges
+        const response = await fetch('/api/useradd', {
+          method: 'OPTIONS', // Use OPTIONS to check access without actually posting
+          credentials: 'same-origin'
+        });
+        
+        if (response.ok || response.status === 405) { // 405 Method Not Allowed means endpoint exists but OPTIONS not supported
+          setCurrentUserRole('admin');
+        } else if (response.status === 401 || response.status === 403) {
+          // Try publish endpoint to check publish privileges
+          const publishResponse = await fetch('/api/publish', {
+            method: 'OPTIONS',
+            credentials: 'same-origin'
+          });
+          
+          if (publishResponse.ok || publishResponse.status === 405) {
+            setCurrentUserRole('read-publish');
+          } else {
+            setCurrentUserRole('readonly');
+          }
+        }
+      } catch (error) {
+        console.error('Failed to check user role:', error);
+        setCurrentUserRole('readonly'); // Default to readonly on error
+      }
+    };
+
     fetchServerConfig();
+    checkUserRole();
   }, []);
 
   const handleUploadSuccess = () => {
@@ -63,6 +97,17 @@ const App = () => {
   const handleCloseDrawer = () => {
     setDrawerOpen(false);
   };
+
+  const handleUserRegSuccess = () => {
+    // Could refresh user list or show notification here
+    console.log('User registered successfully');
+  };
+
+  const handleCloseUserRegDrawer = () => {
+    setUserRegDrawerOpen(false);
+  };
+
+  const isAdminUser = currentUserRole === 'admin';
 
   return (
     <ThemeProvider theme={theme}>
@@ -88,6 +133,18 @@ const App = () => {
                 <GitHubIcon />
               </IconButton>
             </Tooltip>
+            {isAdminUser && (
+              <Tooltip title="Register User">
+                <IconButton
+                  color="inherit"
+                  aria-label="register user"
+                  onClick={() => setUserRegDrawerOpen(true)}
+                  sx={{ mr: 1 }}
+                >
+                  <PersonAddIcon />
+                </IconButton>
+              </Tooltip>
+            )}
             <IconButton
               color="inherit"
               aria-label="upload package"
@@ -103,7 +160,7 @@ const App = () => {
           sx={{ 
             mt: 12, 
             mb: 4, 
-            pr: drawerOpen ? '400px' : undefined
+            pr: (drawerOpen || userRegDrawerOpen) ? '400px' : undefined
           }}
         >
           <PackageList ref={packageListRef} serverConfig={serverConfig} />
@@ -113,6 +170,12 @@ const App = () => {
           open={drawerOpen}
           onClose={handleCloseDrawer}
           onUploadSuccess={handleUploadSuccess}
+        />
+
+        <UserRegistrationDrawer
+          open={userRegDrawerOpen}
+          onClose={handleCloseUserRegDrawer}
+          onRegistrationSuccess={handleUserRegSuccess}
         />
       </Box>
     </ThemeProvider>

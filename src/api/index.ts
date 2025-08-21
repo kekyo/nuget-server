@@ -12,6 +12,7 @@ import { createPackageContentRouter } from './packageContent';
 import { createRegistrationsRouter } from './registrations';
 import { createPublishRouter } from './publish';
 import { createSearchRouter } from './search';
+import { createUserAddRouter } from './useradd';
 
 /**
  * Creates and configures the main API router with all endpoints
@@ -20,9 +21,10 @@ import { createSearchRouter } from './search';
  * @param packagesRoot - Root directory for package storage
  * @param authService - Authentication service for Basic auth
  * @param realm - Authentication realm for Basic auth challenges
+ * @param configDir - Configuration directory for htpasswd files
  * @returns Configured Express router with all API endpoints
  */
-export const apiRouter = (logger: Logger, metadataService: MetadataService, packagesRoot: string, authService: AuthService, realm: string) => {
+export const apiRouter = (logger: Logger, metadataService: MetadataService, packagesRoot: string, authService: AuthService, realm: string, configDir: string) => {
   const router = Router();
 
   const registrationsRouterInfo = createRegistrationsRouter(logger);
@@ -36,6 +38,9 @@ export const apiRouter = (logger: Logger, metadataService: MetadataService, pack
 
   const searchRouterInfo = createSearchRouter(logger);
   searchRouterInfo.setMetadataService(metadataService);
+
+  const userAddRouterInfo = createUserAddRouter(logger);
+  userAddRouterInfo.setConfigDir(configDir);
 
   // Create authentication middlewares that dynamically get users
   const publishAuthMiddleware = (req: Request, res: Response, next: NextFunction) => {
@@ -56,6 +61,15 @@ export const apiRouter = (logger: Logger, metadataService: MetadataService, pack
     return middleware(req, res, next);
   };
 
+  const adminAuthMiddleware = (req: Request, res: Response, next: NextFunction) => {
+    const middleware = createOptionalBasicAuthMiddleware({
+      realm: `${realm} - Admin`,
+      users: authService.getAdminUsers(),
+      logger
+    });
+    return middleware(req, res, next);
+  };
+
   // Apply general authentication to service index, package downloads and registrations
   router.use('/', generalAuthMiddleware, serviceIndexRouter);
   router.use('/package', generalAuthMiddleware, packageContentRouterInfo.router);
@@ -64,6 +78,9 @@ export const apiRouter = (logger: Logger, metadataService: MetadataService, pack
   
   // Apply publish authentication to publish endpoint
   router.use('/publish', publishAuthMiddleware, publishRouterInfo.router);
+  
+  // Apply admin authentication to user management endpoint
+  router.use('/useradd', adminAuthMiddleware, userAddRouterInfo.router);
 
   return router;
 };
