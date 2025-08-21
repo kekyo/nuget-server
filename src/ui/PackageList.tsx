@@ -167,22 +167,36 @@ const PackageList = forwardRef<PackageListRef>((props, ref) => {
             aria-controls={`panel-${pkg.id}-content`}
             id={`panel-${pkg.id}-header`}
           >
-            <Box sx={{ flexGrow: 1 }}>
-              <Typography variant="h6" component="div">
-                {pkg.id}
-              </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                {pkg.description || 'No description available'}
-              </Typography>
-              {pkg.authors.length > 0 && (
-                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
-                  Authors: {pkg.authors.join(', ')}
-                </Typography>
-              )}
-            </Box>
+            <Typography variant="h6" component="div">
+              {pkg.id}
+            </Typography>
           </AccordionSummary>
           <AccordionDetails>
             <Box>
+              {/* Package Description */}
+              {pkg.description && (
+                <Box sx={{ mb: 2 }}>
+                  <Typography variant="subtitle2" gutterBottom>
+                    Description:
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    {pkg.description}
+                  </Typography>
+                </Box>
+              )}
+
+              {/* Package Authors */}
+              {pkg.authors.length > 0 && (
+                <Box sx={{ mb: 2 }}>
+                  <Typography variant="subtitle2" gutterBottom>
+                    Authors:
+                  </Typography>
+                  <Typography variant="body2" color="text.secondary">
+                    {pkg.authors.join(', ')}
+                  </Typography>
+                </Box>
+              )}
+
               {/* Package Tags */}
               {pkg.tags.length > 0 && (
                 <Box sx={{ mb: 2 }}>

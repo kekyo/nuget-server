@@ -5,7 +5,7 @@
 import { useRef, useState, useEffect } from 'react';
 import { CssBaseline, ThemeProvider, createTheme, useMediaQuery } from '@mui/material';
 import { AppBar, Toolbar, Typography, Container, IconButton, Box } from '@mui/material';
-import { CloudUpload as UploadIcon } from '@mui/icons-material';
+import { CloudUpload as UploadIcon, GitHub as GitHubIcon } from '@mui/icons-material';
 import PackageList, { PackageListRef } from './PackageList';
 import UploadDrawer from './components/UploadDrawer';
 
@@ -63,6 +63,14 @@ const App = () => {
             </Typography>
             <IconButton
               color="inherit"
+              aria-label="view source code"
+              onClick={() => window.open('https://github.com/kekyo/nuget-server', '_blank')}
+              sx={{ mr: 1 }}
+            >
+              <GitHubIcon />
+            </IconButton>
+            <IconButton
+              color="inherit"
               aria-label="upload package"
               onClick={() => setDrawerOpen(true)}
             >
@@ -76,39 +84,11 @@ const App = () => {
           sx={{ 
             mt: 12, 
             mb: 4, 
-            pr: drawerOpen ? '400px' : undefined,
-            flexGrow: 1
+            pr: drawerOpen ? '400px' : undefined
           }}
         >
           <PackageList ref={packageListRef} />
         </Container>
-
-        {/* Footer */}
-        <Box 
-          component="footer"
-          sx={{ 
-            py: 2, 
-            px: 3, 
-            mt: 'auto',
-            backgroundColor: theme.palette.mode === 'dark' ? 'grey.900' : 'grey.100',
-            borderTop: 1,
-            borderColor: 'divider'
-          }}
-        >
-          <Typography variant="body2" color="text.secondary" align="right">
-            <a 
-              href="https://github.com/kekyo/nuget-server"
-              target="_blank"
-              rel="noopener noreferrer"
-              style={{ 
-                color: 'inherit', 
-                textDecoration: 'none' 
-              }}
-            >
-              {serverConfig ? `${serverConfig.name} [${serverConfig.version}-${serverConfig.git_commit_hash}]` : 'NuGet Server'}
-            </a>
-          </Typography>
-        </Box>
 
         <UploadDrawer
           open={drawerOpen}
