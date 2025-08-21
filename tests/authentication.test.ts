@@ -6,6 +6,8 @@ import {
   createHtpasswdFile, 
   deleteHtpasswdFile, 
   makeAuthenticatedRequest, 
+  readHtpasswdFile,
+  htpasswdFileExists,
   wait,
   HtpasswdUser 
 } from './helpers/auth.js';
@@ -360,6 +362,369 @@ describe('Authentication Integration Tests', () => {
         // If authentication works correctly, verify all responses
         expect([200, 201, 400]).toContain(response4.status);
       }
+    });
+  });
+
+  describe('User Registration API (htpasswd-admin)', () => {
+    it('should reject access to /api/useradd without admin authentication', async () => {
+      // Start server without htpasswd-admin file
+      serverInstance = await startServer(serverPort, testBaseDir, undefined, packageDir, configDir);
+      
+      const response = await makeAuthenticatedRequest(`http://localhost:${serverPort}/api/useradd`, {
+        method: 'POST',
+        body: { username: 'testuser', password: 'testpass', role: 'readonly' }
+      });
+      
+      expect(response.status).toBe(401);
+    });
+
+    it('should allow admin users to access /api/useradd', async () => {
+      await createHtpasswdFile(configDir, 'htpasswd-admin', [
+        { username: 'admin', password: 'adminpass', hashType: 'plain' }
+      ]);
+      
+      serverInstance = await startServer(serverPort, testBaseDir, undefined, packageDir, configDir);
+      
+      // Admin user should be able to access useradd endpoint
+      const response = await makeAuthenticatedRequest(`http://localhost:${serverPort}/api/useradd`, {
+        method: 'POST',
+        auth: 'admin:adminpass',
+        body: { username: 'testuser', password: 'testpass', role: 'readonly' }
+      });
+      
+      expect(response.status).not.toBe(401);
+      expect([200, 201, 400]).toContain(response.status); // Success or validation error, not auth error
+    });
+
+    it('should reject non-admin users from accessing /api/useradd', async () => {
+      await createHtpasswdFile(configDir, 'htpasswd-publish', [
+        { username: 'publisher', password: 'pubpass', hashType: 'plain' }
+      ]);
+      
+      await createHtpasswdFile(configDir, 'htpasswd', [
+        { username: 'reader', password: 'readpass', hashType: 'plain' }
+      ]);
+      
+      serverInstance = await startServer(serverPort, testBaseDir, undefined, packageDir, configDir);
+      
+      // Publisher should not be able to access useradd
+      const responsePublisher = await makeAuthenticatedRequest(`http://localhost:${serverPort}/api/useradd`, {
+        method: 'POST',
+        auth: 'publisher:pubpass',
+        body: { username: 'testuser', password: 'testpass', role: 'readonly' }
+      });
+      expect(responsePublisher.status).toBe(401);
+      
+      // Reader should not be able to access useradd
+      const responseReader = await makeAuthenticatedRequest(`http://localhost:${serverPort}/api/useradd`, {
+        method: 'POST',
+        auth: 'reader:readpass',
+        body: { username: 'testuser', password: 'testpass', role: 'readonly' }
+      });
+      expect(responseReader.status).toBe(401);
+    });
+
+    it('should successfully register users with different roles', async () => {
+      await createHtpasswdFile(configDir, 'htpasswd-admin', [
+        { username: 'admin', password: 'adminpass', hashType: 'plain' }
+      ]);
+      
+      serverInstance = await startServer(serverPort, testBaseDir, undefined, packageDir, configDir);
+      await wait(1000); // Wait for server initialization
+      
+      // Register readonly user
+      const readonlyResponse = await makeAuthenticatedRequest(`http://localhost:${serverPort}/api/useradd`, {
+        method: 'POST',
+        auth: 'admin:adminpass',
+        body: { username: 'readonly_user', password: 'readonly_pass', role: 'readonly' }
+      });
+      
+      expect(readonlyResponse.status).toBe(201);
+      const readonlyData = await readonlyResponse.json();
+      expect(readonlyData.username).toBe('readonly_user');
+      expect(readonlyData.role).toBe('readonly');
+      expect(readonlyData.file).toBe('htpasswd');
+      
+      // Register read-publish user
+      const publishResponse = await makeAuthenticatedRequest(`http://localhost:${serverPort}/api/useradd`, {
+        method: 'POST',
+        auth: 'admin:adminpass',
+        body: { username: 'publish_user', password: 'publish_pass', role: 'read-publish' }
+      });
+      
+      expect(publishResponse.status).toBe(201);
+      const publishData = await publishResponse.json();
+      expect(publishData.username).toBe('publish_user');
+      expect(publishData.role).toBe('read-publish');
+      expect(publishData.file).toBe('htpasswd-publish');
+      
+      // Register admin user
+      const adminResponse = await makeAuthenticatedRequest(`http://localhost:${serverPort}/api/useradd`, {
+        method: 'POST',
+        auth: 'admin:adminpass',
+        body: { username: 'admin_user', password: 'admin_pass', role: 'admin' }
+      });
+      
+      expect(adminResponse.status).toBe(201);
+      const adminData = await adminResponse.json();
+      expect(adminData.username).toBe('admin_user');
+      expect(adminData.role).toBe('admin');
+      expect(adminData.file).toBe('htpasswd-admin');
+    });
+
+    it('should write registered users to correct htpasswd files with SHA1 hash', async () => {
+      await createHtpasswdFile(configDir, 'htpasswd-admin', [
+        { username: 'admin', password: 'adminpass', hashType: 'plain' }
+      ]);
+      
+      serverInstance = await startServer(serverPort, testBaseDir, undefined, packageDir, configDir);
+      await wait(1000);
+      
+      // Register users in different files
+      await makeAuthenticatedRequest(`http://localhost:${serverPort}/api/useradd`, {
+        method: 'POST',
+        auth: 'admin:adminpass',
+        body: { username: 'readonly_user', password: 'readonly_pass', role: 'readonly' }
+      });
+      
+      await makeAuthenticatedRequest(`http://localhost:${serverPort}/api/useradd`, {
+        method: 'POST',
+        auth: 'admin:adminpass',
+        body: { username: 'publish_user', password: 'publish_pass', role: 'read-publish' }
+      });
+      
+      await makeAuthenticatedRequest(`http://localhost:${serverPort}/api/useradd`, {
+        method: 'POST',
+        auth: 'admin:adminpass',
+        body: { username: 'admin_user', password: 'admin_pass', role: 'admin' }
+      });
+      
+      await wait(500); // Wait for file writes
+      
+      // Check htpasswd file
+      expect(await htpasswdFileExists(configDir, 'htpasswd')).toBe(true);
+      const htpasswdEntries = await readHtpasswdFile(configDir, 'htpasswd');
+      expect(htpasswdEntries.some(entry => entry.startsWith('readonly_user:'))).toBe(true);
+      const readonlyEntry = htpasswdEntries.find(entry => entry.startsWith('readonly_user:'));
+      expect(readonlyEntry).toMatch(/readonly_user:\{SHA\}.+/); // SHA1 hash format
+      
+      // Check htpasswd-publish file
+      expect(await htpasswdFileExists(configDir, 'htpasswd-publish')).toBe(true);
+      const publishEntries = await readHtpasswdFile(configDir, 'htpasswd-publish');
+      expect(publishEntries.some(entry => entry.startsWith('publish_user:'))).toBe(true);
+      const publishEntry = publishEntries.find(entry => entry.startsWith('publish_user:'));
+      expect(publishEntry).toMatch(/publish_user:\{SHA\}.+/);
+      
+      // Check htpasswd-admin file
+      const adminEntries = await readHtpasswdFile(configDir, 'htpasswd-admin');
+      expect(adminEntries.some(entry => entry.startsWith('admin_user:'))).toBe(true);
+      const adminEntry = adminEntries.find(entry => entry.startsWith('admin_user:'));
+      expect(adminEntry).toMatch(/admin_user:\{SHA\}.+/);
+    });
+
+    it('should allow registered users to authenticate with their respective permissions', async () => {
+      await createHtpasswdFile(configDir, 'htpasswd-admin', [
+        { username: 'admin', password: 'adminpass', hashType: 'plain' }
+      ]);
+      
+      serverInstance = await startServer(serverPort, testBaseDir, undefined, packageDir, configDir);
+      await wait(1000);
+      
+      // Register users
+      await makeAuthenticatedRequest(`http://localhost:${serverPort}/api/useradd`, {
+        method: 'POST',
+        auth: 'admin:adminpass',
+        body: { username: 'readonly_user', password: 'readonly_pass', role: 'readonly' }
+      });
+      
+      await makeAuthenticatedRequest(`http://localhost:${serverPort}/api/useradd`, {
+        method: 'POST',
+        auth: 'admin:adminpass',
+        body: { username: 'publish_user', password: 'publish_pass', role: 'read-publish' }
+      });
+      
+      await makeAuthenticatedRequest(`http://localhost:${serverPort}/api/useradd`, {
+        method: 'POST',
+        auth: 'admin:adminpass',
+        body: { username: 'admin_user', password: 'admin_pass', role: 'admin' }
+      });
+      
+      // Manually trigger auth service reload via server restart (simpler approach)
+      await serverInstance?.stop();
+      serverInstance = await startServer(serverPort, testBaseDir, undefined, packageDir, configDir);
+      await wait(1000); // Wait for server restart and file loading
+      
+      // Test readonly user - should access general endpoints but not publish
+      const readonlyGeneral = await makeAuthenticatedRequest(`http://localhost:${serverPort}/api/index.json`, {
+        auth: 'readonly_user:readonly_pass'
+      });
+      expect(readonlyGeneral.status).toBe(200);
+      
+      const readonlyPublish = await makeAuthenticatedRequest(`http://localhost:${serverPort}/api/publish`, {
+        method: 'POST',
+        auth: 'readonly_user:readonly_pass',
+        body: Buffer.from('dummy')
+      });
+      expect(readonlyPublish.status).toBe(401);
+      
+      // Test read-publish user - should access both general and publish endpoints
+      const publishGeneral = await makeAuthenticatedRequest(`http://localhost:${serverPort}/api/index.json`, {
+        auth: 'publish_user:publish_pass'
+      });
+      expect(publishGeneral.status).toBe(200);
+      
+      const publishPublish = await makeAuthenticatedRequest(`http://localhost:${serverPort}/api/publish`, {
+        method: 'POST',
+        auth: 'publish_user:publish_pass',
+        body: Buffer.from('dummy')
+      });
+      expect(publishPublish.status).not.toBe(401); // Should not be auth error
+      
+      // Test admin user - should access all endpoints
+      const adminGeneral = await makeAuthenticatedRequest(`http://localhost:${serverPort}/api/index.json`, {
+        auth: 'admin_user:admin_pass'
+      });
+      expect(adminGeneral.status).toBe(200);
+      
+      const adminPublish = await makeAuthenticatedRequest(`http://localhost:${serverPort}/api/publish`, {
+        method: 'POST',
+        auth: 'admin_user:admin_pass',
+        body: Buffer.from('dummy')
+      });
+      expect(adminPublish.status).not.toBe(401);
+      
+      const adminUserAdd = await makeAuthenticatedRequest(`http://localhost:${serverPort}/api/useradd`, {
+        method: 'POST',
+        auth: 'admin_user:admin_pass',
+        body: { username: 'another_user', password: 'another_pass', role: 'readonly' }
+      });
+      expect(adminUserAdd.status).not.toBe(401);
+    });
+
+    it('should validate user input and reject invalid registration attempts', async () => {
+      await createHtpasswdFile(configDir, 'htpasswd-admin', [
+        { username: 'admin', password: 'adminpass', hashType: 'plain' }
+      ]);
+      
+      serverInstance = await startServer(serverPort, testBaseDir, undefined, packageDir, configDir);
+      await wait(1000);
+      
+      // Missing username
+      const missingUsername = await makeAuthenticatedRequest(`http://localhost:${serverPort}/api/useradd`, {
+        method: 'POST',
+        auth: 'admin:adminpass',
+        body: { password: 'testpass', role: 'readonly' }
+      });
+      expect(missingUsername.status).toBe(400);
+      
+      // Missing password
+      const missingPassword = await makeAuthenticatedRequest(`http://localhost:${serverPort}/api/useradd`, {
+        method: 'POST',
+        auth: 'admin:adminpass',
+        body: { username: 'testuser', role: 'readonly' }
+      });
+      expect(missingPassword.status).toBe(400);
+      
+      // Invalid username with special characters
+      const invalidUsername = await makeAuthenticatedRequest(`http://localhost:${serverPort}/api/useradd`, {
+        method: 'POST',
+        auth: 'admin:adminpass',
+        body: { username: 'test@user', password: 'testpass', role: 'readonly' }
+      });
+      expect(invalidUsername.status).toBe(400);
+      
+      // Password too short
+      const shortPassword = await makeAuthenticatedRequest(`http://localhost:${serverPort}/api/useradd`, {
+        method: 'POST',
+        auth: 'admin:adminpass',
+        body: { username: 'testuser', password: '123', role: 'readonly' }
+      });
+      expect(shortPassword.status).toBe(400);
+      
+      // Invalid role
+      const invalidRole = await makeAuthenticatedRequest(`http://localhost:${serverPort}/api/useradd`, {
+        method: 'POST',
+        auth: 'admin:adminpass',
+        body: { username: 'testuser', password: 'testpass', role: 'invalid-role' }
+      });
+      expect(invalidRole.status).toBe(400);
+    });
+
+    it('should demonstrate privilege escalation hierarchy (admin > publish > readonly)', async () => {
+      await createHtpasswdFile(configDir, 'htpasswd-admin', [
+        { username: 'admin', password: 'adminpass', hashType: 'plain' }
+      ]);
+      
+      await createHtpasswdFile(configDir, 'htpasswd-publish', [
+        { username: 'publisher', password: 'pubpass', hashType: 'plain' }
+      ]);
+      
+      await createHtpasswdFile(configDir, 'htpasswd', [
+        { username: 'reader', password: 'readpass', hashType: 'plain' }
+      ]);
+      
+      serverInstance = await startServer(serverPort, testBaseDir, undefined, packageDir, configDir);
+      await wait(1000);
+      
+      // Admin should have access to all endpoints
+      const adminGeneral = await makeAuthenticatedRequest(`http://localhost:${serverPort}/api/index.json`, {
+        auth: 'admin:adminpass'
+      });
+      expect(adminGeneral.status).toBe(200);
+      
+      const adminPublish = await makeAuthenticatedRequest(`http://localhost:${serverPort}/api/publish`, {
+        method: 'POST',
+        auth: 'admin:adminpass',
+        body: Buffer.from('dummy')
+      });
+      expect(adminPublish.status).not.toBe(401);
+      
+      const adminUserAdd = await makeAuthenticatedRequest(`http://localhost:${serverPort}/api/useradd`, {
+        method: 'POST',
+        auth: 'admin:adminpass',
+        body: { username: 'test', password: 'test', role: 'readonly' }
+      });
+      expect(adminUserAdd.status).not.toBe(401);
+      
+      // Publisher should have access to general and publish but not useradd
+      const publishGeneral = await makeAuthenticatedRequest(`http://localhost:${serverPort}/api/index.json`, {
+        auth: 'publisher:pubpass'
+      });
+      expect(publishGeneral.status).toBe(200);
+      
+      const publishPublish = await makeAuthenticatedRequest(`http://localhost:${serverPort}/api/publish`, {
+        method: 'POST',
+        auth: 'publisher:pubpass',
+        body: Buffer.from('dummy')
+      });
+      expect(publishPublish.status).not.toBe(401);
+      
+      const publishUserAdd = await makeAuthenticatedRequest(`http://localhost:${serverPort}/api/useradd`, {
+        method: 'POST',
+        auth: 'publisher:pubpass',
+        body: { username: 'test', password: 'test', role: 'readonly' }
+      });
+      expect(publishUserAdd.status).toBe(401);
+      
+      // Reader should only have access to general endpoints
+      const readerGeneral = await makeAuthenticatedRequest(`http://localhost:${serverPort}/api/index.json`, {
+        auth: 'reader:readpass'
+      });
+      expect(readerGeneral.status).toBe(200);
+      
+      const readerPublish = await makeAuthenticatedRequest(`http://localhost:${serverPort}/api/publish`, {
+        method: 'POST',
+        auth: 'reader:readpass',
+        body: Buffer.from('dummy')
+      });
+      expect(readerPublish.status).toBe(401);
+      
+      const readerUserAdd = await makeAuthenticatedRequest(`http://localhost:${serverPort}/api/useradd`, {
+        method: 'POST',
+        auth: 'reader:readpass',
+        body: { username: 'test', password: 'test', role: 'readonly' }
+      });
+      expect(readerUserAdd.status).toBe(401);
     });
   });
 });

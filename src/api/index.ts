@@ -6,7 +6,7 @@ import { Router, Request, Response, NextFunction } from 'express';
 import { Logger } from '../types';
 import { MetadataService } from '../services/metadataService';
 import { AuthService } from '../services/authService';
-import { createOptionalBasicAuthMiddleware } from '../middleware/basicAuth';
+import { createOptionalBasicAuthMiddleware, createBasicAuthMiddleware } from '../middleware/basicAuth';
 import { serviceIndexRouter } from './serviceIndex';
 import { createPackageContentRouter } from './packageContent';
 import { createRegistrationsRouter } from './registrations';
@@ -62,7 +62,7 @@ export const apiRouter = (logger: Logger, metadataService: MetadataService, pack
   };
 
   const adminAuthMiddleware = (req: Request, res: Response, next: NextFunction) => {
-    const middleware = createOptionalBasicAuthMiddleware({
+    const middleware = createBasicAuthMiddleware({
       realm: `${realm} - Admin`,
       users: authService.getAdminUsers(),
       logger

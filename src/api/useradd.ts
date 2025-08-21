@@ -4,12 +4,14 @@
 
 import { Router, Request, Response } from 'express';
 import { promisify } from 'util';
-import { appendFile } from 'fs';
+import { appendFile, access, constants, writeFile } from 'fs';
 import { join } from 'path';
 import { Logger } from '../types';
 import { generateSha1Hash, formatHtpasswdEntry } from '../utils/htpasswd';
 
 const appendFileAsync = promisify(appendFile);
+const accessAsync = promisify(access);
+const writeFileAsync = promisify(writeFile);
 
 interface UserAddRequest {
   username: string;
@@ -95,8 +97,15 @@ export const createUserAddRouter = (logger: Logger): UserAddRouterInfo => {
 
       const filePath = join(configDir, filename);
 
-      // Append the new user entry to the appropriate file
-      await appendFileAsync(filePath, `${htpasswdEntry}\n`, 'utf-8');
+      // Check if file exists, if not create it
+      try {
+        await accessAsync(filePath, constants.F_OK);
+        // File exists, append to it with proper line termination
+        await appendFileAsync(filePath, `\n${htpasswdEntry}`, 'utf-8');
+      } catch (error) {
+        // File doesn't exist, create it
+        await writeFileAsync(filePath, `${htpasswdEntry}\n`, 'utf-8');
+      }
 
       logger.info(`User ${username} added successfully to ${filename} with ${role} permissions`);
 

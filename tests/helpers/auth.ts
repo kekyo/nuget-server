@@ -76,7 +76,7 @@ export const makeAuthenticatedRequest = async (
   options: {
     method?: string;
     auth?: string; // format: "username:password"
-    body?: Buffer | Uint8Array;
+    body?: Buffer | Uint8Array | string | object;
     headers?: Record<string, string>;
   } = {}
 ): Promise<Response> => {
@@ -86,12 +86,23 @@ export const makeAuthenticatedRequest = async (
     headers['Authorization'] = `Basic ${Buffer.from(auth).toString('base64')}`;
   }
   
-  if (body) {
-    headers['Content-Type'] = headers['Content-Type'] || 'application/octet-stream';
-  }
+  let requestBody: Uint8Array | string | undefined;
   
-  // Convert Buffer to Uint8Array if needed for fetch compatibility
-  const requestBody = body instanceof Buffer ? new Uint8Array(body) : body;
+  if (body) {
+    if (typeof body === 'object' && !(body instanceof Buffer) && !(body instanceof Uint8Array)) {
+      // JSON object
+      headers['Content-Type'] = 'application/json';
+      requestBody = JSON.stringify(body);
+    } else if (typeof body === 'string') {
+      // String body
+      headers['Content-Type'] = headers['Content-Type'] || 'text/plain';
+      requestBody = body;
+    } else {
+      // Buffer or Uint8Array
+      headers['Content-Type'] = headers['Content-Type'] || 'application/octet-stream';
+      requestBody = body instanceof Buffer ? new Uint8Array(body) : body;
+    }
+  }
   
   return fetch(url, {
     method,
@@ -167,4 +178,42 @@ export const makeAuthenticatedRequestWithRetry = async (
  */
 export const wait = (ms: number): Promise<void> => {
   return new Promise(resolve => setTimeout(resolve, ms));
+};
+
+/**
+ * Reads and parses an htpasswd file
+ * @param configDir - Directory containing the htpasswd file
+ * @param filename - Name of the htpasswd file
+ * @returns Array of username:passwordHash entries
+ */
+export const readHtpasswdFile = async (
+  configDir: string,
+  filename: string
+): Promise<string[]> => {
+  const filePath = path.join(configDir, filename);
+  try {
+    const content = await fs.readFile(filePath, 'utf-8');
+    return content.trim().split('\n').filter(line => line.length > 0);
+  } catch (error) {
+    return [];
+  }
+};
+
+/**
+ * Checks if an htpasswd file exists
+ * @param configDir - Directory containing the htpasswd file
+ * @param filename - Name of the htpasswd file
+ * @returns True if file exists
+ */
+export const htpasswdFileExists = async (
+  configDir: string,
+  filename: string
+): Promise<boolean> => {
+  const filePath = path.join(configDir, filename);
+  try {
+    await fs.access(filePath);
+    return true;
+  } catch (error) {
+    return false;
+  }
 };
