@@ -138,18 +138,7 @@ export const startServer = async (config: ServerConfig, logger: Logger): Promise
       // Ensure auth service is fully initialized before reporting status
       await authService.waitForInitialization();
       
-      logger.info(`${packageName} [${version}-${git_commit_hash}] Starting...`);
       logger.info(`Listening on port ${config.port}`);
-      
-      if (config.baseUrl) {
-        logger.info(`Fixed Base URL: ${config.baseUrl}`);
-      } else {
-        logger.info(`Base URL: http://localhost:${config.port}`);
-      }
-      
-      if (config.trustedProxies && config.trustedProxies.length > 0) {
-        logger.info(`Trusted proxies: ${config.trustedProxies.join(', ')}`);
-      }
 
       logger.info(`Example register command: ${addSourceCommand}`);
 

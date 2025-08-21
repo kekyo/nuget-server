@@ -43,6 +43,9 @@ program.
 
     const logger = createConsoleLogger(packageName, options.log as LogLevel);
 
+    // Display banner
+    logger.info(`${packageName} [${version}-${git_commit_hash}] Starting...`);
+
     const port = parseInt(options.port, 10);
     if (isNaN(port) || port <= 0 || port > 65535) {
       logger.error('Invalid port number');
@@ -55,6 +58,25 @@ program.
     const trustedProxies = options.trustedProxies 
       ? options.trustedProxies.split(',').map((ip: string) => ip.trim())
       : getTrustedProxiesFromEnv();
+
+    // Log configuration settings
+    logger.info(`Port: ${port}`);
+    
+    if (baseUrl) {
+      logger.info(`Base URL: ${baseUrl} (fixed)`);
+    } else {
+      logger.info(`Base URL: http://localhost:${port} (auto-detected)`);
+    }
+    
+    logger.info(`Package directory: ${options.packageDir}`);
+    logger.info(`Config directory: ${configDir}`);
+    logger.info(`Realm: ${realm}`);
+    logger.info(`Log level: ${options.log}`);
+    logger.info(`UI enabled: ${options.ui ? 'yes' : 'no'}`);
+    
+    if (trustedProxies && trustedProxies.length > 0) {
+      logger.info(`Trusted proxies: ${trustedProxies.join(', ')}`);
+    }
 
     const config: ServerConfig = {
       port,
