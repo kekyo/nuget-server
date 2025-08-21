@@ -204,7 +204,7 @@ export const createAuthService = (config: AuthServiceConfig): AuthService => {
       
     } catch (error: any) {
       if (error.code === 'ENOENT') {
-        //logger.debug(`Could not watch ${filename}: file does not exist (will retry if created)`);
+        logger.debug(`Could not watch ${filename}: file does not exist (will retry if created)`);
       } else {
         logger.warn(`Could not watch ${filename}: ${error}`);
       }

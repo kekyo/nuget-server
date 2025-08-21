@@ -15,7 +15,13 @@ A simple NuGet server implementation built on Node.js that provides essential Nu
 
 Compatible with `dotnet restore` and standard NuGet clients for package publishing, querying, and downloading.
 
-![nuget-server-ss-1](images/nuget-server-ss-1.png)
+A modern browser-based UI is also provided:
+
+* You can refer to registered packages. You can check various package attributes.
+* You can download packages by version.
+* You can also publish (upload) packages.
+
+![Browse packages](images/nuget-server-ss-1.png)
 
 ### Key Features
 

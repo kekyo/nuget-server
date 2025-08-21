@@ -8,7 +8,7 @@ import { Command } from 'commander';
 import { startServer } from './server';
 import { name as packageName, version, description, git_commit_hash } from './generated/packageMetadata';
 import { createConsoleLogger } from './logger';
-import { ServerConfig } from './types';
+import { ServerConfig, LogLevel } from './types';
 import { getBaseUrlFromEnv, getTrustedProxiesFromEnv } from './utils/urlResolver';
 
 const getConfigDirFromEnv = (): string | undefined => {
@@ -20,7 +20,6 @@ const getRealmFromEnv = (): string | undefined => {
 };
 
 const program = new Command();
-const logger = createConsoleLogger(packageName);
 
 program.
   name(`${packageName} [${version}-${git_commit_hash}]`).
@@ -31,8 +30,19 @@ program.
   option('-d, --package-dir <dir>', 'package storage directory', './packages').
   option('-c, --config-dir <dir>', 'configuration directory for authentication files', './').
   option('-r, --realm <realm>', `authentication realm (default: "${packageName} ${version}")`, `${packageName} ${version}`).
+  option('-l, --log <level>', 'log level (debug, info, warn, error, ignore)', 'info').
+  option('--no-ui', 'disable UI serving').
   option('--trusted-proxies <ips>', 'comma-separated list of trusted proxy IPs').
   action(async (options) => {
+    // Validate log level
+    const validLogLevels: LogLevel[] = ['debug', 'info', 'warn', 'error', 'ignore'];
+    if (!validLogLevels.includes(options.log as LogLevel)) {
+      console.error(`Invalid log level: ${options.log}. Valid levels are: ${validLogLevels.join(', ')}`);
+      process.exit(1);
+    }
+
+    const logger = createConsoleLogger(packageName, options.log as LogLevel);
+
     const port = parseInt(options.port, 10);
     if (isNaN(port) || port <= 0 || port > 65535) {
       logger.error('Invalid port number');
@@ -52,7 +62,9 @@ program.
       packageDir: options.packageDir,
       configDir,
       realm,
-      trustedProxies
+      trustedProxies,
+      logLevel: options.log as LogLevel,
+      noUi: options.noUi
     };
     
     try {

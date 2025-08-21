@@ -29,6 +29,11 @@ export interface Logger {
 }
 
 /**
+ * Log levels
+ */
+export type LogLevel = 'debug' | 'info' | 'warn' | 'error' | 'ignore';
+
+/**
  * Server configuration
  */
 export interface ServerConfig {
@@ -38,4 +43,6 @@ export interface ServerConfig {
   configDir?: string;
   trustedProxies?: string[];
   realm?: string;
+  logLevel?: LogLevel;
+  noUi?: boolean;
 }

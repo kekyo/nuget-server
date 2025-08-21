@@ -96,34 +96,42 @@ export const startServer = async (config: ServerConfig, logger: Logger): Promise
   
   app.use('/api', apiRouterInstance);
 
-  // Serve static UI files
-  const uiPath = path.join(__dirname, 'ui');
-  app.use(express.static(uiPath));
+  if (!config.noUi) {
+    // Serve static UI files
+    const uiPath = path.join(__dirname, 'ui');
+    app.use(express.static(uiPath));
 
-  // Serve images from project root
-  const imagesPath = path.join(__dirname, '..', 'images');
-  app.use('/images', express.static(imagesPath));
+    // Serve images from project root
+    const imagesPath = path.join(__dirname, '..', 'images');
+    app.use('/images', express.static(imagesPath));
 
-  // Serve favicon
-  app.get('/favicon.ico', (_req, res) => {
-    res.sendFile(path.join(imagesPath, 'nuget-server.ico'));
-  });
+    // Favicon is served by the UI static files (from public directory)
 
-  // API endpoint to get server configuration for UI
-  app.get('/api/config', (req, res) => {
-    res.json({
-      realm: realm,
-      name: packageName,
-      version: version,
-      git_commit_hash: git_commit_hash,
-      addSourceCommand: addSourceCommand
+    // API endpoint to get server configuration for UI
+    app.get('/api/config', (_req, res) => {
+      res.json({
+        realm: realm,
+        name: packageName,
+        version: version,
+        git_commit_hash: git_commit_hash,
+        addSourceCommand: addSourceCommand
+      });
     });
-  });
 
-  // Serve UI at root path
-  app.get('/', (_req, res) => {
-    res.sendFile(path.join(uiPath, 'index.html'));
-  });
+    // Serve UI at root path
+    app.get('/', (_req, res) => {
+      const uiPath = path.join(__dirname, 'ui');
+      res.sendFile(path.join(uiPath, 'index.html'));
+    });
+  } else {
+    // When UI is disabled, return JSON at root path
+    app.get('/', (_req, res) => {
+      res.json({
+        message: realm,
+        apiEndpoint: '/api'
+      });
+    });
+  }
 
   return new Promise((resolve) => {
     const server = app.listen(config.port, async () => {
