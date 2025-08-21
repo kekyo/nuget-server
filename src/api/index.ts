@@ -11,6 +11,7 @@ import { serviceIndexRouter } from './serviceIndex';
 import { createPackageContentRouter } from './packageContent';
 import { createRegistrationsRouter } from './registrations';
 import { createPublishRouter } from './publish';
+import { createSearchRouter } from './search';
 
 /**
  * Creates and configures the main API router with all endpoints
@@ -31,6 +32,9 @@ export const apiRouter = (logger: Logger, metadataService: MetadataService, pack
 
   const packageContentRouterInfo = createPackageContentRouter(logger, packagesRoot);
   packageContentRouterInfo.setPackageContentMetadataService(metadataService);
+
+  const searchRouterInfo = createSearchRouter(logger);
+  searchRouterInfo.setMetadataService(metadataService);
 
   // Create authentication middlewares that dynamically get users
   const publishAuthMiddleware = (req: Request, res: Response, next: NextFunction) => {
@@ -55,6 +59,7 @@ export const apiRouter = (logger: Logger, metadataService: MetadataService, pack
   router.use('/', generalAuthMiddleware, serviceIndexRouter);
   router.use('/package', generalAuthMiddleware, packageContentRouterInfo.router);
   router.use('/registrations', generalAuthMiddleware, registrationsRouterInfo.router);
+  router.use('/search', generalAuthMiddleware, searchRouterInfo.router);
   
   // Apply publish authentication to publish endpoint
   router.use('/publish', publishAuthMiddleware, publishRouterInfo.router);

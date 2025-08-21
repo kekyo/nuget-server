@@ -103,6 +103,72 @@ export const parsePackageFromNupkgName = (filename: string): { id: string; versi
   return null;
 }
 
+export interface TestPackageMetadata {
+  authors?: string;
+  description?: string;
+  tags?: string[];
+  licenseUrl?: string;
+  projectUrl?: string;
+  iconUrl?: string;
+}
+
+export const createTestPackage = async (
+  id: string, 
+  version: string, 
+  metadata?: TestPackageMetadata
+): Promise<Buffer> => {
+  const zip = new AdmZip();
+  
+  // Create a simple nuspec file
+  const nuspecContent = `<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd">
+  <metadata>
+    <id>${id}</id>
+    <version>${version}</version>
+    <authors>${metadata?.authors || 'Test Author'}</authors>
+    <description>${metadata?.description || 'Test package description'}</description>
+    ${metadata?.licenseUrl ? `<licenseUrl>${metadata.licenseUrl}</licenseUrl>` : ''}
+    ${metadata?.projectUrl ? `<projectUrl>${metadata.projectUrl}</projectUrl>` : ''}
+    ${metadata?.iconUrl ? `<iconUrl>${metadata.iconUrl}</iconUrl>` : ''}
+    ${metadata?.tags ? `<tags>${metadata.tags.join(' ')}</tags>` : ''}
+  </metadata>
+</package>`;
+
+  // Add nuspec file to zip
+  zip.addFile(`${id}.nuspec`, Buffer.from(nuspecContent, 'utf-8'));
+  
+  // Add a dummy content file
+  zip.addFile('_rels/.rels', Buffer.from(`<?xml version="1.0" encoding="utf-8"?>
+<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+  <Relationship Type="http://schemas.microsoft.com/packaging/2010/07/manifest" Target="/${id}.nuspec" Id="R0" />
+</Relationships>`, 'utf-8'));
+
+  // Add package manifest
+  zip.addFile('[Content_Types].xml', Buffer.from(`<?xml version="1.0" encoding="utf-8"?>
+<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
+  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml" />
+  <Default Extension="nuspec" ContentType="application/octet" />
+</Types>`, 'utf-8'));
+
+  return zip.toBuffer();
+}
+
+export const publishTestPackage = async (baseUrl: string, packageBuffer: Buffer): Promise<void> => {
+  const response = await fetch(`${baseUrl}/api/publish`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/octet-stream',
+      'Content-Length': packageBuffer.length.toString()
+    },
+    body: packageBuffer
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Failed to publish package: ${response.status} ${errorText}`);
+  }
+}
+
 export interface PackageUploadResult {
   success: boolean;
   response?: {
