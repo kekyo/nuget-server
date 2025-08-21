@@ -3,12 +3,17 @@
 // License under MIT.
 
 import express from 'express';
+import path from 'path';
+import { fileURLToPath } from 'url';
 import { apiRouter } from './api/index';
 import { name as packageName, version, git_commit_hash } from './generated/packageMetadata';
 import { createMetadataService } from './services/metadataService';
 import { createAuthService } from './services/authService';
 import { Logger, ServerConfig } from './types';
 import { createUrlResolver } from './utils/urlResolver';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 /**
  * Server instance with cleanup functionality
@@ -58,7 +63,16 @@ export const startServer = async (config: ServerConfig, logger: Logger): Promise
   }
 
   // Create API router with all dependencies
-  const apiRouterInstance = apiRouter(logger, metadataService, packagesRoot, authService);
+  const realm = config.realm || `${packageName} ${version}`;
+  const apiRouterInstance = apiRouter(logger, metadataService, packagesRoot, authService, realm);
+
+  // Generate the add source command example (same logic as in server startup logs)
+  let addSourceCommand: string;
+  if (config.baseUrl) {
+    addSourceCommand = `dotnet nuget add source "${config.baseUrl}/api/index.json" -n "ref1"${config.baseUrl.startsWith('https:') ? '' : ' --allow-insecure-connections'}`;
+  } else {
+    addSourceCommand = `dotnet nuget add source "http://localhost:${config.port}/api/index.json" -n "ref1" --allow-insecure-connections`;
+  }
 
   // Add request logging middleware
   app.use((req, _res, next) => {
@@ -82,12 +96,33 @@ export const startServer = async (config: ServerConfig, logger: Logger): Promise
   
   app.use('/api', apiRouterInstance);
 
-  app.get('/', (_req, res) => {
+  // Serve static UI files
+  const uiPath = path.join(__dirname, 'ui');
+  app.use(express.static(uiPath));
+
+  // Serve images from project root
+  const imagesPath = path.join(__dirname, '..', 'images');
+  app.use('/images', express.static(imagesPath));
+
+  // Serve favicon
+  app.get('/favicon.ico', (_req, res) => {
+    res.sendFile(path.join(imagesPath, 'nuget-server.ico'));
+  });
+
+  // API endpoint to get server configuration for UI
+  app.get('/api/config', (req, res) => {
     res.json({
-      message: 'NuGet Server',
+      realm: realm,
+      name: packageName,
       version: version,
-      apiEndpoint: '/api'
+      git_commit_hash: git_commit_hash,
+      addSourceCommand: addSourceCommand
     });
+  });
+
+  // Serve UI at root path
+  app.get('/', (_req, res) => {
+    res.sendFile(path.join(uiPath, 'index.html'));
   });
 
   return new Promise((resolve) => {
@@ -100,16 +135,16 @@ export const startServer = async (config: ServerConfig, logger: Logger): Promise
       
       if (config.baseUrl) {
         logger.info(`Fixed Base URL: ${config.baseUrl}`);
-        logger.info(`Example register command: dotnet nuget add source ${config.baseUrl}/api/index.json -n "local"${config.baseUrl.startsWith('https:') ? ' --allow-insecure-connections' : ''}`);
       } else {
         logger.info(`Base URL: http://localhost:${config.port}`);
-        logger.info(`Example register command: dotnet nuget add source http://localhost:${config.port}/api/index.json -n "local" --allow-insecure-connections`);
       }
       
       if (config.trustedProxies && config.trustedProxies.length > 0) {
         logger.info(`Trusted proxies: ${config.trustedProxies.join(', ')}`);
       }
-      
+
+      logger.info(`Example register command: ${addSourceCommand}`);
+
       if (authService.isPublishAuthEnabled()) {
         logger.info(`Publish authentication: enabled (${authService.getPublishUsers().size} users)`);
       } else {

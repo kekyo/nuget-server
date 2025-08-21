@@ -7,7 +7,8 @@ import screwUp from 'screw-up';
 export default defineConfig({
   plugins: [
     dts({
-      insertTypesEntry: true
+      insertTypesEntry: true,
+      exclude: ['src/ui/**/*']
     }),
     screwUp({
       outputMetadataFile: true

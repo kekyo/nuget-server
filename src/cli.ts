@@ -15,6 +15,10 @@ const getConfigDirFromEnv = (): string | undefined => {
   return process.env.NUGET_SERVER_CONFIG_DIR;
 };
 
+const getRealmFromEnv = (): string | undefined => {
+  return process.env.NUGET_SERVER_REALM;
+};
+
 const program = new Command();
 const logger = createConsoleLogger(packageName);
 
@@ -26,6 +30,7 @@ program.
   option('-b, --base-url <url>', 'fixed base URL for API endpoints (overrides auto-detection)').
   option('-d, --package-dir <dir>', 'package storage directory', './packages').
   option('-c, --config-dir <dir>', 'configuration directory for authentication files', './').
+  option('-r, --realm <realm>', `authentication realm (default: "${packageName} ${version}")`, `${packageName} ${version}`).
   option('--trusted-proxies <ips>', 'comma-separated list of trusted proxy IPs').
   action(async (options) => {
     const port = parseInt(options.port, 10);
@@ -36,6 +41,7 @@ program.
 
     const baseUrl = options.baseUrl || getBaseUrlFromEnv();
     const configDir = options.configDir || getConfigDirFromEnv() || './';
+    const realm = options.realm || getRealmFromEnv() || `${packageName} ${version}`;
     const trustedProxies = options.trustedProxies 
       ? options.trustedProxies.split(',').map((ip: string) => ip.trim())
       : getTrustedProxiesFromEnv();
@@ -45,6 +51,7 @@ program.
       baseUrl,
       packageDir: options.packageDir,
       configDir,
+      realm,
       trustedProxies
     };
     

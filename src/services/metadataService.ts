@@ -171,7 +171,7 @@ export const createMetadataService = (packagesRoot: string = './packages', baseU
       
       // Extract tags
       const tags = metadata.tags ? 
-        (typeof metadata.tags === 'string' ? metadata.tags.split(/[\s,]+/).filter(t => t) : []) : 
+        (typeof metadata.tags === 'string' ? metadata.tags.split(/[\s,;]+/).filter(t => t) : []) : 
         [];
 
       const actualPackageId = metadata.id || packageId;
@@ -193,10 +193,15 @@ export const createMetadataService = (packagesRoot: string = './packages', baseU
         packageContentUrl: `${currentBaseUrl}/package/${actualPackageId.toLowerCase()}/${version}/${actualPackageId.toLowerCase()}.${version}.nupkg`
       };
 
+      // Read actual file names from directory
+      const files = await fs.readdir(versionPath);
+      const actualNupkgFile = files.find(file => file.endsWith('.nupkg'));
+      const actualNuspecFile = files.find(file => file.endsWith('.nuspec'));
+
       const packageStorage: PackageStorage = {
         dirName: packageId,  // Actual directory name (e.g., "FlashCap")
-        fileName: `${packageId}.${version}.nupkg`,
-        nuspecName: `${packageId}.nuspec`
+        fileName: actualNupkgFile || `${packageId}.${version}.nupkg`,  // Use actual file name
+        nuspecName: actualNuspecFile || `${packageId}.nuspec`  // Use actual nuspec name
       };
 
       return {

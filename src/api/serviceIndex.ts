@@ -41,13 +41,21 @@ const createServiceIndex = (baseUrl: string): ServiceIndex => {
         '@id': `${baseUrl}/registrations/`,
         '@type': 'RegistrationsBaseUrl/3.0.0',
         comment: 'Base URL of NuGet package registration info'
+      },
+      {
+        '@id': `${baseUrl}/search`,
+        '@type': 'SearchQueryService/3.0.0',
+        comment: 'Query endpoint of NuGet Search service'
       }
     ]
   };
 }
 
 router.get('/index.json', (req: Request, res: Response) => {
-  const baseUrl = req.baseUrl;
+  // Extract base URL from headers and request info
+  const protocol = req.get('x-forwarded-proto') || (req.connection as any)?.encrypted ? 'https' : 'http';
+  const host = req.get('x-forwarded-host') || req.get('host');
+  const baseUrl = `${protocol}://${host}/api`;
   
   const serviceIndex = createServiceIndex(baseUrl);
   res.json(serviceIndex);
