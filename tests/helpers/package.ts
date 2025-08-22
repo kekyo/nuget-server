@@ -1,7 +1,6 @@
 import AdmZip from 'adm-zip';
 import fs from 'fs-extra';
 import path from 'path';
-import dayjs from 'dayjs';
 import { fileURLToPath } from 'url';
 import { createConsoleLogger } from '../../src/logger.js';
 
@@ -15,13 +14,6 @@ export interface PackageInfo {
   nupkgPath: string;
 }
 
-const timestamp = dayjs().format('YYYYMMDD_HHmmss');
-  
-export const createTestDirectory = async (testName: string): Promise<string> => {
-  const testDir = path.join(process.cwd(), 'test-results', timestamp, testName.replaceAll(' ', '-'));
-  await fs.ensureDir(testDir);
-  return testDir;
-}
 
 export const getAvailablePackages = async (): Promise<PackageInfo[]> => {
   const artifactsDir = path.resolve(__dirname, '../fixtures/packages');
@@ -160,7 +152,7 @@ export const publishTestPackage = async (baseUrl: string, packageBuffer: Buffer)
       'Content-Type': 'application/octet-stream',
       'Content-Length': packageBuffer.length.toString()
     },
-    body: packageBuffer
+    body: new Uint8Array(packageBuffer)
   });
 
   if (!response.ok) {
@@ -192,7 +184,7 @@ export const testPackageUpload = async (publishUrl: string, packagePath: string)
         'Content-Type': 'application/octet-stream',
         'Content-Length': packageBuffer.length.toString()
       },
-      body: packageBuffer
+      body: new Uint8Array(packageBuffer)
     });
 
     const responseText = await response.text();

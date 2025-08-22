@@ -2,7 +2,17 @@
 // Copyright (c) Kouji Matsui (@kekyo@mi.kekyo.net)
 // License under MIT.
 
-import { Request } from 'express';
+/**
+ * Generic request interface for URL resolution
+ */
+interface GenericRequest {
+  protocol: string;
+  ip?: string;
+  socket: {
+    remoteAddress?: string;
+  };
+  get(header: string): string | undefined;
+}
 
 /**
  * Configuration for URL resolver
@@ -30,10 +40,10 @@ export const createUrlResolver = (config: UrlResolverConfig = {}) => {
 
   /**
    * Checks if a request comes from a trusted proxy
-   * @param req - Express request object
+   * @param req - Generic request object
    * @returns True if from trusted proxy, false otherwise
    */
-  const isRequestFromTrustedProxy = (req: Request): boolean => {
+  const isRequestFromTrustedProxy = (req: GenericRequest): boolean => {
     if (trustedProxies.length === 0) {
       return true;
     }
@@ -70,10 +80,10 @@ export const createUrlResolver = (config: UrlResolverConfig = {}) => {
 
   /**
    * Resolves the base URL for API endpoints from request headers
-   * @param req - Express request object
+   * @param req - Generic request object
    * @returns Resolved URL information
    */
-  const resolveUrl = (req: Request): ResolvedUrl => {
+  const resolveUrl = (req: GenericRequest): ResolvedUrl => {
     if (fixedBaseUrl) {
       return {
         baseUrl: fixedBaseUrl.replace(/\/$/, ''),

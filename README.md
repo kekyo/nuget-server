@@ -167,6 +167,75 @@ nuget-server
 
 The configuration directory is used for the following basic authentication.
 
+## JSON-based Authentication with --auth-init
+
+In addition to htpasswd authentication, nuget-server also supports JSON-based authentication with role management.
+
+### Initialize with --auth-init
+
+Create an initial admin user interactively:
+
+```bash
+nuget-server --auth-init --config-dir ./config
+```
+
+This command will:
+1. Prompt for admin username (default: admin)
+2. Prompt for password (minimum 4 characters, masked input)
+3. Generate an API key for the admin user
+4. Create `users.json` in the config directory
+5. Exit after initialization (server does not start)
+
+Example session:
+```
+Initializing authentication...
+Enter admin username [admin]: 
+Enter password: ****
+Confirm password: ****
+
+============================================================
+Admin user created successfully!
+============================================================
+Username: admin
+API Key: ngs_xxxxxxxxxxxxxxxxxxxxxx
+============================================================
+
+IMPORTANT: Save this API key securely. It cannot be retrieved again.
+Use this API key for NuGet client authentication:
+  Username: admin
+  Password: ngs_xxxxxxxxxxxxxxxxxxxxxx
+============================================================
+```
+
+### Authentication Modes
+
+When using JSON-based authentication, configure the mode with `--enable-auth`:
+
+- `none`: No authentication required (default)
+- `publish`: Authentication required only for package publishing
+- `full`: Authentication required for all operations
+
+### Using the API Key
+
+After initialization, use the generated API key with NuGet clients:
+
+```bash
+# Add source with API key
+dotnet nuget add source http://localhost:5963/v3/index.json \
+  -n "local" \
+  -u admin \
+  -p ngs_xxxxxxxxxxxxxxxxxxxxxx \
+  --store-password-in-clear-text
+
+# Publish packages with API key
+curl -X POST http://localhost:5963/api/publish \
+  -u admin:ngs_xxxxxxxxxxxxxxxxxxxxxx \
+  --data-binary @MyPackage.1.0.0.nupkg \
+  -H "Content-Type: application/octet-stream"
+```
+
+Note: The `users.json` file should be protected with appropriate file permissions and never committed to version control.
+
 ## Basic authentication
 
 The nuget-server supports Basic authentication using `htpasswd` files for securing package access and publishing.

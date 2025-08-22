@@ -7,6 +7,6 @@
  */
 
 /**
- * Export the startServer function from server module
+ * Export the startFastifyServer function from server.fastify module
  */
-export { startServer } from './server';
+export { startFastifyServer } from './server.fastify';

@@ -30,6 +30,7 @@ interface UserRegistrationDrawerProps {
   open: boolean;
   onClose: () => void;
   onRegistrationSuccess: () => void;
+  serverType?: 'express' | 'fastify';
 }
 
 interface RegistrationResult {
@@ -40,7 +41,7 @@ interface RegistrationResult {
 
 type UserRole = 'read' | 'publish' | 'admin';
 
-const UserRegistrationDrawer = ({ open, onClose, onRegistrationSuccess }: UserRegistrationDrawerProps) => {
+const UserRegistrationDrawer = ({ open, onClose, onRegistrationSuccess, serverType }: UserRegistrationDrawerProps) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -86,17 +87,32 @@ const UserRegistrationDrawer = ({ open, onClose, onRegistrationSuccess }: UserRe
     setResult(null);
 
     try {
-      const response = await fetch('/api/useradd', {
+      // Use appropriate user management endpoint based on server type
+      const endpoint = serverType === 'fastify' 
+        ? '/api/ui/users'
+        : '/api/useradd';
+      
+      // Prepare request body based on server type
+      const requestBody = serverType === 'fastify'
+        ? {
+            action: 'create',
+            username,
+            password,
+            role
+          }
+        : {
+            username,
+            password,
+            role
+          };
+      
+      const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
         credentials: 'same-origin',
-        body: JSON.stringify({
-          username: username.trim(),
-          password,
-          role
-        }),
+        body: JSON.stringify(requestBody)
       });
 
       const data = await response.json();
@@ -191,7 +207,7 @@ const UserRegistrationDrawer = ({ open, onClose, onRegistrationSuccess }: UserRe
       anchor="right"
       open={open}
       onClose={handleClose}
-      variant="persistent"
+      variant="temporary"
       sx={{
         width: 400,
         flexShrink: 0,

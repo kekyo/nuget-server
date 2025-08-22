@@ -25,7 +25,7 @@ export default defineConfig({
       formats: ['es', 'cjs']
     },
     rollupOptions: {
-      external: ['express', 'commander', 'fs/promises', 'fs', 'os', 'crypto', 'zlib', 'path', 'url', 'xml2js', 'events', 'stream', 'buffer', 'timers', 'util']
+      external: ['commander', 'fs/promises', 'fs', 'os', 'crypto', 'zlib', 'path', 'url', 'xml2js', 'events', 'stream', 'buffer', 'timers', 'util', 'adm-zip', 'async-primitives', 'dayjs', 'fastify', '@fastify/passport', '@fastify/secure-session', '@fastify/static', '@fastify/send', 'passport-local', 'passport-http', 'readline', 'glob', 'path-scurry', 'minipass']
     },
     sourcemap: true,
     minify: false

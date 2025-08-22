@@ -5,11 +5,12 @@
 // License under MIT.
 
 import { Command } from 'commander';
-import { startServer } from './server';
+import { startFastifyServer } from './server.fastify';
 import { name as packageName, version, description, git_commit_hash } from './generated/packageMetadata';
 import { createConsoleLogger } from './logger';
 import { ServerConfig, LogLevel, AuthMode } from './types';
 import { getBaseUrlFromEnv, getTrustedProxiesFromEnv } from './utils/urlResolver';
+import { runAuthInit } from './authInit';
 
 const getConfigDirFromEnv = (): string | undefined => {
   return process.env.NUGET_SERVER_CONFIG_DIR;
@@ -27,6 +28,7 @@ const getAuthModeFromEnv = (): AuthMode | undefined => {
   return undefined;
 };
 
+
 const program = new Command();
 
 program.
@@ -42,12 +44,22 @@ program.
   option('--no-ui', 'disable UI serving').
   option('--trusted-proxies <ips>', 'comma-separated list of trusted proxy IPs').
   option('--enable-auth <mode>', 'authentication mode (none, publish, full)').
+  option('--auth-init', 'initialize authentication with interactive admin user creation').
   action(async (options) => {
     // Validate log level
     const validLogLevels: LogLevel[] = ['debug', 'info', 'warn', 'error', 'ignore'];
     if (!validLogLevels.includes(options.log as LogLevel)) {
       console.error(`Invalid log level: ${options.log}. Valid levels are: ${validLogLevels.join(', ')}`);
       process.exit(1);
+    }
+
+    const logger = createConsoleLogger(packageName, options.log as LogLevel);
+    const configDir = options.configDir || getConfigDirFromEnv() || './';
+
+    // Handle auth-init mode
+    if (options.authInit) {
+      await runAuthInit({ configDir, logger });
+      process.exit(0); // Exit after initialization
     }
 
     // Get auth mode from CLI option or environment variable, default to 'none'
@@ -60,8 +72,6 @@ program.
       process.exit(1);
     }
 
-    const logger = createConsoleLogger(packageName, options.log as LogLevel);
-
     // Display banner
     logger.info(`${packageName} [${version}-${git_commit_hash}] Starting...`);
 
@@ -72,7 +82,6 @@ program.
     }
 
     const baseUrl = options.baseUrl || getBaseUrlFromEnv();
-    const configDir = options.configDir || getConfigDirFromEnv() || './';
     const realm = options.realm || getRealmFromEnv() || `${packageName} ${version}`;
     const trustedProxies = options.trustedProxies 
       ? options.trustedProxies.split(',').map((ip: string) => ip.trim())
@@ -93,7 +102,6 @@ program.
     logger.info(`Authentication mode: ${authMode}`);
     logger.info(`Log level: ${options.log}`);
     logger.info(`UI enabled: ${options.ui ? 'yes' : 'no'}`);
-    
     if (trustedProxies && trustedProxies.length > 0) {
       logger.info(`Trusted proxies: ${trustedProxies.join(', ')}`);
     }
@@ -111,8 +119,24 @@ program.
     };
     
     try {
-      const serverInstance = await startServer(config, logger);
-      // Server is now running, CLI keeps process alive
+      logger.info('Starting Fastify server...');
+      const server = await startFastifyServer(config, logger);
+      
+      // Handle graceful shutdown
+      const gracefulShutdown = async () => {
+        logger.info('Shutting down server...');
+        try {
+          await server.close();
+          process.exit(0);
+        } catch (error) {
+          logger.error(`Error during shutdown: ${error}`);
+          process.exit(1);
+        }
+      };
+
+      process.on('SIGTERM', gracefulShutdown);
+      process.on('SIGINT', gracefulShutdown);
+      
     } catch (error) {
       logger.error(`Failed to start server: ${error}`);
       process.exit(1);

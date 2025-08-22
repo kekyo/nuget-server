@@ -4,12 +4,14 @@
 
 import { useRef, useState, useEffect, useCallback } from 'react';
 import { CssBaseline, ThemeProvider, createTheme, useMediaQuery } from '@mui/material';
-import { AppBar, Toolbar, Typography, Container, IconButton, Box, Tooltip, Button, Divider } from '@mui/material';
+import { AppBar, Toolbar, Typography, Container, Box, Button, Divider } from '@mui/material';
 import { CloudUpload as UploadIcon, GitHub as GitHubIcon, PersonAdd as PersonAddIcon, Login as LoginIcon, Logout as LogoutIcon } from '@mui/icons-material';
 import PackageList, { PackageListRef } from './PackageList';
 import UploadDrawer from './components/UploadDrawer';
 import UserRegistrationDrawer from './components/UserRegistrationDrawer';
-import NUGET_SERVER_ICON_BASE64 from '../../images/nuget-server-120.png';
+import LoginDialog from './components/LoginDialog';
+import { repository_url } from '../generated/packageMetadata';
+import nuger_server_icon from '../../images/nuget-server-120.png';
 
 interface ServerConfig {
   realm: string;
@@ -28,12 +30,14 @@ interface ServerConfig {
     role: string;
     authenticated: boolean;
   } | null;
+  serverType?: 'express' | 'fastify';
 }
 
 const App = () => {
   const prefersDarkMode = useMediaQuery('(prefers-color-scheme: dark)');
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [userRegDrawerOpen, setUserRegDrawerOpen] = useState(false);
+  const [loginDialogOpen, setLoginDialogOpen] = useState(false);
   const [serverConfig, setServerConfig] = useState<ServerConfig | null>(null);
   const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
   const packageListRef = useRef<PackageListRef>(null);
@@ -42,9 +46,18 @@ const App = () => {
     palette: {
       mode: prefersDarkMode ? 'dark' : 'light',
     },
+    components: {
+      MuiButton: {
+        styleOverrides: {
+          root: {
+            textTransform: 'none',
+          },
+        },
+      },
+    },
   });
 
-  // Check user role by attempting to access admin endpoint
+  // Check user role using serverConfig.currentUser information
   const checkUserRole = useCallback(async () => {
     try {
       // If auth is disabled, set role based on auth mode
@@ -53,26 +66,18 @@ const App = () => {
         return;
       }
 
-      // Try to access the useradd endpoint to check if user has admin privileges
-      const response = await fetch('/api/useradd', {
-        method: 'OPTIONS', // Use OPTIONS to check access without actually posting
-        credentials: 'same-origin'
-      });
-      
-      if (response.ok || response.status === 405) { // 405 Method Not Allowed means endpoint exists but OPTIONS not supported
-        setCurrentUserRole('admin');
-      } else if (response.status === 401 || response.status === 403) {
-        // Try publish endpoint to check publish privileges
-        const publishResponse = await fetch('/api/publish', {
-          method: 'OPTIONS',
-          credentials: 'same-origin'
-        });
-        
-        if (publishResponse.ok || publishResponse.status === 405) {
+      // Use serverConfig.currentUser for role information
+      if (serverConfig?.currentUser?.authenticated) {
+        const role = serverConfig.currentUser.role;
+        if (role === 'admin') {
+          setCurrentUserRole('admin');
+        } else if (role === 'publish') {
           setCurrentUserRole('read-publish');
         } else {
           setCurrentUserRole('readonly');
         }
+      } else {
+        setCurrentUserRole(null);
       }
     } catch (error) {
       console.error('Failed to check user role:', error);
@@ -81,28 +86,6 @@ const App = () => {
   }, [serverConfig]);
 
   useEffect(() => {
-    const fetchServerConfig = async () => {
-      try {
-        const response = await fetch('/api/config', {
-          credentials: 'same-origin'
-        });
-        if (response.ok) {
-          const config = await response.json();
-          setServerConfig(config);
-          // Update document title with realm
-          if (config.realm) {
-            document.title = config.realm;
-          }
-        } else if (response.status === 401) {
-          // Authentication required - reload to trigger browser's Basic auth popup
-          window.location.reload();
-          return;
-        }
-      } catch (error) {
-        console.error('Failed to fetch server config:', error);
-      }
-    };
-
     fetchServerConfig();
   }, []);
 
@@ -111,6 +94,38 @@ const App = () => {
       checkUserRole();
     }
   }, [serverConfig, checkUserRole]);
+
+  // Check authentication status for authMode=full
+  useEffect(() => {
+    const checkAuthAndShowLogin = async () => {
+      if (!serverConfig) return;
+      
+      if (serverConfig.authMode === 'full' && !serverConfig.currentUser?.authenticated) {
+        // Check session status
+        try {
+          const sessionResponse = await fetch('/api/auth/session', {
+            credentials: 'same-origin'
+          });
+          
+          if (sessionResponse.ok) {
+            const sessionData = await sessionResponse.json();
+            if (!sessionData.authenticated) {
+              // Show login dialog for unauthenticated users in full auth mode
+              setLoginDialogOpen(true);
+            }
+          } else {
+            // Show login dialog if session check fails
+            setLoginDialogOpen(true);
+          }
+        } catch (error) {
+          console.error('Failed to check session:', error);
+          setLoginDialogOpen(true);
+        }
+      }
+    };
+    
+    checkAuthAndShowLogin();
+  }, [serverConfig]);
 
   const handleUploadSuccess = () => {
     packageListRef.current?.refresh();
@@ -129,48 +144,95 @@ const App = () => {
     setUserRegDrawerOpen(false);
   };
 
-  const isAdminUser = currentUserRole === 'admin';
-
-  // 権限判定用の関数
-  const hasPublishPermission = () => {
-    return currentUserRole === 'admin' || currentUserRole === 'read-publish';
+  const handleLoginSuccess = () => {
+    setLoginDialogOpen(false);
+    // Refresh server config to get updated authentication state
+    fetchServerConfig();
   };
 
-  const hasAdminPermission = () => {
-    return currentUserRole === 'admin';
+  const handleCloseLoginDialog = () => {
+    // Don't close dialog when unauthenticated in authMode=full
+    if (serverConfig?.authMode === 'full' && !serverConfig?.currentUser?.authenticated) {
+      return; // Do nothing
+    }
+    setLoginDialogOpen(false);
+  };
+
+  const fetchServerConfig = async () => {
+    try {
+      // First try Express endpoint
+      let response = await fetch('/api/config', {
+        credentials: 'same-origin'
+      });
+      
+      // If Express endpoint fails, try Fastify UI endpoint
+      if (!response.ok && response.status === 404) {
+        response = await fetch('/api/ui/config', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({}),
+          credentials: 'same-origin'
+        });
+      }
+      
+      if (response.ok) {
+        const config = await response.json();
+        setServerConfig(config);
+        // Update document title with realm
+        if (config.realm) {
+          document.title = config.realm;
+        }
+      } else if (response.status === 401) {
+        // Authentication required - don't reload to avoid Basic auth popup
+        // The config will be fetched again after login
+        console.warn('Authentication required for config endpoint');
+        return;
+      }
+    } catch (error) {
+      console.error('Failed to fetch server config:', error);
+    }
+  };
+
+  // Permission check functions
+  const hasPublishPermission = () => {
+    return currentUserRole === 'admin' || currentUserRole === 'read-publish';
   };
 
   const isAuthenticated = () => {
     return serverConfig?.currentUser?.authenticated === true;
   };
-  
-  // Show user registration icon based on auth mode and user role
-  const showUserRegistrationIcon = () => {
-    if (!serverConfig) return false;
+
+  const shouldHideAppBarButtons = () => {
+    // Hide buttons while loading serverConfig
+    if (!serverConfig) return true;
     
-    switch (serverConfig.authMode) {
-      case 'none':
-        return false; // Never show when auth is disabled
-      case 'publish':
-        return isAdminUser; // Show only for admin users
-      case 'full':
-        return isAdminUser; // Show only for admin users
-      default:
-        return false;
+    // Hide all buttons when login dialog is open in authMode=full
+    if (loginDialogOpen && serverConfig.authMode === 'full') {
+      return true;
     }
+    
+    // Also hide buttons in authMode=full when not authenticated
+    // (even before login dialog opens)
+    if (serverConfig.authMode === 'full' && !serverConfig.currentUser?.authenticated) {
+      return true;
+    }
+    
+    return false;
   };
 
-  // ボタン表示条件の関数群
+  // Button visibility condition functions
   const showLoginButton = () => {
+    if (shouldHideAppBarButtons()) return false;
     if (!serverConfig) return false;
     const authMode = serverConfig.authMode;
     if (authMode === 'none') return false;
     if (authMode === 'publish') return !isAuthenticated();
-    if (authMode === 'full') return false; // Full modeでは基本的にログイン不要（既に認証済み）
+    if (authMode === 'full') return !isAuthenticated(); // Show when unauthenticated even in full mode
     return false;
   };
 
   const showLogoutButton = () => {
+    if (shouldHideAppBarButtons()) return false;
     if (!serverConfig) return false;
     const authMode = serverConfig.authMode;
     if (authMode === 'none') return false;
@@ -180,14 +242,18 @@ const App = () => {
   };
 
   const showUserAddButton = () => {
+    if (shouldHideAppBarButtons()) return false;
     if (!serverConfig) return false;
     const authMode = serverConfig.authMode;
     if (authMode === 'none') return false;
-    return isAuthenticated() && hasAdminPermission();
+    // Use currentUser.role from serverConfig
+    return serverConfig.currentUser?.role === 'admin';
   };
 
   const showUploadButton = () => {
-    return true; // 常に表示
+    if (shouldHideAppBarButtons()) return false;
+    if (!serverConfig) return false; // Additional safety check
+    return true; // Always show
   };
 
   const isUploadEnabled = () => {
@@ -199,13 +265,28 @@ const App = () => {
   };
 
   const handleLogin = () => {
-    const currentPath = encodeURIComponent(window.location.href);
-    window.location.href = `/api/login?redirect=${currentPath}`;
+    setLoginDialogOpen(true);
   };
 
-  const handleLogout = () => {
-    // Basic認証の場合、完全なログアウトは困難なため、ページをリロードして認証をクリア
-    window.location.reload();
+  const handleLogout = async () => {
+    try {
+      const response = await fetch('/api/auth/logout', {
+        method: 'POST',
+        credentials: 'same-origin'
+      });
+      
+      if (response.ok) {
+        // Clear local state
+        setServerConfig(null);
+        setCurrentUserRole(null);
+        // Reload to reset the application state
+        window.location.reload();
+      }
+    } catch (error) {
+      console.error('Logout failed:', error);
+      // Fallback to reload
+      window.location.reload();
+    }
   };
 
   return (
@@ -215,63 +296,37 @@ const App = () => {
         <AppBar position="fixed">
           <Toolbar>
             <img 
-              src={NUGET_SERVER_ICON_BASE64} 
-              alt="NuGet Server" 
-              style={{ height: 40, width: 40, marginRight: 16 }}
-            />
+              src={nuger_server_icon} 
+              alt={serverConfig?.realm || 'nuget-server'}
+              style={{ height: "2.3rem", width: "2.3rem", marginRight: "1rem" }} />
             <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-              {serverConfig?.realm || 'NuGet Server'}
+              {serverConfig?.realm || 'nuget-server'}
             </Typography>
-            
+
             {/* GitHub Link */}
-            <Button
-              color="inherit"
-              startIcon={<GitHubIcon />}
-              onClick={() => window.open('https://github.com/kekyo/nuget-server', '_blank')}
-              sx={{ mr: 1 }}
-            >
-              GitHub
-            </Button>
-            
+            {!shouldHideAppBarButtons() && (
+              <GitHubIcon
+                color="inherit"
+                onClick={() => window.open(repository_url, '_blank')}
+                sx={{ mx: 1 }} />
+            )}
+
             {/* Divider */}
-            <Divider orientation="vertical" flexItem sx={{ mx: 1, borderColor: 'rgba(255, 255, 255, 0.3)' }} />
-            
-            {/* Login Button */}
-            {showLoginButton() && (
-              <Button
-                color="inherit"
-                startIcon={<LoginIcon />}
-                onClick={handleLogin}
-                sx={{ mr: 1 }}
-              >
-                Login
-              </Button>
+            {!shouldHideAppBarButtons() && (
+              <Divider orientation="vertical" flexItem sx={{ mx: 1, borderColor: 'rgba(255, 255, 255, 0.3)' }} />
             )}
-            
-            {/* Logout Button */}
-            {showLogoutButton() && (
-              <Button
-                color="inherit"
-                startIcon={<LogoutIcon />}
-                onClick={handleLogout}
-                sx={{ mr: 1 }}
-              >
-                Logout
-              </Button>
-            )}
-            
+
             {/* User Add Button */}
             {showUserAddButton() && (
               <Button
                 color="inherit"
                 startIcon={<PersonAddIcon />}
                 onClick={() => setUserRegDrawerOpen(true)}
-                sx={{ mr: 1 }}
-              >
+                sx={{ mr: 1 }}>
                 Add User
               </Button>
             )}
-            
+
             {/* Upload Button */}
             {showUploadButton() && (
               <Button
@@ -282,36 +337,70 @@ const App = () => {
                 sx={{ 
                   opacity: isUploadEnabled() ? 1 : 0.5,
                   cursor: isUploadEnabled() ? 'pointer' : 'not-allowed'
-                }}
-              >
+                }}>
                 Upload
               </Button>
             )}
+
+            {/* Login Button */}
+            {showLoginButton() && (
+              <>
+                <Divider orientation="vertical" flexItem sx={{ mx: 1, borderColor: 'rgba(255, 255, 255, 0.3)' }} />
+                <Button
+                  color="inherit"
+                  startIcon={<LoginIcon />}
+                  onClick={handleLogin}
+                  sx={{ mr: 1 }}
+                >
+                  Login
+                </Button>
+              </>
+            )}
+
+            {/* Logout Button */}
+            {showLogoutButton() && (
+              <>
+                <Divider orientation="vertical" flexItem sx={{ mx: 1, borderColor: 'rgba(255, 255, 255, 0.3)' }} />
+                <Button
+                  color="inherit"
+                  startIcon={<LogoutIcon />}
+                  onClick={handleLogout}
+                  sx={{ mr: 1 }}
+                >
+                  Logout
+                </Button>
+              </>
+            )}
           </Toolbar>
         </AppBar>
-        
+
         <Container 
           maxWidth="lg" 
           sx={{ 
             mt: 12, 
             mb: 4, 
             pr: (drawerOpen || userRegDrawerOpen) ? '400px' : undefined
-          }}
-        >
+          }}>
           <PackageList ref={packageListRef} serverConfig={serverConfig} />
         </Container>
 
         <UploadDrawer
           open={drawerOpen}
           onClose={handleCloseDrawer}
-          onUploadSuccess={handleUploadSuccess}
-        />
+          onUploadSuccess={handleUploadSuccess} />
 
         <UserRegistrationDrawer
           open={userRegDrawerOpen}
           onClose={handleCloseUserRegDrawer}
           onRegistrationSuccess={handleUserRegSuccess}
-        />
+          serverType={serverConfig?.serverType} />
+
+        <LoginDialog
+          open={loginDialogOpen}
+          onClose={handleCloseLoginDialog}
+          onLoginSuccess={handleLoginSuccess}
+          realm={serverConfig?.realm || 'NuGet Server'}
+          disableBackdropClick={serverConfig?.authMode === 'full'} />
       </Box>
     </ThemeProvider>
   );

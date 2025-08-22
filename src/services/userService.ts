@@ -2,16 +2,13 @@
 // Copyright (c) Kouji Matsui (@kekyo@mi.kekyo.net)
 // License under MIT.
 
-import { readFile, writeFile, access, constants } from 'fs';
-import { promisify } from 'util';
+import { constants } from 'fs';
+import { readFile, writeFile, access } from 'fs/promises';
 import { join } from 'path';
 import { createAsyncLock } from 'async-primitives';
 import { Logger } from '../types';
 import { generateSalt, hashPassword, verifyPassword, generateApiKey, generateUserId } from '../utils/crypto';
 
-const readFileAsync = promisify(readFile);
-const writeFileAsync = promisify(writeFile);
-const accessAsync = promisify(access);
 
 /**
  * User data structure
@@ -69,7 +66,7 @@ export interface UserService {
   createUser(request: CreateUserRequest): Promise<CreateUserResponse>;
   getUser(username: string): Promise<User | null>;
   getAllUsers(): Promise<User[]>;
-  updateUser(username: string, updates: Partial<Pick<User, 'role'>>): Promise<User | null>;
+  updateUser(username: string, updates: Partial<Pick<User, 'role'>> | { password: string }): Promise<User | null>;
   deleteUser(username: string): Promise<boolean>;
   regenerateApiKey(username: string): Promise<RegenerateApiKeyResponse | null>;
   validateCredentials(username: string, password: string): Promise<User | null>;
@@ -97,10 +94,10 @@ export const createUserService = (config: UserServiceConfig): UserService => {
     const handle = await fileLock.lock();
     try {
       // Check if file exists
-      await accessAsync(usersFilePath, constants.R_OK);
+      await access(usersFilePath, constants.R_OK);
       
       // Read and parse file
-      const content = await readFileAsync(usersFilePath, 'utf-8');
+      const content = await readFile(usersFilePath, 'utf-8');
       const usersArray: User[] = JSON.parse(content);
       
       users.clear();
@@ -130,7 +127,7 @@ export const createUserService = (config: UserServiceConfig): UserService => {
     try {
       const usersArray = Array.from(users.values());
       const content = JSON.stringify(usersArray, null, 2);
-      await writeFileAsync(usersFilePath, content, 'utf-8');
+      await writeFile(usersFilePath, content, 'utf-8');
       logger.debug(`Saved ${usersArray.length} users to users.json`);
     } catch (error: any) {
       logger.error(`Failed to save users.json: ${error.message}`);
@@ -290,7 +287,7 @@ export const createUserService = (config: UserServiceConfig): UserService => {
      * @param updates - Properties to update
      * @returns Updated user or null if not found
      */
-    async updateUser(username: string, updates: Partial<Pick<User, 'role'>>): Promise<User | null> {
+    async updateUser(username: string, updates: Partial<Pick<User, 'role'>> | { password: string }): Promise<User | null> {
       const handle = await fileLock.lock();
       try {
         const user = users.get(username);
@@ -298,9 +295,17 @@ export const createUserService = (config: UserServiceConfig): UserService => {
           return null;
         }
 
-        if (updates.role) {
+        if ('role' in updates && updates.role) {
           validateRole(updates.role);
           user.role = updates.role;
+        }
+
+        if ('password' in updates && updates.password) {
+          validatePassword(updates.password);
+          const newPasswordSalt = generateSalt();
+          const newPasswordHash = hashPassword(updates.password, newPasswordSalt);
+          user.passwordHash = newPasswordHash;
+          user.salt = newPasswordSalt;
         }
 
         user.updatedAt = new Date().toISOString();

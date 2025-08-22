@@ -69,6 +69,17 @@ interface ServerConfig {
   version: string;
   git_commit_hash: string;
   addSourceCommand: string;
+  authMode: 'none' | 'publish' | 'full';
+  authEnabled: {
+    general: boolean;
+    publish: boolean;
+    admin: boolean;
+  };
+  currentUser?: {
+    username: string;
+    role: string;
+    authenticated: boolean;
+  } | null;
 }
 
 export interface PackageListRef {
@@ -162,15 +173,31 @@ const PackageList = forwardRef<PackageListRef, PackageListProps>(({ serverConfig
   };
 
   const fetchPackages = async () => {
+    // Early return if serverConfig is not available
+    if (!serverConfig) {
+      setLoading(false);
+      return;
+    }
+    
+    // Skip API request if authMode=full and user is not authenticated
+    if (serverConfig.authMode === 'full' && !serverConfig.currentUser?.authenticated) {
+      // Don't set error when unauthenticated in authMode=full (login dialog will be shown)
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch('/api/search', {
+      // Use appropriate search endpoint based on server type
+      const searchEndpoint = serverConfig?.serverType === 'fastify' ? '/v3/search' : '/api/search';
+      
+      const response = await fetch(searchEndpoint, {
         credentials: 'same-origin'
       });
       if (response.status === 401) {
-        // Authentication required - reload to trigger browser's Basic auth popup
-        window.location.reload();
+        // Authentication required
+        setError('Authentication required');
         return;
       }
       if (!response.ok) {
@@ -193,8 +220,11 @@ const PackageList = forwardRef<PackageListRef, PackageListProps>(({ serverConfig
   };
 
   useEffect(() => {
+    // Skip if serverConfig is not set
+    if (!serverConfig) return;
+    
     fetchPackages();
-  }, []);
+  }, [serverConfig]); // Add serverConfig to dependency array
 
   useImperativeHandle(ref, () => ({
     refresh: fetchPackages,
@@ -206,6 +236,11 @@ const PackageList = forwardRef<PackageListRef, PackageListProps>(({ serverConfig
         <CircularProgress />
       </Box>
     );
+  }
+
+  // Don't display anything when unauthenticated in authMode=full (login dialog will be shown)
+  if (serverConfig?.authMode === 'full' && !serverConfig?.currentUser?.authenticated) {
+    return null;
   }
 
   if (error) {

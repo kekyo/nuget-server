@@ -29,6 +29,8 @@ export interface PackageService {
   getPackageVersions(packageId: string): Promise<string[]>;
   getPackageFile(packageId: string, version: string): Promise<Buffer | null>;
   getNuspecFile(packageId: string, version: string): Promise<Buffer | null>;
+  getPackageFilePath(packageId: string, version: string): Promise<string | null>;
+  getNuspecFilePath(packageId: string, version: string): Promise<string | null>;
   packageExists(packageId: string, version: string): Promise<boolean>;
 }
 
@@ -104,6 +106,42 @@ export const createPackageService = (packagesRoot: string = './packages'): Packa
       
       try {
         return await fs.readFile(nuspecPath);
+      } catch (error) {
+        return null;
+      }
+    },
+
+    /**
+     * Gets the file path for a package (.nupkg) file
+     * @param packageId - Package identifier
+     * @param version - Package version
+     * @returns Package file path or null if not found
+     */
+    getPackageFilePath: async (packageId: string, version: string): Promise<string | null> => {
+      const packageFile = `${packageId}.${version}.nupkg`;
+      const packagePath = path.join(packagesRoot, packageId, version, packageFile);
+      
+      try {
+        await fs.access(packagePath);
+        return packagePath;
+      } catch (error) {
+        return null;
+      }
+    },
+
+    /**
+     * Gets the file path for a nuspec file
+     * @param packageId - Package identifier
+     * @param version - Package version
+     * @returns Nuspec file path or null if not found
+     */
+    getNuspecFilePath: async (packageId: string, version: string): Promise<string | null> => {
+      const nuspecFile = `${packageId}.nuspec`;
+      const nuspecPath = path.join(packagesRoot, packageId, version, nuspecFile);
+      
+      try {
+        await fs.access(nuspecPath);
+        return nuspecPath;
       } catch (error) {
         return null;
       }

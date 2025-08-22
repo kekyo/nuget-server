@@ -160,7 +160,7 @@ const UploadDrawer = ({ open, onClose, onUploadSuccess }: UploadDrawerProps) => 
       anchor="right"
       open={open}
       onClose={handleClose}
-      variant="persistent"
+      variant="temporary"
       sx={{
         width: 400,
         flexShrink: 0,
