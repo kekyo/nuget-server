@@ -3,25 +3,45 @@
 // License under MIT.
 
 import { Router, Request, Response } from 'express';
-import { promisify } from 'util';
-import { appendFile, access, constants, writeFile } from 'fs';
-import { join } from 'path';
 import { Logger } from '../types';
-import { generateSha1Hash, formatHtpasswdEntry } from '../utils/htpasswd';
-
-const appendFileAsync = promisify(appendFile);
-const accessAsync = promisify(access);
-const writeFileAsync = promisify(writeFile);
+import { UserService } from '../services/userService';
 
 interface UserAddRequest {
   username: string;
   password: string;
-  role: 'readonly' | 'read-publish' | 'admin';
+  role: 'read' | 'publish' | 'admin';
+}
+
+interface UserAddResponse {
+  success: boolean;
+  message: string;
+  apiKey?: string; // Only provided during user creation
+}
+
+interface UserListResponse {
+  users: Array<{
+    id: string;
+    username: string;
+    role: string;
+    createdAt: string;
+    updatedAt: string;
+  }>;
+}
+
+interface RegenerateApiKeyRequest {
+  username: string;
+}
+
+interface RegenerateApiKeyResponse {
+  success: boolean;
+  message: string;
+  apiKey?: string;
 }
 
 interface UserAddRouterInfo {
   router: Router;
-  setConfigDir(configDir: string): void;
+  setUserService(userService: UserService): void;
+  setConfigDir(configDir: string): void; // Keep for compatibility
 }
 
 /**
@@ -32,101 +52,198 @@ interface UserAddRouterInfo {
 export const createUserAddRouter = (logger: Logger): UserAddRouterInfo => {
   const router = Router();
   let configDir = '';
+  let userService: UserService;
 
   const setConfigDir = (dir: string) => {
     configDir = dir;
   };
 
+  const setUserService = (service: UserService) => {
+    userService = service;
+  };
+
   /**
-   * POST /useradd - Add a new user to the appropriate htpasswd file
+   * GET /useradd - Get list of all users
+   * Requires admin authentication
+   */
+  router.get('/', async (req: Request, res: Response) => {
+    try {
+      const users = await userService.getAllUsers();
+      
+      const response: UserListResponse = {
+        users: users.map(user => ({
+          id: user.id,
+          username: user.username,
+          role: user.role,
+          createdAt: user.createdAt,
+          updatedAt: user.updatedAt
+        }))
+      };
+
+      res.json(response);
+    } catch (error: any) {
+      logger.error(`Failed to get users: ${error.message}`);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to retrieve users'
+      });
+    }
+  });
+
+  /**
+   * POST /useradd - Add a new user with automatic API key generation
    * Requires admin authentication
    */
   router.post('/', async (req: Request, res: Response) => {
     try {
       const { username, password, role }: UserAddRequest = req.body;
 
-      // Validate input
-      if (!username || !password || !role) {
-        return res.status(400).json({ 
-          error: 'Missing required fields: username, password, and role are required' 
-        });
-      }
-
-      // Validate username format (basic validation)
-      if (!/^[a-zA-Z0-9_-]+$/.test(username)) {
-        return res.status(400).json({ 
-          error: 'Username must contain only alphanumeric characters, hyphens, and underscores' 
-        });
-      }
-
-      // Validate role
-      if (!['readonly', 'read-publish', 'admin'].includes(role)) {
-        return res.status(400).json({ 
-          error: 'Role must be one of: readonly, read-publish, admin' 
-        });
-      }
-
-      // Validate password strength (minimum requirements)
-      if (password.length < 4) {
-        return res.status(400).json({ 
-          error: 'Password must be at least 4 characters long' 
-        });
-      }
-
       logger.info(`Adding new user: ${username} with role: ${role}`);
 
-      // Generate SHA1 hash for the password
-      const passwordHash = generateSha1Hash(password);
-      const htpasswdEntry = formatHtpasswdEntry(username, passwordHash);
-
-      // Determine which htpasswd file to write to based on role
-      let filename: string;
-      switch (role) {
-        case 'readonly':
-          filename = 'htpasswd';
-          break;
-        case 'read-publish':
-          filename = 'htpasswd-publish';
-          break;
-        case 'admin':
-          filename = 'htpasswd-admin';
-          break;
-        default:
-          return res.status(400).json({ error: 'Invalid role' });
-      }
-
-      const filePath = join(configDir, filename);
-
-      // Check if file exists, if not create it
-      try {
-        await accessAsync(filePath, constants.F_OK);
-        // File exists, append to it with proper line termination
-        await appendFileAsync(filePath, `\n${htpasswdEntry}`, 'utf-8');
-      } catch (error) {
-        // File doesn't exist, create it
-        await writeFileAsync(filePath, `${htpasswdEntry}\n`, 'utf-8');
-      }
-
-      logger.info(`User ${username} added successfully to ${filename} with ${role} permissions`);
-
-      res.status(201).json({
-        message: 'User added successfully',
+      const result = await userService.createUser({
         username,
-        role,
-        file: filename
+        password,
+        role
       });
+
+      logger.info(`User ${username} added successfully with role: ${role}`);
+
+      const response: UserAddResponse = {
+        success: true,
+        message: 'User created successfully',
+        apiKey: result.apiKey
+      };
+
+      res.status(201).json(response);
 
     } catch (error: any) {
       logger.error(`Failed to add user: ${error.message}`);
-      res.status(500).json({ 
-        error: 'Failed to add user', 
-        details: error.message 
+      
+      const response: UserAddResponse = {
+        success: false,
+        message: error.message
+      };
+      
+      res.status(400).json(response);
+    }
+  });
+
+  /**
+   * PUT /useradd/:username - Update user role
+   * Requires admin authentication
+   */
+  router.put('/:username', async (req: Request, res: Response) => {
+    try {
+      const { username } = req.params;
+      const { role } = req.body;
+
+      if (!role) {
+        return res.status(400).json({
+          success: false,
+          message: 'Role is required'
+        });
+      }
+
+      logger.info(`Updating user ${username} role to: ${role}`);
+
+      const user = await userService.updateUser(username, { role });
+      if (!user) {
+        return res.status(404).json({
+          success: false,
+          message: 'User not found'
+        });
+      }
+
+      logger.info(`User ${username} role updated successfully to: ${role}`);
+
+      res.json({
+        success: true,
+        message: 'User role updated successfully'
+      });
+
+    } catch (error: any) {
+      logger.error(`Failed to update user: ${error.message}`);
+      res.status(400).json({
+        success: false,
+        message: error.message
+      });
+    }
+  });
+
+  /**
+   * DELETE /useradd/:username - Delete user
+   * Requires admin authentication
+   */
+  router.delete('/:username', async (req: Request, res: Response) => {
+    try {
+      const { username } = req.params;
+
+      logger.info(`Deleting user: ${username}`);
+
+      const deleted = await userService.deleteUser(username);
+      if (!deleted) {
+        return res.status(404).json({
+          success: false,
+          message: 'User not found'
+        });
+      }
+
+      logger.info(`User ${username} deleted successfully`);
+
+      res.json({
+        success: true,
+        message: 'User deleted successfully'
+      });
+
+    } catch (error: any) {
+      logger.error(`Failed to delete user: ${error.message}`);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to delete user'
+      });
+    }
+  });
+
+  /**
+   * POST /useradd/:username/regenerate-api-key - Regenerate user's API key
+   * Requires admin authentication
+   */
+  router.post('/:username/regenerate-api-key', async (req: Request, res: Response) => {
+    try {
+      const { username } = req.params;
+
+      logger.info(`Regenerating API key for user: ${username}`);
+
+      const result = await userService.regenerateApiKey(username);
+      if (!result) {
+        return res.status(404).json({
+          success: false,
+          message: 'User not found'
+        });
+      }
+
+      logger.info(`API key regenerated successfully for user: ${username}`);
+
+      const response: RegenerateApiKeyResponse = {
+        success: true,
+        message: 'API key regenerated successfully',
+        apiKey: result.apiKey
+      };
+
+      res.json(response);
+
+    } catch (error: any) {
+      logger.error(`Failed to regenerate API key: ${error.message}`);
+      res.status(500).json({
+        success: false,
+        message: 'Failed to regenerate API key'
       });
     }
   });
 
   return {
     router,
+    setUserService,
     setConfigDir
   };
 };

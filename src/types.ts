@@ -34,6 +34,11 @@ export interface Logger {
 export type LogLevel = 'debug' | 'info' | 'warn' | 'error' | 'ignore';
 
 /**
+ * Authentication modes
+ */
+export type AuthMode = 'none' | 'publish' | 'full';
+
+/**
  * Server configuration
  */
 export interface ServerConfig {
@@ -45,4 +50,5 @@ export interface ServerConfig {
   realm?: string;
   logLevel?: LogLevel;
   noUi?: boolean;
+  authMode?: AuthMode;
 }

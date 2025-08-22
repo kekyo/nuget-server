@@ -34,18 +34,17 @@ interface UserRegistrationDrawerProps {
 
 interface RegistrationResult {
   success: boolean;
-  username?: string;
-  role?: string;
-  message?: string;
+  message: string;
+  apiKey?: string;
 }
 
-type UserRole = 'readonly' | 'read-publish' | 'admin';
+type UserRole = 'read' | 'publish' | 'admin';
 
 const UserRegistrationDrawer = ({ open, onClose, onRegistrationSuccess }: UserRegistrationDrawerProps) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [role, setRole] = useState<UserRole>('readonly');
+  const [role, setRole] = useState<UserRole>('read');
   const [registering, setRegistering] = useState(false);
   const [result, setResult] = useState<RegistrationResult | null>(null);
 
@@ -100,13 +99,13 @@ const UserRegistrationDrawer = ({ open, onClose, onRegistrationSuccess }: UserRe
         }),
       });
 
-      if (response.ok) {
-        const result = await response.json();
+      const data = await response.json();
+
+      if (response.ok && data.success) {
         setResult({
           success: true,
-          username: result.username,
-          role: result.role,
-          message: result.message,
+          message: data.message,
+          apiKey: data.apiKey
         });
         onRegistrationSuccess();
       } else if (response.status === 401) {
@@ -114,10 +113,9 @@ const UserRegistrationDrawer = ({ open, onClose, onRegistrationSuccess }: UserRe
         window.location.reload();
         return;
       } else {
-        const errorData = await response.json();
         setResult({
           success: false,
-          message: errorData.error || `Registration failed: ${response.status} ${response.statusText}`,
+          message: data.message || `Registration failed: ${response.status} ${response.statusText}`,
         });
       }
     } catch (error) {
@@ -134,7 +132,7 @@ const UserRegistrationDrawer = ({ open, onClose, onRegistrationSuccess }: UserRe
     setUsername('');
     setPassword('');
     setConfirmPassword('');
-    setRole('readonly');
+    setRole('read');
     setRegistering(false);
     setResult(null);
     onClose();
@@ -144,15 +142,15 @@ const UserRegistrationDrawer = ({ open, onClose, onRegistrationSuccess }: UserRe
     setUsername('');
     setPassword('');
     setConfirmPassword('');
-    setRole('readonly');
+    setRole('read');
     setResult(null);
   };
 
   const getRoleDescription = (role: UserRole): string => {
     switch (role) {
-      case 'readonly':
+      case 'read':
         return 'Can view and download packages';
-      case 'read-publish':
+      case 'publish':
         return 'Can view, download, and upload packages';
       case 'admin':
         return 'Can view, download, upload packages, and manage users';
@@ -163,14 +161,28 @@ const UserRegistrationDrawer = ({ open, onClose, onRegistrationSuccess }: UserRe
 
   const getRoleDisplayName = (role: UserRole): string => {
     switch (role) {
-      case 'readonly':
+      case 'read':
         return 'Read Only';
-      case 'read-publish':
+      case 'publish':
         return 'Read & Publish';
       case 'admin':
         return 'Administrator';
       default:
         return role;
+    }
+  };
+
+  const copyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch (err) {
+      // Fallback for older browsers
+      const textArea = document.createElement('textarea');
+      textArea.value = text;
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textArea);
     }
   };
 
@@ -249,8 +261,8 @@ const UserRegistrationDrawer = ({ open, onClose, onRegistrationSuccess }: UserRe
                 onChange={(e) => setRole(e.target.value as UserRole)}
                 disabled={registering}
               >
-                <MenuItem value="readonly">Read Only</MenuItem>
-                <MenuItem value="read-publish">Read & Publish</MenuItem>
+                <MenuItem value="read">Read Only</MenuItem>
+                <MenuItem value="publish">Read & Publish</MenuItem>
                 <MenuItem value="admin">Administrator</MenuItem>
               </Select>
             </FormControl>
@@ -285,18 +297,62 @@ const UserRegistrationDrawer = ({ open, onClose, onRegistrationSuccess }: UserRe
               {result.success ? 'User Registered Successfully!' : 'Registration Failed'}
             </Alert>
 
-            {result.success && result.username && (
+            {result.success && (
               <Paper sx={{ p: 2, mb: 3 }} variant="outlined" elevation={0}>
                 <Typography variant="body2" color="text.secondary" gutterBottom>
-                  User Details:
+                  User created successfully!
                 </Typography>
-                <Typography variant="body1" sx={{ fontWeight: 'medium' }}>
-                  {result.username}
+                <Typography variant="body1" sx={{ fontWeight: 'medium', mb: 1 }}>
+                  Username: {username}
                 </Typography>
-                {result.role && (
-                  <Typography variant="body2" color="text.secondary">
-                    Role: {getRoleDisplayName(result.role as UserRole)}
-                  </Typography>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                  Role: {getRoleDisplayName(role)}
+                </Typography>
+                
+                {result.apiKey && (
+                  <>
+                    <Alert severity="warning" sx={{ mb: 2 }}>
+                      <Typography variant="body2" sx={{ fontWeight: 'bold', mb: 1 }}>
+                        Important: Save your API key!
+                      </Typography>
+                      <Typography variant="body2">
+                        This API key will only be shown once. Copy it now and store it securely.
+                        You'll need it to authenticate API requests.
+                      </Typography>
+                    </Alert>
+                    
+                    <Typography variant="body2" color="text.secondary" gutterBottom>
+                      API Key:
+                    </Typography>
+                    <Paper
+                      sx={{
+                        p: 2,
+                        bgcolor: 'grey.50',
+                        border: '2px dashed',
+                        borderColor: 'primary.main',
+                        cursor: 'pointer',
+                        '&:hover': {
+                          bgcolor: 'grey.100'
+                        }
+                      }}
+                      onClick={() => copyToClipboard(result.apiKey!)}
+                    >
+                      <Typography
+                        variant="body2"
+                        sx={{
+                          fontFamily: 'monospace',
+                          fontSize: '0.85rem',
+                          wordBreak: 'break-all',
+                          mb: 1
+                        }}
+                      >
+                        {result.apiKey}
+                      </Typography>
+                      <Typography variant="caption" color="text.secondary">
+                        Click to copy to clipboard
+                      </Typography>
+                    </Paper>
+                  </>
                 )}
               </Paper>
             )}

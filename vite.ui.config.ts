@@ -11,7 +11,8 @@ export default defineConfig({
     emptyOutDir: true,
     rollupOptions: {
       input: {
-        main: resolve(fileURLToPath(new URL('.', import.meta.url)), 'src/ui/index.html')
+        main: resolve(fileURLToPath(new URL('.', import.meta.url)), 'src/ui/index.html'),
+        login: resolve(fileURLToPath(new URL('.', import.meta.url)), 'src/ui/login.html')
       }
     }
   },

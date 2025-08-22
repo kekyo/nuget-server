@@ -8,7 +8,7 @@ import { Command } from 'commander';
 import { startServer } from './server';
 import { name as packageName, version, description, git_commit_hash } from './generated/packageMetadata';
 import { createConsoleLogger } from './logger';
-import { ServerConfig, LogLevel } from './types';
+import { ServerConfig, LogLevel, AuthMode } from './types';
 import { getBaseUrlFromEnv, getTrustedProxiesFromEnv } from './utils/urlResolver';
 
 const getConfigDirFromEnv = (): string | undefined => {
@@ -17,6 +17,14 @@ const getConfigDirFromEnv = (): string | undefined => {
 
 const getRealmFromEnv = (): string | undefined => {
   return process.env.NUGET_SERVER_REALM;
+};
+
+const getAuthModeFromEnv = (): AuthMode | undefined => {
+  const authMode = process.env.NUGET_SERVER_ENABLE_AUTH;
+  if (authMode === 'publish' || authMode === 'full' || authMode === 'none') {
+    return authMode;
+  }
+  return undefined;
 };
 
 const program = new Command();
@@ -33,11 +41,22 @@ program.
   option('-l, --log <level>', 'log level (debug, info, warn, error, ignore)', 'info').
   option('--no-ui', 'disable UI serving').
   option('--trusted-proxies <ips>', 'comma-separated list of trusted proxy IPs').
+  option('--enable-auth <mode>', 'authentication mode (none, publish, full)').
   action(async (options) => {
     // Validate log level
     const validLogLevels: LogLevel[] = ['debug', 'info', 'warn', 'error', 'ignore'];
     if (!validLogLevels.includes(options.log as LogLevel)) {
       console.error(`Invalid log level: ${options.log}. Valid levels are: ${validLogLevels.join(', ')}`);
+      process.exit(1);
+    }
+
+    // Get auth mode from CLI option or environment variable, default to 'none'
+    const authMode = (options.enableAuth || getAuthModeFromEnv() || 'none') as AuthMode;
+    
+    // Validate auth mode
+    const validAuthModes: AuthMode[] = ['none', 'publish', 'full'];
+    if (!validAuthModes.includes(authMode)) {
+      console.error(`Invalid auth mode: ${authMode}. Valid modes are: ${validAuthModes.join(', ')}`);
       process.exit(1);
     }
 
@@ -71,6 +90,7 @@ program.
     logger.info(`Package directory: ${options.packageDir}`);
     logger.info(`Config directory: ${configDir}`);
     logger.info(`Realm: ${realm}`);
+    logger.info(`Authentication mode: ${authMode}`);
     logger.info(`Log level: ${options.log}`);
     logger.info(`UI enabled: ${options.ui ? 'yes' : 'no'}`);
     
@@ -84,6 +104,7 @@ program.
       packageDir: options.packageDir,
       configDir,
       realm,
+      authMode: authMode as AuthMode,
       trustedProxies,
       logLevel: options.log as LogLevel,
       noUi: !options.ui

@@ -17,7 +17,8 @@ export const startServer = async (
   workDir: string,
   onLog?: (log: string) => void,
   packageDir?: string,
-  configDir?: string
+  configDir?: string,
+  authMode?: 'none' | 'publish' | 'full'
 ): Promise<ServerInstance> => {
   const projectRoot = path.resolve(__dirname, '../..');
   const cliPath = path.join(projectRoot, 'dist', 'cli.js');
@@ -28,6 +29,9 @@ export const startServer = async (
   }
   if (configDir) {
     args.push('-c', configDir);
+  }
+  if (authMode) {
+    args.push('--enable-auth', authMode);
   }
   
   const serverProcess = spawn('node', args, {
