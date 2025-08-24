@@ -31,7 +31,8 @@ describe('Fastify Static Binary Files', () => {
     testConfigDir = testBaseDir;
     testPublicDir = path.join(testBaseDir, 'public');
     
-    // Create public directory and copy test files
+    // Create directories to avoid warnings
+    await fs.mkdir(testPackagesDir, { recursive: true });
     await fs.mkdir(testPublicDir, { recursive: true });
     
     // Copy icon.png from src/ui/public to test directory

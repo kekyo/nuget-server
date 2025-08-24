@@ -9,6 +9,7 @@ import { createFastifyInstance } from '../src/server.fastify';
 import { ServerConfig, Logger } from '../src/types';
 import { FastifyInstance } from 'fastify';
 import { createConsoleLogger } from '../src/logger';
+import fs from 'fs/promises';
 
 describe('HTTPS Cookie Configuration', () => {
   let testDir: string;
@@ -16,6 +17,8 @@ describe('HTTPS Cookie Configuration', () => {
   
   beforeAll(async () => {
     testDir = await createTestDirectory('https-cookie-config', 'setup');
+    // Create packages directory to avoid warnings
+    await fs.mkdir(path.join(testDir, 'packages'), { recursive: true });
   });
 
   afterAll(async () => {

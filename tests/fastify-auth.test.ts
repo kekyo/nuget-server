@@ -73,6 +73,9 @@ describe('Fastify Authentication - Phase 2 Tests', () => {
     testConfigDir = testBaseDir;
     testPackagesDir = path.join(testBaseDir, 'packages');
     
+    // Create packages directory to avoid warnings
+    await fs.mkdir(testPackagesDir, { recursive: true });
+    
     // Generate unique port for each test
     serverPort = getTestPort(6500);
     

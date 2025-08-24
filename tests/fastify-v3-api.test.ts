@@ -60,6 +60,9 @@ describe('Fastify NuGet V3 API - Phase 3 Tests', () => {
       testConfigDir = testBaseDir;
       testPackagesDir = path.join(testBaseDir, 'packages');
       
+      // Create packages directory to avoid warnings
+      await fs.mkdir(testPackagesDir, { recursive: true });
+      
       // Generate unique port for each test
       serverPort = getTestPort(7500);
       
@@ -126,6 +129,9 @@ describe('Fastify NuGet V3 API - Phase 3 Tests', () => {
       testBaseDir = await createTestDirectory('fastify-v3-api-phase3-full', fn.task.name);
       testConfigDir = testBaseDir;
       testPackagesDir = path.join(testBaseDir, 'packages');
+      
+      // Create packages directory to avoid warnings
+      await fs.mkdir(testPackagesDir, { recursive: true });
       
       // Generate unique port for each test
       serverPort = getTestPort(7600);

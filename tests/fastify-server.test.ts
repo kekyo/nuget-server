@@ -4,6 +4,7 @@ import { createConsoleLogger } from '../src/logger';
 import { ServerConfig } from '../src/types';
 import { createTestDirectory, getTestPort } from './helpers/test-helper.js';
 import path from 'path';
+import fs from 'fs/promises';
 
 /**
  * Fastify Server Basic Tests - Phase 1
@@ -27,6 +28,9 @@ describe('Fastify Server - Phase 1 Basic Tests', () => {
     testBaseDir = await createTestDirectory('fastify-server-phase1', fn.task.name);
     testPackagesDir = path.join(testBaseDir, 'packages');
     testConfigDir = testBaseDir;
+    
+    // Create packages directory to avoid warnings
+    await fs.mkdir(testPackagesDir, { recursive: true });
     
     // Generate unique port for each test
     serverPort = getTestPort(6001);
