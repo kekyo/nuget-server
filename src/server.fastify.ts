@@ -76,6 +76,7 @@ export const createFastifyInstance = async (config: ServerConfig, logger: Logger
   // Initialize metadata service
   const packagesRoot = config.packageDir || (process.cwd() + '/packages');
   const initialBaseUrl = config.baseUrl || `http://localhost:${config.port}/api`;
+  const isHttps = initialBaseUrl.startsWith('https://');
   const metadataService = createMetadataService(packagesRoot, initialBaseUrl, logger);
   
   try {
@@ -122,7 +123,7 @@ export const createFastifyInstance = async (config: ServerConfig, logger: Logger
     cookie: {
       path: '/',
       httpOnly: true,
-      secure: false, // TODO: Set to true in production with HTTPS
+      secure: isHttps, // Automatically determined from baseUrl
       sameSite: 'strict' as const,
       maxAge: 86400000 // 24 hours
     }
