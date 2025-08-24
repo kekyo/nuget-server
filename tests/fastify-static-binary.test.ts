@@ -57,7 +57,7 @@ describe('Fastify Static Binary Files', () => {
 
   describe('Production Mode', () => {
     test('should serve /icon.png with correct binary data', async () => {
-      const logger = createConsoleLogger('warn');
+      const logger = createConsoleLogger('fastify-static-binary', 'warn');
       const testConfig: ServerConfig = {
         port: serverPort,
         packageDir: testPackagesDir,
@@ -93,7 +93,7 @@ describe('Fastify Static Binary Files', () => {
     });
 
     test('should serve /favicon.ico with correct binary data', async () => {
-      const logger = createConsoleLogger('warn');
+      const logger = createConsoleLogger('fastify-static-binary', 'warn');
       const testConfig: ServerConfig = {
         port: serverPort,
         packageDir: testPackagesDir,
@@ -130,7 +130,7 @@ describe('Fastify Static Binary Files', () => {
 
   describe('Development Mode (inject)', () => {
     test('should handle binary data through fastify.inject', async () => {
-      const logger = createConsoleLogger('warn');
+      const logger = createConsoleLogger('fastify-static-binary', 'warn');
       const testConfig: ServerConfig = {
         port: serverPort,
         packageDir: testPackagesDir,
@@ -173,7 +173,7 @@ describe('Fastify Static Binary Files', () => {
     });
 
     test('should detect corruption in payload vs rawPayload', async () => {
-      const logger = createConsoleLogger('warn');
+      const logger = createConsoleLogger('fastify-static-binary', 'warn');
       const testConfig: ServerConfig = {
         port: serverPort,
         packageDir: testPackagesDir,

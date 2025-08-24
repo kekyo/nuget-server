@@ -40,7 +40,7 @@ describe('Fastify Server - Phase 1 Basic Tests', () => {
   });
 
   test('should start Fastify server successfully', async () => {
-    const logger = createConsoleLogger('warn');
+    const logger = createConsoleLogger('fastify-server', 'warn');
     const testConfig: ServerConfig = {
       port: serverPort,
       packageDir: testPackagesDir,
@@ -57,7 +57,7 @@ describe('Fastify Server - Phase 1 Basic Tests', () => {
   });
 
   test('should respond to health check endpoint', async () => {
-    const logger = createConsoleLogger('warn');
+    const logger = createConsoleLogger('fastify-server', 'warn');
     const testConfig: ServerConfig = {
       port: serverPort,
       packageDir: testPackagesDir,
@@ -82,7 +82,7 @@ describe('Fastify Server - Phase 1 Basic Tests', () => {
   });
 
   test('should respond to root endpoint with HTML UI when UI enabled', async () => {
-    const logger = createConsoleLogger('warn');
+    const logger = createConsoleLogger('fastify-server', 'warn');
     const testConfig: ServerConfig = {
       port: serverPort,
       packageDir: testPackagesDir,
@@ -105,7 +105,7 @@ describe('Fastify Server - Phase 1 Basic Tests', () => {
   });
 
   test('should respond to root endpoint with JSON when UI disabled', async () => {
-    const logger = createConsoleLogger('warn');
+    const logger = createConsoleLogger('fastify-server', 'warn');
     const testConfig: ServerConfig = {
       port: serverPort,
       packageDir: testPackagesDir,
@@ -128,7 +128,7 @@ describe('Fastify Server - Phase 1 Basic Tests', () => {
   });
 
   test('should respond to config endpoint when UI is enabled', async () => {
-    const logger = createConsoleLogger('warn');
+    const logger = createConsoleLogger('fastify-server', 'warn');
     const testConfig: ServerConfig = {
       port: serverPort,
       packageDir: testPackagesDir,
@@ -153,7 +153,7 @@ describe('Fastify Server - Phase 1 Basic Tests', () => {
   });
 
   test('should shutdown gracefully', async () => {
-    const logger = createConsoleLogger('warn');
+    const logger = createConsoleLogger('fastify-server', 'warn');
     const testConfig: ServerConfig = {
       port: serverPort,
       packageDir: testPackagesDir,

@@ -90,7 +90,7 @@ describe('Fastify Authentication - Phase 2 Tests', () => {
       authMode: 'full'
     };
 
-    const logger = createConsoleLogger('warn');
+    const logger = createConsoleLogger('fastify-auth-phase2', 'warn');
     server = await startFastifyServer(testConfig, logger);
   });
 

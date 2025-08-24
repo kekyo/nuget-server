@@ -26,7 +26,7 @@ describe('Fastify UI Backend API - Phase 4 Tests', () => {
   let testConfigDir: string;
   let testPackagesDir: string;
   let serverPort: number;
-  const logger = createConsoleLogger('warn');
+  const logger = createConsoleLogger('fastify-ui-api', 'warn');
 
   // Helper to start server with specific auth mode
   const startServerWithAuth = async (authMode: 'none' | 'publish' | 'full', port: number): Promise<FastifyServerInstance> => {

@@ -77,7 +77,7 @@ describe('Fastify NuGet V3 API - Phase 3 Tests', () => {
         authMode: 'none'
       };
 
-      const logger = createConsoleLogger('warn');
+      const logger = createConsoleLogger('fastify-v3-api', 'warn');
       server = await startFastifyServer(testConfig, logger);
     });
 
@@ -144,7 +144,7 @@ describe('Fastify NuGet V3 API - Phase 3 Tests', () => {
         authMode: 'full'
       };
 
-      const logger = createConsoleLogger('warn');
+      const logger = createConsoleLogger('fastify-v3-api', 'warn');
       server = await startFastifyServer(testConfig, logger);
     });
 
