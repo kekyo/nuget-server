@@ -2,7 +2,7 @@ import { describe, test, expect, beforeEach, afterEach } from 'vitest';
 import { startFastifyServer, FastifyServerInstance, createFastifyInstance } from '../src/server.fastify';
 import { createConsoleLogger } from '../src/logger';
 import { ServerConfig } from '../src/types';
-import { createTestDirectory, getTestPort } from './helpers/test-helper.js';
+import { createTestDirectory, getTestPort, testGlobalLogLevel } from './helpers/test-helper.js';
 import { isPNGHeader, isICOHeader, hasReplacementCharacters, getFileStats } from './helpers/binary-test-helper';
 import path from 'path';
 import { promises as fs } from 'fs';
@@ -58,13 +58,13 @@ describe('Fastify Static Binary Files', () => {
 
   describe('Production Mode', () => {
     test('should serve /icon.png with correct binary data', async () => {
-      const logger = createConsoleLogger('fastify-static-binary', 'warn');
+      const logger = createConsoleLogger('fastify-static-binary', testGlobalLogLevel);
       const testConfig: ServerConfig = {
         port: serverPort,
         packageDir: testPackagesDir,
         configDir: testConfigDir,
         realm: 'Test Binary Server',
-        logLevel: 'warn',
+        logLevel: testGlobalLogLevel,
         noUi: false,
         authMode: 'none',
         trustedProxies: []
@@ -94,13 +94,13 @@ describe('Fastify Static Binary Files', () => {
     });
 
     test('should serve /favicon.ico with correct binary data', async () => {
-      const logger = createConsoleLogger('fastify-static-binary', 'warn');
+      const logger = createConsoleLogger('fastify-static-binary', testGlobalLogLevel);
       const testConfig: ServerConfig = {
         port: serverPort,
         packageDir: testPackagesDir,
         configDir: testConfigDir,
         realm: 'Test Binary Server',
-        logLevel: 'warn',
+        logLevel: testGlobalLogLevel,
         noUi: false,
         authMode: 'none',
         trustedProxies: []
@@ -131,13 +131,13 @@ describe('Fastify Static Binary Files', () => {
 
   describe('Development Mode (inject)', () => {
     test('should handle binary data through fastify.inject', async () => {
-      const logger = createConsoleLogger('fastify-static-binary', 'warn');
+      const logger = createConsoleLogger('fastify-static-binary', testGlobalLogLevel);
       const testConfig: ServerConfig = {
         port: serverPort,
         packageDir: testPackagesDir,
         configDir: testConfigDir,
         realm: 'Test Inject Server',
-        logLevel: 'warn',
+        logLevel: testGlobalLogLevel,
         noUi: false,
         authMode: 'none',
         trustedProxies: []
@@ -174,13 +174,13 @@ describe('Fastify Static Binary Files', () => {
     });
 
     test('should detect corruption in payload vs rawPayload', async () => {
-      const logger = createConsoleLogger('fastify-static-binary', 'warn');
+      const logger = createConsoleLogger('fastify-static-binary', testGlobalLogLevel);
       const testConfig: ServerConfig = {
         port: serverPort,
         packageDir: testPackagesDir,
         configDir: testConfigDir,
         realm: 'Test Corruption Server',
-        logLevel: 'warn',
+        logLevel: testGlobalLogLevel,
         noUi: false,
         authMode: 'none',
         trustedProxies: []

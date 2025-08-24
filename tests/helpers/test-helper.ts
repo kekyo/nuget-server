@@ -3,8 +3,12 @@ import path from 'path';
 import dayjs from 'dayjs';
 import { exec } from 'child_process';
 import { promisify } from 'util';
+import { LogLevel } from '../../src/types';
 
 const execAsync = promisify(exec);
+
+// Test global log level string
+export const testGlobalLogLevel = process.env['NUGET_SERVER_TEST_LOGLEVEL'] as (LogLevel | undefined) ?? 'warn';
 
 // Timestamp for test directories
 const timestamp = dayjs().format('YYYYMMDD_HHmmss');

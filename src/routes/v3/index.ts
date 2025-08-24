@@ -303,36 +303,92 @@ export const registerV3Routes = async (fastify: FastifyInstance, config: V3Route
     try {
       const baseUrl = getBaseUrl(request);
       
-      // Get all package IDs (ignoring query parameters for now)
+      // Log query parameters for debugging
+      const query = request.query as Record<string, any>;
+      logger.debug(`V3 search request - Query params: ${JSON.stringify(query)}, Host: ${request.headers.host}`);
+      
+      // Parse query parameters
+      const q = (query.q as string || '').toLowerCase();
+      const skip = parseInt(query.skip as string || '0', 10);
+      const take = parseInt(query.take as string || '20', 10);
+      const prerelease = query.prerelease !== 'false'; // Default to true
+      const semVerLevel = query.semVerLevel || '2.0.0';
+      
+      // Get all package IDs
       const packageIds = metadataService.getAllPackageIds();
       
-      // Convert to search results
-      const searchResults: SearchResult[] = [];
+      // Filter and convert to search results
+      const allSearchResults: SearchResult[] = [];
       
       for (const packageId of packageIds) {
         const versions = metadataService.getPackageMetadata(packageId);
         if (versions.length > 0) {
           // Use actual package ID from metadata (not lowercase cache key)
           const actualPackageId = versions[0].id;
+          
+          // Filter by search query if provided
+          if (q && !actualPackageId.toLowerCase().includes(q)) {
+            // Also check description
+            const hasMatchingDescription = versions.some(v => 
+              v.description && v.description.toLowerCase().includes(q)
+            );
+            if (!hasMatchingDescription) {
+              continue;
+            }
+          }
+          
           const searchResult = createSearchResult(baseUrl, actualPackageId, versions);
-          searchResults.push(searchResult);
+          allSearchResults.push(searchResult);
         }
       }
+      
+      // Apply pagination
+      const searchResults = allSearchResults.slice(skip, skip + take);
 
       const response: SearchResponse = {
         '@context': {
           '@vocab': 'http://schema.nuget.org/schema#',
           '@base': `${baseUrl}/v3/`
         },
-        totalHits: searchResults.length,
+        totalHits: allSearchResults.length, // Total count before pagination
         lastReopen: new Date().toISOString(),
         index: 'v3-lucene0',
-        data: searchResults
+        data: searchResults // Paginated results
       };
 
       return reply.send(response);
     } catch (error) {
       logger.error(`Error in V3 search endpoint: ${error}`);
+      return reply.status(500).send({ error: 'Internal server error' });
+    }
+  });
+
+  // V3 PackageBaseAddress Index - GET /v3/package/{id}/index.json
+  // Returns list of versions for a package
+  fastify.get('/v3/package/:id/index.json', {
+    preHandler: authPreHandler
+  }, async (request: AuthenticatedFastifyRequest, reply: FastifyReply) => {
+    const { id: packageId } = request.params as { id: string };
+    const lowerId = packageId.toLowerCase();
+
+    try {
+      // Get all versions for the package
+      const versions = metadataService.getPackageMetadata(lowerId);
+      
+      if (versions.length === 0) {
+        logger.debug(`V3: Package versions list not found: ${packageId}`);
+        return reply.status(404).send({ error: 'Package not found' });
+      }
+
+      // Return PackageBaseAddress index format with list of versions
+      const response = {
+        versions: versions.map(v => v.version)
+      };
+      
+      logger.debug(`V3: Package versions list served: ${packageId} (${versions.length} versions)`);
+      return reply.type('application/json').send(response);
+    } catch (error) {
+      logger.error(`V3: Error in package versions endpoint for ${packageId}: ${error}`);
       return reply.status(500).send({ error: 'Internal server error' });
     }
   });
@@ -362,7 +418,7 @@ export const registerV3Routes = async (fastify: FastifyInstance, config: V3Route
         const packagePath = await packageService.getPackageFilePath(actualDirName, lowerVersion);
 
         if (!packagePath) {
-          logger.warn(`V3: Package not found: ${packageId} ${version}`);
+          logger.info(`V3: Package not found: ${packageId} ${version}`);
           return reply.status(404).send({ error: 'Package not found' });
         }
 
@@ -397,7 +453,7 @@ export const registerV3Routes = async (fastify: FastifyInstance, config: V3Route
       const versions = metadataService.getPackageMetadata(lowerId);
 
       if (versions.length === 0) {
-        logger.warn(`V3: Package not found in registrations: ${packageId}`);
+        logger.info(`V3: Package not found in registrations: ${packageId}`);
         return reply.status(404).send({ error: 'Package not found' });
       }
 

@@ -270,6 +270,7 @@ export const createMetadataService = (packagesRoot: string = './packages', baseU
      * Initializes the metadata service by scanning packages directory
      */
     initialize: async (): Promise<void> => {
+      const startTime = Date.now();
       logger.info('Initializing metadata cache...');
       packagesCache.clear();
       
@@ -277,7 +278,8 @@ export const createMetadataService = (packagesRoot: string = './packages', baseU
         await scanPackages();
         const packageCount = Array.from(packagesCache.values()).reduce((sum, versions) => sum + versions.length, 0);
         const packageIds = packagesCache.size;
-        logger.info(`Metadata cache initialized: ${packageIds} packages, ${packageCount} versions`);
+        const elapsedTime = Date.now() - startTime;
+        logger.info(`Metadata cache initialized: ${packageIds} packages, ${packageCount} versions (took ${elapsedTime}ms)`);
       } catch (error) {
         logger.error(`Failed to initialize metadata cache: ${error}`);
         throw error;

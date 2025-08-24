@@ -4,7 +4,7 @@ import { createConsoleLogger } from '../src/logger';
 import { ServerConfig } from '../src/types';
 import fs from 'fs/promises';
 import path from 'path';
-import { createTestDirectory, getTestPort } from './helpers/test-helper.js';
+import { createTestDirectory, getTestPort, testGlobalLogLevel } from './helpers/test-helper.js';
 import { createTestPackage } from './helpers/package.js';
 
 /**
@@ -26,7 +26,7 @@ describe('Fastify UI Backend API - Phase 4 Tests', () => {
   let testConfigDir: string;
   let testPackagesDir: string;
   let serverPort: number;
-  const logger = createConsoleLogger('fastify-ui-api', 'warn');
+  const logger = createConsoleLogger('fastify-ui-api', testGlobalLogLevel);
 
   // Helper to start server with specific auth mode
   const startServerWithAuth = async (authMode: 'none' | 'publish' | 'full', port: number): Promise<FastifyServerInstance> => {
@@ -35,7 +35,7 @@ describe('Fastify UI Backend API - Phase 4 Tests', () => {
       packageDir: testPackagesDir,
       configDir: testConfigDir,
       realm: `Test Fastify UI Server - ${authMode}`,
-      logLevel: 'warn',
+      logLevel: testGlobalLogLevel,
       noUi: false,
       authMode
     };
@@ -153,7 +153,7 @@ describe('Fastify UI Backend API - Phase 4 Tests', () => {
         packageDir: testPackagesDir,
         configDir: testConfigDir,
         realm: 'Test Fastify UI Server - None',
-        logLevel: 'warn',
+        logLevel: testGlobalLogLevel,
         noUi: false,
         authMode: 'none'
       };
@@ -188,7 +188,7 @@ describe('Fastify UI Backend API - Phase 4 Tests', () => {
         packageDir: testPackagesDir,
         configDir: testConfigDir,
         realm: 'Test Fastify UI Server - Full',
-        logLevel: 'warn',
+        logLevel: testGlobalLogLevel,
         noUi: false,
         authMode: 'full'
       };
@@ -235,7 +235,7 @@ describe('Fastify UI Backend API - Phase 4 Tests', () => {
         packageDir: testPackagesDir,
         configDir: testConfigDir,
         realm: 'Test Fastify UI Server - Full',
-        logLevel: 'warn',
+        logLevel: testGlobalLogLevel,
         noUi: false,
         authMode: 'full'
       };
@@ -272,7 +272,7 @@ describe('Fastify UI Backend API - Phase 4 Tests', () => {
         packageDir: testPackagesDir,
         configDir: testConfigDir,
         realm: 'Test Fastify UI Server - Full Auth',
-        logLevel: 'warn',
+        logLevel: testGlobalLogLevel,
         noUi: false,
         authMode: 'full'
       };
@@ -308,7 +308,7 @@ describe('Fastify UI Backend API - Phase 4 Tests', () => {
         packageDir: testPackagesDir,
         configDir: testConfigDir,
         realm: 'Test Fastify UI Server - Full Auth',
-        logLevel: 'warn',
+        logLevel: testGlobalLogLevel,
         noUi: false,
         authMode: 'full'
       };
@@ -470,7 +470,7 @@ describe('Fastify UI Backend API - Phase 4 Tests', () => {
         packageDir: testPackagesDir,
         configDir: testConfigDir,
         realm: 'Test Fastify UI Server - Full',
-        logLevel: 'warn',
+        logLevel: testGlobalLogLevel,
         noUi: false,
         authMode: 'full'
       };
@@ -539,7 +539,7 @@ describe('Fastify UI Backend API - Phase 4 Tests', () => {
         packageDir: testPackagesDir,
         configDir: testConfigDir,
         realm: 'Test Fastify UI Server - Full',
-        logLevel: 'warn',
+        logLevel: testGlobalLogLevel,
         noUi: false,
         authMode: 'full'
       };
@@ -676,7 +676,7 @@ describe('Fastify UI Backend API - Phase 4 Tests', () => {
         packageDir: testPackagesDir,
         configDir: testConfigDir,
         realm: 'Test Fastify UI Server - None',
-        logLevel: 'warn',
+        logLevel: testGlobalLogLevel,
         noUi: false,
         authMode: 'none'
       };
@@ -697,7 +697,7 @@ describe('Fastify UI Backend API - Phase 4 Tests', () => {
         packageDir: testPackagesDir,
         configDir: testConfigDir,
         realm: 'Test Fastify UI Server - Publish',
-        logLevel: 'warn',
+        logLevel: testGlobalLogLevel,
         noUi: false,
         authMode: 'publish'
       };
@@ -716,7 +716,7 @@ describe('Fastify UI Backend API - Phase 4 Tests', () => {
         packageDir: testPackagesDir,
         configDir: testConfigDir,
         realm: 'Test Fastify UI Server - Full',
-        logLevel: 'warn',
+        logLevel: testGlobalLogLevel,
         noUi: false,
         authMode: 'full'
       };
@@ -759,7 +759,7 @@ describe('Fastify UI Backend API - Phase 4 Tests', () => {
         packageDir: testPackagesDir,
         configDir: testConfigDir,
         realm: 'Test Fastify UI Server - None',
-        logLevel: 'warn',
+        logLevel: testGlobalLogLevel,
         noUi: false,
         authMode: 'none'
       };
@@ -779,7 +779,7 @@ describe('Fastify UI Backend API - Phase 4 Tests', () => {
         packageDir: testPackagesDir,
         configDir: testConfigDir,
         realm: 'Test Fastify UI Server - None',
-        logLevel: 'warn',
+        logLevel: testGlobalLogLevel,
         noUi: false,
         authMode: 'none'
       };
@@ -810,7 +810,7 @@ describe('Fastify UI Backend API - Phase 4 Tests', () => {
         packageDir: testPackagesDir,
         configDir: testConfigDir,
         realm: 'Test Fastify UI Server - Publish',
-        logLevel: 'warn',
+        logLevel: testGlobalLogLevel,
         noUi: false,
         authMode: 'publish'
       };
@@ -838,7 +838,7 @@ describe('Fastify UI Backend API - Phase 4 Tests', () => {
         packageDir: testPackagesDir,
         configDir: testConfigDir,
         realm: 'Test Fastify UI Server - Publish',
-        logLevel: 'warn',
+        logLevel: testGlobalLogLevel,
         noUi: false,
         authMode: 'publish'
       };
@@ -886,7 +886,7 @@ describe('Fastify UI Backend API - Phase 4 Tests', () => {
         packageDir: testPackagesDir,
         configDir: testConfigDir,
         realm: 'Test Fastify UI Server - Publish',
-        logLevel: 'warn',
+        logLevel: testGlobalLogLevel,
         noUi: false,
         authMode: 'publish'
       };
@@ -920,7 +920,7 @@ describe('Fastify UI Backend API - Phase 4 Tests', () => {
         packageDir: testPackagesDir,
         configDir: testConfigDir,
         realm: 'Test Fastify UI Server - Publish',
-        logLevel: 'warn',
+        logLevel: testGlobalLogLevel,
         noUi: false,
         authMode: 'publish'
       };

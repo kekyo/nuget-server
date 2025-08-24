@@ -2,7 +2,7 @@ import { describe, test, expect, beforeEach, afterEach } from 'vitest';
 import { startFastifyServer, FastifyServerInstance } from '../src/server.fastify';
 import { createConsoleLogger } from '../src/logger';
 import { ServerConfig } from '../src/types';
-import { createTestDirectory, getTestPort } from './helpers/test-helper.js';
+import { createTestDirectory, getTestPort, testGlobalLogLevel } from './helpers/test-helper.js';
 import path from 'path';
 import fs from 'fs/promises';
 
@@ -44,13 +44,13 @@ describe('Fastify Server - Phase 1 Basic Tests', () => {
   });
 
   test('should start Fastify server successfully', async () => {
-    const logger = createConsoleLogger('fastify-server', 'warn');
+    const logger = createConsoleLogger('fastify-server', testGlobalLogLevel);
     const testConfig: ServerConfig = {
       port: serverPort,
       packageDir: testPackagesDir,
       configDir: testConfigDir,
       realm: 'Test Fastify Server',
-      logLevel: 'warn',
+      logLevel: testGlobalLogLevel,
       noUi: false,
       authMode: 'none'
     };
@@ -61,13 +61,13 @@ describe('Fastify Server - Phase 1 Basic Tests', () => {
   });
 
   test('should respond to health check endpoint', async () => {
-    const logger = createConsoleLogger('fastify-server', 'warn');
+    const logger = createConsoleLogger('fastify-server', testGlobalLogLevel);
     const testConfig: ServerConfig = {
       port: serverPort,
       packageDir: testPackagesDir,
       configDir: testConfigDir,
       realm: 'Test Fastify Server',
-      logLevel: 'warn',
+      logLevel: testGlobalLogLevel,
       noUi: false,
       authMode: 'none'
     };
@@ -86,13 +86,13 @@ describe('Fastify Server - Phase 1 Basic Tests', () => {
   });
 
   test('should respond to root endpoint with HTML UI when UI enabled', async () => {
-    const logger = createConsoleLogger('fastify-server', 'warn');
+    const logger = createConsoleLogger('fastify-server', testGlobalLogLevel);
     const testConfig: ServerConfig = {
       port: serverPort,
       packageDir: testPackagesDir,
       configDir: testConfigDir,
       realm: 'Test Fastify Server',
-      logLevel: 'warn',
+      logLevel: testGlobalLogLevel,
       noUi: false,
       authMode: 'none'
     };
@@ -109,13 +109,13 @@ describe('Fastify Server - Phase 1 Basic Tests', () => {
   });
 
   test('should respond to root endpoint with JSON when UI disabled', async () => {
-    const logger = createConsoleLogger('fastify-server', 'warn');
+    const logger = createConsoleLogger('fastify-server', testGlobalLogLevel);
     const testConfig: ServerConfig = {
       port: serverPort,
       packageDir: testPackagesDir,
       configDir: testConfigDir,
       realm: 'Test Fastify Server',
-      logLevel: 'warn',
+      logLevel: testGlobalLogLevel,
       noUi: true,
       authMode: 'none'
     };
@@ -132,13 +132,13 @@ describe('Fastify Server - Phase 1 Basic Tests', () => {
   });
 
   test('should respond to config endpoint when UI is enabled', async () => {
-    const logger = createConsoleLogger('fastify-server', 'warn');
+    const logger = createConsoleLogger('fastify-server', testGlobalLogLevel);
     const testConfig: ServerConfig = {
       port: serverPort,
       packageDir: testPackagesDir,
       configDir: testConfigDir,
       realm: 'Test Fastify Server',
-      logLevel: 'warn',
+      logLevel: testGlobalLogLevel,
       noUi: false,
       authMode: 'none'
     };
@@ -157,13 +157,13 @@ describe('Fastify Server - Phase 1 Basic Tests', () => {
   });
 
   test('should shutdown gracefully', async () => {
-    const logger = createConsoleLogger('fastify-server', 'warn');
+    const logger = createConsoleLogger('fastify-server', testGlobalLogLevel);
     const testConfig: ServerConfig = {
       port: serverPort,
       packageDir: testPackagesDir,
       configDir: testConfigDir,
       realm: 'Test Fastify Server',
-      logLevel: 'warn',
+      logLevel: testGlobalLogLevel,
       noUi: false,
       authMode: 'none'
     };

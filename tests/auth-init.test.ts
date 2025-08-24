@@ -8,7 +8,7 @@ import { writeFile, mkdir, readFile } from 'fs/promises';
 import { existsSync } from 'fs';
 import { runAuthInit } from '../src/authInit';
 import { createConsoleLogger } from '../src/logger';
-import { createTestDirectory } from './helpers/test-helper';
+import { createTestDirectory, testGlobalLogLevel } from './helpers/test-helper';
 
 describe('Auth Init', () => {
   let testDir: string;
@@ -18,7 +18,7 @@ describe('Auth Init', () => {
   beforeEach(async (fn) => {
     testDir = await createTestDirectory('auth-init', fn.task.name);
     configDir = join(testDir, 'config');
-    logger = createConsoleLogger('auth-init', 'warn');
+    logger = createConsoleLogger('auth-init', testGlobalLogLevel);
   });
 
   // Test directories are preserved in test-results for debugging

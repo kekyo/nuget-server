@@ -9,6 +9,21 @@ export interface DotNetRestoreResult {
   stderr: string;
 }
 
+/**
+ * Clears all NuGet caches to ensure clean test environment
+ * This includes global packages, http cache, temp cache, and plugin cache
+ */
+export const clearNuGetCache = async (): Promise<void> => {
+  try {
+    await execa('dotnet', ['nuget', 'locals', 'all', '--clear'], {
+      timeout: 30000 // 30 seconds timeout
+    });
+  } catch (error: any) {
+    // Log but don't fail if cache clear fails
+    console.warn('Failed to clear NuGet cache:', error.message);
+  }
+};
+
 export const createTestProject = async (
   dotnetDir: string,
   packageId: string,
@@ -40,8 +55,32 @@ export const addNuGetSource = async (
 <configuration>
   <packageSources>
     <clear />
-    <add key="local-nuget-server" value="${serverUrl}/index.json" allowInsecureConnections="true" />
+    <add key="local-nuget-server" value="${serverUrl}/v3/index.json" allowInsecureConnections="true" />
   </packageSources>
+</configuration>`;
+
+  const nugetConfigPath = path.join(dotnetDir, 'NuGet.config');
+  await fs.writeFile(nugetConfigPath, nugetConfigContent);
+}
+
+export const addNuGetSourceWithAuth = async (
+  dotnetDir: string,
+  serverUrl: string,
+  username: string,
+  password: string
+): Promise<void> => {
+  const nugetConfigContent = `<?xml version="1.0" encoding="utf-8"?>
+<configuration>
+  <packageSources>
+    <clear />
+    <add key="local-nuget-server" value="${serverUrl}/v3/index.json" allowInsecureConnections="true" />
+  </packageSources>
+  <packageSourceCredentials>
+    <local-nuget-server>
+      <add key="Username" value="${username}" />
+      <add key="ClearTextPassword" value="${password}" />
+    </local-nuget-server>
+  </packageSourceCredentials>
 </configuration>`;
 
   const nugetConfigPath = path.join(dotnetDir, 'NuGet.config');
@@ -50,7 +89,7 @@ export const addNuGetSource = async (
 
 export const runDotNetRestore = async (projectDir: string): Promise<DotNetRestoreResult> => {
   try {
-    const result = await execa('dotnet', ['restore', '--no-cache'], {
+    const result = await execa('dotnet', ['restore', '--no-cache', '--force', '--verbosity', 'detailed'], {
       cwd: projectDir,
       stdio: 'pipe',
       timeout: 60000 // 60 seconds timeout
@@ -69,15 +108,6 @@ export const runDotNetRestore = async (projectDir: string): Promise<DotNetRestor
       stdout: error.stdout || '',
       stderr: error.stderr || ''
     };
-  }
-}
-
-export const checkDotNetAvailable = async (): Promise<boolean> => {
-  try {
-    await execa('dotnet', ['--version'], { timeout: 5000 });
-    return true;
-  } catch {
-    return false;
   }
 }
 
@@ -109,3 +139,39 @@ export const extractPackageRequestsFromRestoreOutput = (output: string): Array<{
   
   return requests;
 }
+
+/**
+ * Verifies that a package was actually restored by checking obj/project.assets.json and obj/project.nuget.cache
+ * @param projectDir - Directory containing the .NET project
+ * @param packageId - Package ID to verify
+ * @param version - Package version to verify
+ * @returns true if package was successfully restored
+ */
+export const verifyPackageRestored = async (
+  projectDir: string,
+  packageId: string,
+  version: string
+): Promise<boolean> => {
+  try {
+    // Check project.assets.json for package details
+    const assetsPath = path.join(projectDir, 'obj/project.assets.json');
+    const assetsContent = await fs.readFile(assetsPath, 'utf-8');
+    const assets = JSON.parse(assetsContent);
+    
+    // Check if package is in libraries section
+    const packageKey = `${packageId}/${version}`;
+    if (!assets.libraries || !assets.libraries[packageKey]) {
+      return false;
+    }
+    
+    // Check project.nuget.cache for restore success
+    const cachePath = path.join(projectDir, 'obj/project.nuget.cache');
+    const cacheContent = await fs.readFile(cachePath, 'utf-8');
+    const cache = JSON.parse(cacheContent);
+    
+    return cache.success === true;
+  } catch (error) {
+    // Files don't exist or can't be parsed - restore failed
+    return false;
+  }
+};

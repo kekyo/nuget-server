@@ -63,10 +63,8 @@ const parseBasicAuth = (authHeader: string): { username: string; password: strin
     const username = decodedCredentials.substring(0, colonIndex);
     const password = decodedCredentials.substring(colonIndex + 1);
 
-    if (!username || !password) {
-      return null;
-    }
-
+    // Allow empty credentials (dotnet CLI probing behavior)
+    // Empty username and password is valid but will fail authentication
     return { username, password };
   } catch (error) {
     return null;
@@ -198,19 +196,24 @@ export const createHybridAuthMiddleware = (config: FastifyAuthConfig) => {
         const credentials = parseBasicAuth(authHeader);
         
         if (credentials) {
-          const user = await userService.validateApiKey(credentials.username, credentials.password);
-          if (user) {
-            logger.debug(`Basic auth successful for user: ${user.username}`);
-            request.user = {
-              username: user.username,
-              role: user.role
-            };
-            return;
+          // Check for empty credentials (common with dotnet CLI probing)
+          if (!credentials.username && !credentials.password) {
+            logger.info('Empty Basic auth credentials received - returning 401 Unauthorized');
           } else {
-            logger.warn(`Basic auth failed for user: ${credentials.username}`);
+            const user = await userService.validateApiKey(credentials.username, credentials.password);
+            if (user) {
+              logger.debug(`Basic auth successful for user: ${user.username}`);
+              request.user = {
+                username: user.username,
+                role: user.role
+              };
+              return;
+            } else {
+              logger.info(`Basic auth failed for user: ${credentials.username} - returning 401 Unauthorized`);
+            }
           }
         } else {
-          logger.warn('Invalid Basic auth header format');
+          logger.info('Invalid Basic auth header format - returning 401 Unauthorized');
         }
       }
 

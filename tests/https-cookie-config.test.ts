@@ -4,7 +4,7 @@
 
 import { describe, test, expect, beforeAll, afterAll } from 'vitest';
 import path from 'path';
-import { createTestDirectory } from './helpers/test-helper';
+import { createTestDirectory, testGlobalLogLevel } from './helpers/test-helper';
 import { createFastifyInstance } from '../src/server.fastify';
 import { ServerConfig, Logger } from '../src/types';
 import { FastifyInstance } from 'fastify';
@@ -37,7 +37,7 @@ describe('HTTPS Cookie Configuration', () => {
         authMode: 'none'
       };
       
-      const logger = createConsoleLogger('https-cookie-config', 'warn');
+      const logger = createConsoleLogger('https-cookie-config', testGlobalLogLevel);
       fastifyInstance = await createFastifyInstance(config, logger);
       
       // Check that the secure session plugin was registered with correct settings
@@ -59,7 +59,7 @@ describe('HTTPS Cookie Configuration', () => {
         authMode: 'none'
       };
       
-      const logger = createConsoleLogger('https-cookie-config', 'warn');
+      const logger = createConsoleLogger('https-cookie-config', testGlobalLogLevel);
       fastifyInstance = await createFastifyInstance(config, logger);
       
       expect(fastifyInstance).toBeDefined();
@@ -78,7 +78,7 @@ describe('HTTPS Cookie Configuration', () => {
         authMode: 'none'
       };
       
-      const logger = createConsoleLogger('https-cookie-config', 'warn');
+      const logger = createConsoleLogger('https-cookie-config', testGlobalLogLevel);
       fastifyInstance = await createFastifyInstance(config, logger);
       
       expect(fastifyInstance).toBeDefined();
@@ -148,7 +148,7 @@ describe('HTTPS Cookie Configuration', () => {
         trustedProxies: ['127.0.0.1']
       };
       
-      const logger = createConsoleLogger('https-cookie-config', 'warn');
+      const logger = createConsoleLogger('https-cookie-config', testGlobalLogLevel);
       fastifyInstance = await createFastifyInstance(config, logger);
       
       // The instance should be created successfully even with trusted proxies

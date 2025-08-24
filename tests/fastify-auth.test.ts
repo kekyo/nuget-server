@@ -4,7 +4,7 @@ import { createConsoleLogger } from '../src/logger';
 import { ServerConfig } from '../src/types';
 import fs from 'fs/promises';
 import path from 'path';
-import { createTestDirectory, getTestPort } from './helpers/test-helper.js';
+import { createTestDirectory, getTestPort, testGlobalLogLevel } from './helpers/test-helper.js';
 
 /**
  * Fastify Authentication Tests - Phase 2
@@ -88,12 +88,12 @@ describe('Fastify Authentication - Phase 2 Tests', () => {
       packageDir: testPackagesDir,
       configDir: testConfigDir,
       realm: 'Test Fastify Auth Server',
-      logLevel: 'warn',
+      logLevel: testGlobalLogLevel,
       noUi: false,
       authMode: 'full'
     };
 
-    const logger = createConsoleLogger('fastify-auth-phase2', 'warn');
+    const logger = createConsoleLogger('fastify-auth-phase2', testGlobalLogLevel);
     server = await startFastifyServer(testConfig, logger);
   });
 
