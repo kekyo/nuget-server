@@ -24,6 +24,7 @@ import { createUserService } from './services/userService';
 import { createSessionService } from './services/sessionService';
 import { Logger, ServerConfig } from './types';
 import { createUrlResolver } from './utils/urlResolver';
+import { createFastifyLoggerAdapter } from './fastifyLoggerAdapter';
 import { 
   createLocalStrategy, 
   createBasicStrategy,
@@ -53,11 +54,12 @@ export interface FastifyServerInstance {
  */
 export const createFastifyInstance = async (config: ServerConfig, logger: Logger): Promise<FastifyInstance> => {
 
-  // Create Fastify instance with simple logging
+  // Create Fastify logger adapter to integrate with project Logger
+  const fastifyLoggerAdapter = createFastifyLoggerAdapter(logger, config.logLevel || 'info');
+
+  // Create Fastify instance with integrated logging
   const fastify: FastifyInstance = Fastify({
-    logger: {
-      level: config.logLevel || 'info'
-    },
+    logger: fastifyLoggerAdapter,
     bodyLimit: 1024 * 1024 * 100, // 100MB limit for package uploads
     disableRequestLogging: true // Use our custom request logging
   });

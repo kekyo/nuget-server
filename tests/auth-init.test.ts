@@ -18,7 +18,7 @@ describe('Auth Init', () => {
   beforeEach(async (fn) => {
     testDir = await createTestDirectory('auth-init', fn.task.name);
     configDir = join(testDir, 'config');
-    logger = createConsoleLogger('test', 'warn');
+    logger = createConsoleLogger('auth-init', 'warn');
   });
 
   // Test directories are preserved in test-results for debugging
