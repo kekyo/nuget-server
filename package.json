@@ -43,6 +43,8 @@
     "dev": "npm run build && (npm run dev:server & npm run dev:ui)",
     "dev:server": "node dist/cli.js --config-dir ./config --enable-auth publish",
     "dev:ui": "vite --config vite.ui.config.ts",
+    "dev:unified": "vite --config vite.config.unified.ts",
+    "build:unified": "vite build --config vite.config.unified.ts",
     "test": "npm run build && vitest run",
     "dump": "npm run build && screw-up dump",
     "pack": "npm run build && screw-up pack --pack-destination artifacts/"

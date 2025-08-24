@@ -100,7 +100,7 @@ const PackageIconDisplay: React.FC<PackageIconDisplayProps> = ({ packageId, vers
   const [hasError, setHasError] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   
-  const iconUrl = `/api/package/${packageId.toLowerCase()}/${version}/icon`;
+  const iconUrl = `/api/ui/icon/${packageId}/${version}`;
   
   const handleImageLoad = useCallback(() => {
     setIsLoading(false);

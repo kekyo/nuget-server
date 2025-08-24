@@ -11,7 +11,6 @@ import UploadDrawer from './components/UploadDrawer';
 import UserRegistrationDrawer from './components/UserRegistrationDrawer';
 import LoginDialog from './components/LoginDialog';
 import { repository_url } from '../generated/packageMetadata';
-import nuger_server_icon from '../../images/nuget-server-120.png';
 
 interface ServerConfig {
   realm: string;
@@ -296,7 +295,7 @@ const App = () => {
         <AppBar position="fixed">
           <Toolbar>
             <img 
-              src={nuger_server_icon} 
+              src="/icon.png" 
               alt={serverConfig?.realm || 'nuget-server'}
               style={{ height: "2.3rem", width: "2.3rem", marginRight: "1rem" }} />
             <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
@@ -350,8 +349,7 @@ const App = () => {
                   color="inherit"
                   startIcon={<LoginIcon />}
                   onClick={handleLogin}
-                  sx={{ mr: 1 }}
-                >
+                  sx={{ mr: 1 }}>
                   Login
                 </Button>
               </>
@@ -365,8 +363,7 @@ const App = () => {
                   color="inherit"
                   startIcon={<LogoutIcon />}
                   onClick={handleLogout}
-                  sx={{ mr: 1 }}
-                >
+                  sx={{ mr: 1 }}>
                   Logout
                 </Button>
               </>

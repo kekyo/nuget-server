@@ -2,10 +2,18 @@
 // Copyright (c) Kouji Matsui (@kekyo@mi.kekyo.net)
 // License under MIT.
 
-import Fastify, { FastifyInstance, FastifyRequest } from 'fastify';
+import Fastify, {
+  FastifyInstance,
+  FastifyReply,
+  FastifyRequest,
+  FastifySchema,
+  FastifyTypeProviderDefault,
+  RawServerDefault,
+  RouteGenericInterface } from 'fastify';
 import fastifyPassport from '@fastify/passport';
 import fastifySecureSession from '@fastify/secure-session';
 import fastifyStatic from '@fastify/static';
+import { IncomingMessage, ServerResponse } from 'http';
 import path from 'path';
 import { promises as fs, existsSync } from 'fs';
 import { fileURLToPath } from 'url';
@@ -19,12 +27,7 @@ import { createUrlResolver } from './utils/urlResolver';
 import { 
   createLocalStrategy, 
   createBasicStrategy,
-  createHybridAuthMiddleware,
-  createSessionOnlyAuthMiddleware,
-  createConditionalHybridAuthMiddleware,
-  createRoleAuthorizationMiddleware,
-  FastifyAuthConfig,
-  AuthenticatedFastifyRequest
+  FastifyAuthConfig
 } from './middleware/fastifyAuth';
 import { registerV3Routes } from './routes/v3/index';
 import { registerUiRoutes } from './routes/api/ui/index';
@@ -32,6 +35,8 @@ import { registerPublishRoutes } from './routes/api/publish/index';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+type GetReply = FastifyReply<RawServerDefault, IncomingMessage, ServerResponse<IncomingMessage>, RouteGenericInterface, unknown, FastifySchema, FastifyTypeProviderDefault, unknown>;
 
 /**
  * Server instance with cleanup functionality
@@ -41,12 +46,13 @@ export interface FastifyServerInstance {
 }
 
 /**
- * Starts the NuGet server with Fastify framework
+ * Creates and configures a Fastify instance without starting the server
  * @param config - Server configuration including port, baseUrl, and trusted proxies
  * @param logger - Logger instance for logging server events
- * @returns Promise that resolves to server instance when server is started
+ * @returns Promise that resolves to configured Fastify instance
  */
-export const startFastifyServer = async (config: ServerConfig, logger: Logger): Promise<FastifyServerInstance> => {
+export const createFastifyInstance = async (config: ServerConfig, logger: Logger): Promise<FastifyInstance> => {
+
   // Create Fastify instance with simple logging
   const fastify: FastifyInstance = Fastify({
     logger: {
@@ -156,7 +162,7 @@ export const startFastifyServer = async (config: ServerConfig, logger: Logger): 
   });
 
   // Basic health check endpoint
-  fastify.get('/health', async (request, reply) => {
+  fastify.get('/health', async (_request, _reply) => {
     return { status: 'ok', serverType: 'fastify', version };
   });
 
@@ -255,7 +261,7 @@ export const startFastifyServer = async (config: ServerConfig, logger: Logger): 
           sameSite: 'strict' as const,
           path: '/'
         });
-        
+
         return {
           authenticated: false,
           user: null
@@ -365,11 +371,18 @@ export const startFastifyServer = async (config: ServerConfig, logger: Logger): 
     }
 
     // Serve UI files with custom handler
-    const uiPath = path.join(__dirname, 'ui');
+    // Check if we're in development mode
+    const devUiPath = path.join(process.cwd(), 'src', 'ui');
+    const devPublicPath = path.join(process.cwd(), 'src', 'ui', 'public');
+    const prodUiPath = path.join(__dirname, 'ui');
+
+    const isDevMode = existsSync(devPublicPath);
+    const uiPath = isDevMode ? devUiPath : prodUiPath;
+    const publicPath = isDevMode ? devPublicPath : prodUiPath;
     const imagesPath = path.join(__dirname, '..', 'images');
-    
+
     // Helper function to serve static files using streaming
-    const serveStaticFile = async (filePath: string, reply: any) => {
+    const serveStaticFile = async (filePath: string, reply: GetReply) => {
       try {
         if (!existsSync(filePath)) {
           throw new Error('File not found');
@@ -419,41 +432,47 @@ export const startFastifyServer = async (config: ServerConfig, logger: Logger): 
         reply.code(404).send({ error: 'File not found' });
       }
     };
-    
+
     // Serve UI at root path
-    fastify.get('/', async (request, reply) => {
+    fastify.get('/', async (_request, reply: GetReply) => {
       const indexPath = path.join(uiPath, 'index.html');
       return serveStaticFile(indexPath, reply);
     });
-    
+
     // Serve login page
-    fastify.get('/login', async (request, reply) => {
+    fastify.get('/login', async (_request, reply: GetReply) => {
       const loginPath = path.join(uiPath, 'login.html');
       return serveStaticFile(loginPath, reply);
     });
-    
+
     // Serve other UI assets
-    fastify.get('/assets/*', async (request, reply) => {
+    fastify.get('/assets/*', async (request, reply: GetReply) => {
       const assetPath = (request.params as any)['*'];
       const fullPath = path.join(uiPath, 'assets', assetPath);
       return serveStaticFile(fullPath, reply);
     });
-    
+
     // Serve images
-    fastify.get('/images/*', async (request, reply) => {
+    fastify.get('/images/*', async (request, reply: GetReply) => {
       const imagePath = (request.params as any)['*'];
       const fullPath = path.join(imagesPath, imagePath);
       return serveStaticFile(fullPath, reply);
     });
-    
+
     // Serve favicon
-    fastify.get('/favicon.ico', async (request, reply) => {
-      const faviconPath = path.join(uiPath, 'favicon.ico');
+    fastify.get('/favicon.ico', async (_request, reply: GetReply) => {
+      const faviconPath = path.join(publicPath, 'favicon.ico');
       return serveStaticFile(faviconPath, reply);
+    });
+    
+    // Serve icon
+    fastify.get('/icon.png', async (_request, reply: GetReply) => {
+      const iconPath = path.join(publicPath, 'icon.png');
+      return serveStaticFile(iconPath, reply);
     });
   } else {
     // When UI is disabled, return JSON at root path
-    fastify.get('/', async (request, reply) => {
+    fastify.get('/', async (_request, _reply: GetReply) => {
       return {
         message: config.realm || `${packageName} ${version}`,
         apiEndpoint: '/api',
@@ -461,6 +480,31 @@ export const startFastifyServer = async (config: ServerConfig, logger: Logger): 
       };
     });
   }
+
+  // Store services on fastify instance for cleanup
+  fastify.decorate('userService', userService);
+  fastify.decorate('sessionService', sessionService);
+  fastify.decorate('authService', authService);
+  fastify.decorate('serverConfig', config);
+  fastify.decorate('addSourceCommand', addSourceCommand);
+
+  return fastify;
+};
+
+/**
+ * Starts the NuGet server with Fastify framework
+ * @param config - Server configuration including port, baseUrl, and trusted proxies
+ * @param logger - Logger instance for logging server events
+ * @returns Promise that resolves to server instance when server is started
+ */
+export const startFastifyServer = async (config: ServerConfig, logger: Logger): Promise<FastifyServerInstance> => {
+  const fastify = await createFastifyInstance(config, logger);
+  
+  // Get decorated services
+  const userService = (fastify as any).userService;
+  const sessionService = (fastify as any).sessionService;
+  const authService = (fastify as any).authService;
+  const addSourceCommand = (fastify as any).addSourceCommand;
 
   // Start listening
   try {

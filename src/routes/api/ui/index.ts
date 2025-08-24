@@ -446,11 +446,10 @@ export const registerUiRoutes = async (fastify: FastifyInstance, config: UiRoute
       logger.info(`Serving icon for package: ${packageId} ${version}`);
       
       // Try to get icon from package metadata or storage
-      const lowerId = packageId.toLowerCase();
       const lowerVersion = version.toLowerCase();
       
-      // Look for icon file in package directory
-      const packageDir = join(packagesRoot, lowerId, lowerVersion);
+      // Look for icon file in package directory (preserve original packageId case)
+      const packageDir = join(packagesRoot, packageId, lowerVersion);
       const iconExtensions = ['png', 'jpg', 'jpeg', 'gif', 'svg'];
       
       for (const ext of iconExtensions) {
@@ -463,8 +462,10 @@ export const registerUiRoutes = async (fastify: FastifyInstance, config: UiRoute
           reply.header('Content-Type', contentType);
           reply.header('Cache-Control', 'public, max-age=3600'); // Cache for 1 hour
           
+          // Read and send the file
+          const iconData = await fs.readFile(iconPath);
           logger.info(`Icon served successfully: ${packageId} ${version}`);
-          return reply.sendFile(iconPath);
+          return reply.send(iconData);
         } catch (error) {
           // Continue to next extension
         }

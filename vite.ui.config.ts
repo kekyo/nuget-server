@@ -26,6 +26,10 @@ export default defineConfig({
       '/favicon.ico': {
         target: 'http://localhost:5963',
         changeOrigin: true
+      },
+      '/icon.png': {
+        target: 'http://localhost:5963',
+        changeOrigin: true
       }
     }
   }
