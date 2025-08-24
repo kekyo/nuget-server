@@ -29,7 +29,7 @@ interface ServerConfig {
     role: string;
     authenticated: boolean;
   } | null;
-  serverType?: 'express' | 'fastify';
+  serverType?: 'fastify';
 }
 
 const App = () => {
@@ -390,7 +390,7 @@ const App = () => {
           open={userRegDrawerOpen}
           onClose={handleCloseUserRegDrawer}
           onRegistrationSuccess={handleUserRegSuccess}
-          serverType={serverConfig?.serverType} />
+          />
 
         <LoginDialog
           open={loginDialogOpen}

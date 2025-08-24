@@ -30,7 +30,7 @@ interface UserRegistrationDrawerProps {
   open: boolean;
   onClose: () => void;
   onRegistrationSuccess: () => void;
-  serverType?: 'express' | 'fastify';
+  serverType?: 'fastify';
 }
 
 interface RegistrationResult {
@@ -41,7 +41,7 @@ interface RegistrationResult {
 
 type UserRole = 'read' | 'publish' | 'admin';
 
-const UserRegistrationDrawer = ({ open, onClose, onRegistrationSuccess, serverType }: UserRegistrationDrawerProps) => {
+const UserRegistrationDrawer = ({ open, onClose, onRegistrationSuccess }: UserRegistrationDrawerProps) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -87,24 +87,16 @@ const UserRegistrationDrawer = ({ open, onClose, onRegistrationSuccess, serverTy
     setResult(null);
 
     try {
-      // Use appropriate user management endpoint based on server type
-      const endpoint = serverType === 'fastify' 
-        ? '/api/ui/users'
-        : '/api/useradd';
+      // Use Fastify user management endpoint
+      const endpoint = '/api/ui/users';
       
-      // Prepare request body based on server type
-      const requestBody = serverType === 'fastify'
-        ? {
-            action: 'create',
-            username,
-            password,
-            role
-          }
-        : {
-            username,
-            password,
-            role
-          };
+      // Prepare request body
+      const requestBody = {
+        action: 'create',
+        username,
+        password,
+        role
+      };
       
       const response = await fetch(endpoint, {
         method: 'POST',

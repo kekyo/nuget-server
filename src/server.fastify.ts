@@ -166,7 +166,7 @@ export const createFastifyInstance = async (config: ServerConfig, logger: Logger
     return { status: 'ok', serverType: 'fastify', version };
   });
 
-  // Generate the add source command example (same logic as in Express server)
+  // Generate the add source command example
   let addSourceCommand: string;
   if (config.baseUrl) {
     addSourceCommand = `dotnet nuget add source "${config.baseUrl}/api/index.json" -n "ref1"${config.baseUrl.startsWith('https:') ? '' : ' --allow-insecure-connections'}`;

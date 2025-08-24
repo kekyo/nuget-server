@@ -189,8 +189,8 @@ const PackageList = forwardRef<PackageListRef, PackageListProps>(({ serverConfig
     setLoading(true);
     setError(null);
     try {
-      // Use appropriate search endpoint based on server type
-      const searchEndpoint = serverConfig?.serverType === 'fastify' ? '/v3/search' : '/api/search';
+      // Use Fastify search endpoint
+      const searchEndpoint = '/v3/search';
       
       const response = await fetch(searchEndpoint, {
         credentials: 'same-origin'
