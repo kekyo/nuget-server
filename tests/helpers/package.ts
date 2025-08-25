@@ -1,8 +1,9 @@
 import AdmZip from 'adm-zip';
-import fs from 'fs-extra';
+import { promises as fs } from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { createConsoleLogger } from '../../src/logger.js';
+import { ensureDir, copy } from './fs-utils';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -63,17 +64,17 @@ export const extractNuspecFromNupkg = async (nupkgPath: string, targetDir: strin
 
 export const setupPackageStorage = async (testDir: string): Promise<void> => {
   const packagesDir = path.join(testDir, 'packages');
-  await fs.ensureDir(packagesDir);
+  await ensureDir(packagesDir);
   
   const availablePackages = await getAvailablePackages();
   
   for (const pkg of availablePackages) {
     const packageDir = path.join(packagesDir, pkg.id, pkg.version);
-    await fs.ensureDir(packageDir);
+    await ensureDir(packageDir);
     
     // Copy nupkg file
     const targetNupkgPath = path.join(packageDir, `${pkg.id}.${pkg.version}.nupkg`);
-    await fs.copy(pkg.nupkgPath, targetNupkgPath);
+    await copy(pkg.nupkgPath, targetNupkgPath);
     
     // Extract and save nuspec file
     try {
@@ -93,56 +94,6 @@ export const parsePackageFromNupkgName = (filename: string): { id: string; versi
     return { id, version };
   }
   return null;
-}
-
-export interface TestPackageMetadata {
-  authors?: string;
-  description?: string;
-  tags?: string[];
-  licenseUrl?: string;
-  projectUrl?: string;
-  iconUrl?: string;
-}
-
-export const createTestPackage = async (
-  id: string, 
-  version: string, 
-  metadata?: TestPackageMetadata
-): Promise<Buffer> => {
-  const zip = new AdmZip();
-  
-  // Create a simple nuspec file
-  const nuspecContent = `<?xml version="1.0" encoding="utf-8"?>
-<package xmlns="http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd">
-  <metadata>
-    <id>${id}</id>
-    <version>${version}</version>
-    <authors>${metadata?.authors || 'Test Author'}</authors>
-    <description>${metadata?.description || 'Test package description'}</description>
-    ${metadata?.licenseUrl ? `<licenseUrl>${metadata.licenseUrl}</licenseUrl>` : ''}
-    ${metadata?.projectUrl ? `<projectUrl>${metadata.projectUrl}</projectUrl>` : ''}
-    ${metadata?.iconUrl ? `<iconUrl>${metadata.iconUrl}</iconUrl>` : ''}
-    ${metadata?.tags ? `<tags>${metadata.tags.join(' ')}</tags>` : ''}
-  </metadata>
-</package>`;
-
-  // Add nuspec file to zip
-  zip.addFile(`${id}.nuspec`, Buffer.from(nuspecContent, 'utf-8'));
-  
-  // Add a dummy content file
-  zip.addFile('_rels/.rels', Buffer.from(`<?xml version="1.0" encoding="utf-8"?>
-<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
-  <Relationship Type="http://schemas.microsoft.com/packaging/2010/07/manifest" Target="/${id}.nuspec" Id="R0" />
-</Relationships>`, 'utf-8'));
-
-  // Add package manifest
-  zip.addFile('[Content_Types].xml', Buffer.from(`<?xml version="1.0" encoding="utf-8"?>
-<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">
-  <Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml" />
-  <Default Extension="nuspec" ContentType="application/octet" />
-</Types>`, 'utf-8'));
-
-  return zip.toBuffer();
 }
 
 export const publishTestPackage = async (baseUrl: string, packageBuffer: Buffer): Promise<void> => {

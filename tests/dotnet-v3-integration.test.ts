@@ -4,12 +4,13 @@
 
 import { describe, test, expect } from 'vitest';
 import path from 'node:path';
-import fs from 'fs-extra';
+import { promises as fs } from 'fs';
 import AdmZip from 'adm-zip';
 import { startFastifyServer } from '../src/server.js';
 import { createConsoleLogger } from '../src/logger.js';
 import { Logger, ServerConfig } from '../src/types.js';
 import { createTestDirectory, getTestPort, testGlobalLogLevel, waitForServerReady } from './helpers/test-helper.js';
+import { pathExists } from './helpers/fs-utils.js';
 import {
   createTestProject,
   addNuGetSource,
@@ -256,7 +257,7 @@ describe('dotnet restore V3 API Integration Tests', () => {
       // Debug: Check if GitReader package exists
       const gitReaderPath = path.join(testPackagesDir, 'GitReader', '1.15.0');
       logger.info(`Checking GitReader package at: ${gitReaderPath}`);
-      const gitReaderExists = await fs.pathExists(gitReaderPath);
+      const gitReaderExists = await pathExists(gitReaderPath);
       logger.info(`GitReader package exists: ${gitReaderExists}`);
       if (gitReaderExists) {
         const files = await fs.readdir(gitReaderPath);

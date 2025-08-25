@@ -1,7 +1,8 @@
-import { execa } from 'execa';
-import fs from 'fs-extra';
+import { spawn } from 'child_process';
+import { promises as fs } from 'fs';
 import path from 'path';
 import { Logger } from '../../src/types';
+import { ensureDir } from './fs-utils';
 
 export interface DotNetRestoreResult {
   success: boolean;
@@ -14,25 +15,66 @@ export interface DotNetRestoreResult {
  * Clears all NuGet caches to ensure clean test environment
  * This includes global packages, http cache, temp cache, and plugin cache
  */
+const spawnAsync = (
+  command: string,
+  args: string[],
+  options: { cwd?: string; env?: Record<string, string>; timeout?: number }
+): Promise<{ stdout: string; stderr: string; exitCode: number | null }> => {
+  return new Promise((resolve, reject) => {
+    const child = spawn(command, args, {
+      cwd: options.cwd,
+      env: { ...process.env, ...options.env },
+      stdio: 'pipe'
+    });
+
+    let stdout = '';
+    let stderr = '';
+    let timeoutId: NodeJS.Timeout | undefined;
+
+    if (options.timeout) {
+      timeoutId = setTimeout(() => {
+        child.kill('SIGTERM');
+        reject(new Error(`Command timed out after ${options.timeout}ms`));
+      }, options.timeout);
+    }
+
+    child.stdout?.on('data', (data) => {
+      stdout += data.toString();
+    });
+
+    child.stderr?.on('data', (data) => {
+      stderr += data.toString();
+    });
+
+    child.on('close', (code) => {
+      if (timeoutId) clearTimeout(timeoutId);
+      resolve({ stdout, stderr, exitCode: code });
+    });
+
+    child.on('error', (error) => {
+      if (timeoutId) clearTimeout(timeoutId);
+      reject(error);
+    });
+  });
+};
+
 export const clearNuGetCache = async (logger: Logger): Promise<void> => {
   try {
     // Check if dotnet command is available first
     const dotnetPath = process.env.HOME ? `${process.env.HOME}/.dotnet` : '/usr/local/share/dotnet';
     const env = {
-      ...process.env,
       PATH: `${dotnetPath}:${process.env.PATH || ''}`,
       DOTNET_ROOT: dotnetPath
     };
     
-    await execa('dotnet', ['nuget', 'locals', 'all', '--clear'], {
-      timeout: 30000, // 30 seconds timeout
-      env,
-      extendEnv: true
+    await spawnAsync('dotnet', ['nuget', 'locals', 'all', '--clear'], {
+      timeout: 30000,
+      env
     });
     logger.info('NuGet cache cleared successfully');
   } catch (error: any) {
     // Log detailed error information but don't fail the test
-    logger.warn(`Failed to clear NuGet cache: ${error.message}, ${error.exitCode}, ${error.command}, ${error.stdout}, ${error.stderr}`);
+    logger.warn(`Failed to clear NuGet cache: ${error.message}`);
   }
 };
 
@@ -41,7 +83,7 @@ export const createTestProject = async (
   packageId: string,
   packageVersion: string
 ): Promise<void> => {
-  await fs.ensureDir(dotnetDir);
+  await ensureDir(dotnetDir);
   
   const csprojContent = `<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
@@ -108,7 +150,6 @@ export const runDotNetRestore = async (logger: Logger, projectDir: string): Prom
     // Set up environment variables for dotnet CLI
     const dotnetPath = process.env.HOME ? `${process.env.HOME}/.dotnet` : '/usr/local/share/dotnet';
     const env = {
-      ...process.env,
       PATH: `${dotnetPath}:${process.env.PATH || ''}`,
       DOTNET_ROOT: dotnetPath,
       DOTNET_CLI_TELEMETRY_OPTOUT: '1', // Disable telemetry for cleaner output
@@ -120,35 +161,33 @@ export const runDotNetRestore = async (logger: Logger, projectDir: string): Prom
 
     // First check if dotnet is available
     try {
-      const versionResult = await execa('dotnet', ['--version'], { env, extendEnv: true, timeout: 10000 });
-      logger.info('dotnet version:' + versionResult.stdout);
+      const versionResult = await spawnAsync('dotnet', ['--version'], { env, timeout: 10000 });
+      logger.info('dotnet version:' + versionResult.stdout.trim());
     } catch (versionError) {
       logger.warn('dotnet version check failed: ' + versionError);
     }
 
-    const result = await execa('dotnet', ['restore', '--no-cache', '--force', '--verbosity', 'normal'], {
+    const result = await spawnAsync('dotnet', ['restore', '--no-cache', '--force', '--verbosity', 'normal'], {
       cwd: projectDir,
-      stdio: 'pipe',
       timeout: 60000, // 60 seconds timeout
-      env,
-      extendEnv: true
+      env
     });
     
     return {
       success: (result.exitCode ?? 0) === 0,
-      exitCode: result.exitCode,
+      exitCode: result.exitCode ?? 0,
       stdout: result.stdout,
       stderr: result.stderr
     };
   } catch (error: any) {
     // Log detailed error information
-    logger.info(`dotnet restore failed: ${error.message}, ${error.exitCode}, ${error.command}, ${projectDir}, ${error.stdout || 'No stdout'}, ${error.stderr || 'No stderr'}`);
+    logger.info(`dotnet restore failed: ${error.message}, ${projectDir}`);
 
     return {
       success: false,
-      exitCode: error.exitCode ?? 1,
-      stdout: error.stdout || '',
-      stderr: error.stderr || error.message || 'Unknown error'
+      exitCode: 1,
+      stdout: '',
+      stderr: error.message || 'Unknown error'
     };
   }
 }

@@ -1,9 +1,9 @@
-import fs from 'fs-extra';
 import path from 'path';
 import dayjs from 'dayjs';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import { LogLevel } from '../../src/types';
+import { ensureDir } from './fs-utils';
 
 const execAsync = promisify(exec);
 
@@ -37,7 +37,7 @@ export const createTestDirectory = async (categoryName: string, testName: string
     sanitize(categoryName), 
     sanitize(testName)
   );
-  await fs.ensureDir(testDir);
+  await ensureDir(testDir);
   return testDir;
 };
 

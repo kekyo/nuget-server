@@ -5,7 +5,7 @@ import { startFastifyServer, FastifyServerInstance } from '../src/server';
 import { createConsoleLogger } from '../src/logger';
 import { ServerConfig } from '../src/types';
 import { createTestDirectory, getTestPort, testGlobalLogLevel } from './helpers/test-helper.js';
-import { createTestPackage } from './helpers/package.js';
+import { execSync } from 'child_process';
 
 /**
  * Fastify UI Backend API Tests - Phase 4
@@ -106,22 +106,38 @@ describe('Fastify UI Backend API - Phase 4 Tests', () => {
     );
   };
 
-  const createTestIcon = async () => {
-    // Create test package directory with icon
-    const packageDir = path.join(testPackagesDir, 'testpackage', '1.0.0');
+  const setupTestPackage = async () => {
+    // Use actual test package from fixtures
+    const sourcePackage = path.join(__dirname, 'fixtures', 'packages', 'FlashCap.1.10.0.nupkg');
+    const packageDir = path.join(testPackagesDir, 'FlashCap', '1.10.0');
     await fs.mkdir(packageDir, { recursive: true });
     
-    // Create a simple PNG icon (1x1 pixel)
-    const pngData = Buffer.from([
-      0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A, 0x00, 0x00, 0x00, 0x0D,
-      0x49, 0x48, 0x44, 0x52, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
-      0x08, 0x02, 0x00, 0x00, 0x00, 0x90, 0x77, 0x53, 0xDE, 0x00, 0x00, 0x00,
-      0x0C, 0x49, 0x44, 0x41, 0x54, 0x08, 0xD7, 0x63, 0xF8, 0x00, 0x00, 0x00,
-      0x00, 0x01, 0x00, 0x01, 0x00, 0x00, 0x37, 0x6E, 0xF9, 0x24, 0x00, 0x00,
-      0x00, 0x00, 0x49, 0x45, 0x4E, 0x44, 0xAE, 0x42, 0x60, 0x82
-    ]);
+    // Extract necessary files from the nupkg
+    const tempDir = path.join(testBaseDir, 'temp-extract');
+    await fs.mkdir(tempDir, { recursive: true });
     
-    await fs.writeFile(path.join(packageDir, 'icon.png'), pngData);
+    try {
+      // Extract the nupkg to temp directory
+      execSync(`unzip -q -o "${sourcePackage}" -d "${tempDir}"`);
+      
+      // Copy the nupkg file
+      await fs.copyFile(sourcePackage, path.join(packageDir, 'FlashCap.1.10.0.nupkg'));
+      
+      // Copy the nuspec file
+      const nuspecSource = path.join(tempDir, 'FlashCap.nuspec');
+      if (await fs.access(nuspecSource).then(() => true).catch(() => false)) {
+        await fs.copyFile(nuspecSource, path.join(packageDir, 'FlashCap.nuspec'));
+      }
+      
+      // Copy icon file if exists
+      const iconSource = path.join(tempDir, 'FlashCap.100.png');
+      if (await fs.access(iconSource).then(() => true).catch(() => false)) {
+        await fs.copyFile(iconSource, path.join(packageDir, 'icon.png'));
+      }
+    } finally {
+      // Clean up temp directory
+      await fs.rm(tempDir, { recursive: true, force: true });
+    }
   };
 
   beforeEach(async (fn) => {
@@ -133,7 +149,7 @@ describe('Fastify UI Backend API - Phase 4 Tests', () => {
     // Create test directories and data
     await fs.mkdir(testPackagesDir, { recursive: true });
     await createTestUsers();
-    await createTestIcon();
+    await setupTestPackage();
     
     // Start server with isolated directories
     serverPort = getTestPort(7000);
@@ -683,7 +699,7 @@ describe('Fastify UI Backend API - Phase 4 Tests', () => {
       
       server = await startFastifyServer(config, logger);
 
-      const response = await fetch(`http://localhost:${serverPort}/api/ui/icon/testpackage/1.0.0`);
+      const response = await fetch(`http://localhost:${serverPort}/api/ui/icon/FlashCap/1.10.0`);
 
       expect(response.status).toBe(200);
       expect(response.headers.get('content-type')).toBe('image/png');
@@ -704,7 +720,7 @@ describe('Fastify UI Backend API - Phase 4 Tests', () => {
       
       server = await startFastifyServer(config, logger);
 
-      const response = await fetch(`http://localhost:${serverPort}/api/ui/icon/testpackage/1.0.0`);
+      const response = await fetch(`http://localhost:${serverPort}/api/ui/icon/FlashCap/1.10.0`);
 
       expect(response.status).toBe(200);
       expect(response.headers.get('content-type')).toBe('image/png');
@@ -724,7 +740,7 @@ describe('Fastify UI Backend API - Phase 4 Tests', () => {
       server = await startFastifyServer(config, logger);
 
       // Without authentication
-      const response = await fetch(`http://localhost:${serverPort}/api/ui/icon/testpackage/1.0.0`);
+      const response = await fetch(`http://localhost:${serverPort}/api/ui/icon/FlashCap/1.10.0`);
       expect(response.status).toBe(401);
 
       // With session authentication
@@ -743,7 +759,7 @@ describe('Fastify UI Backend API - Phase 4 Tests', () => {
       const cookies = loginResponse.headers.get('set-cookie') || '';
       const sessionToken = cookies.match(/sessionToken=([^;]+)/)?.[1];
 
-      const authResponse = await fetch(`http://localhost:${serverPort}/api/ui/icon/testpackage/1.0.0`, {
+      const authResponse = await fetch(`http://localhost:${serverPort}/api/ui/icon/FlashCap/1.10.0`, {
         headers: {
           'Cookie': `sessionToken=${sessionToken}`
         }
@@ -786,8 +802,9 @@ describe('Fastify UI Backend API - Phase 4 Tests', () => {
       
       server = await startFastifyServer(config, logger);
 
-      // Create a test package
-      const testPackageBuffer = await createTestPackage('TestPublishPackage', '1.0.0');
+      // Use a fixture package for testing
+      const fixturePackagePath = path.join(__dirname, 'fixtures', 'packages', 'GitReader.1.15.0.nupkg');
+      const testPackageBuffer = await fs.readFile(fixturePackagePath);
 
       const response = await fetch(`http://localhost:${serverPort}/api/publish`, {
         method: 'POST',
@@ -800,8 +817,8 @@ describe('Fastify UI Backend API - Phase 4 Tests', () => {
       expect(response.status).toBe(201);
       const data = await response.json();
       expect(data).toHaveProperty('message', 'Package uploaded successfully');
-      expect(data).toHaveProperty('id', 'TestPublishPackage');
-      expect(data).toHaveProperty('version', '1.0.0');
+      expect(data).toHaveProperty('id', 'GitReader');
+      expect(data).toHaveProperty('version', '1.15.0');
     });
 
     test('should require authentication for publish (authMode: publish)', async () => {
@@ -817,8 +834,9 @@ describe('Fastify UI Backend API - Phase 4 Tests', () => {
       
       server = await startFastifyServer(config, logger);
 
-      // Create a test package
-      const testPackageBuffer = await createTestPackage('TestPublishPackage', '1.0.0');
+      // Use a fixture package for testing
+      const fixturePackagePath = path.join(__dirname, 'fixtures', 'packages', 'GitReader.1.15.0.nupkg');
+      const testPackageBuffer = await fs.readFile(fixturePackagePath);
 
       // Without authentication
       const response = await fetch(`http://localhost:${serverPort}/api/publish`, {
@@ -861,8 +879,9 @@ describe('Fastify UI Backend API - Phase 4 Tests', () => {
       const cookies = loginResponse.headers.get('set-cookie') || '';
       const sessionToken = cookies.match(/sessionToken=([^;]+)/)?.[1];
 
-      // Create a test package
-      const testPackageBuffer = await createTestPackage('TestPublishPackage', '1.0.0');
+      // Use a fixture package for testing
+      const fixturePackagePath = path.join(__dirname, 'fixtures', 'packages', 'GitReader.1.15.0.nupkg');
+      const testPackageBuffer = await fs.readFile(fixturePackagePath);
 
       const response = await fetch(`http://localhost:${serverPort}/api/publish`, {
         method: 'POST',
@@ -876,8 +895,8 @@ describe('Fastify UI Backend API - Phase 4 Tests', () => {
       expect(response.status).toBe(201);
       const data = await response.json();
       expect(data).toHaveProperty('message', 'Package uploaded successfully');
-      expect(data).toHaveProperty('id', 'TestPublishPackage');
-      expect(data).toHaveProperty('version', '1.0.0');
+      expect(data).toHaveProperty('id', 'GitReader');
+      expect(data).toHaveProperty('version', '1.15.0');
     });
 
     test('should allow publish with Basic authentication (authMode: publish)', async () => {
@@ -893,8 +912,9 @@ describe('Fastify UI Backend API - Phase 4 Tests', () => {
       
       server = await startFastifyServer(config, logger);
 
-      // Create a test package
-      const testPackageBuffer = await createTestPackage('TestPublishPackage', '1.0.0');
+      // Use a fixture package for testing
+      const fixturePackagePath = path.join(__dirname, 'fixtures', 'packages', 'GitReader.1.15.0.nupkg');
+      const testPackageBuffer = await fs.readFile(fixturePackagePath);
 
       // Use Basic authentication
       const credentials = Buffer.from('testpublishui:publish-api-key-123').toString('base64');
@@ -910,8 +930,8 @@ describe('Fastify UI Backend API - Phase 4 Tests', () => {
       expect(response.status).toBe(201);
       const data = await response.json();
       expect(data).toHaveProperty('message', 'Package uploaded successfully');
-      expect(data).toHaveProperty('id', 'TestPublishPackage');
-      expect(data).toHaveProperty('version', '1.0.0');
+      expect(data).toHaveProperty('id', 'GitReader');
+      expect(data).toHaveProperty('version', '1.15.0');
     });
 
     test('should reject read-only user for publish', async () => {
@@ -927,8 +947,9 @@ describe('Fastify UI Backend API - Phase 4 Tests', () => {
       
       server = await startFastifyServer(config, logger);
 
-      // Create a test package
-      const testPackageBuffer = await createTestPackage('TestPublishPackage', '1.0.0');
+      // Use a fixture package for testing
+      const fixturePackagePath = path.join(__dirname, 'fixtures', 'packages', 'GitReader.1.15.0.nupkg');
+      const testPackageBuffer = await fs.readFile(fixturePackagePath);
 
       // Use Basic authentication with read user
       const credentials = Buffer.from('testreadui:read-api-key-123').toString('base64');
