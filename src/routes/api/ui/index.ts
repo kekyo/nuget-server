@@ -12,6 +12,7 @@ import { AuthService } from '../../../services/authService';
 import { createPackageService } from '../../../services/packageService';
 import { AuthenticatedFastifyRequest } from '../../../middleware/fastifyAuth';
 import { name as packageName, version, git_commit_hash } from '../../../generated/packageMetadata';
+import { streamFile } from '../../../utils/fileStreaming';
 
 /**
  * Configuration for UI routes
@@ -455,15 +456,14 @@ export const registerUiRoutes = async (fastify: FastifyInstance, config: UiRoute
           const iconPath = join(packageDir, `icon.${ext}`);
           await fs.access(iconPath); // Check if file exists
           
-          // Set appropriate content type
+          // Use streamFile with appropriate content type and cache control
           const contentType = ext === 'svg' ? 'image/svg+xml' : `image/${ext}`;
-          reply.header('Content-Type', contentType);
-          reply.header('Cache-Control', 'public, max-age=3600'); // Cache for 1 hour
-          
-          // Read and send the file
-          const iconData = await fs.readFile(iconPath);
           logger.info(`Icon served successfully: ${packageId} ${version}`);
-          return reply.send(iconData);
+          
+          return streamFile(iconPath, reply, {
+            contentType,
+            cacheControl: 'public, max-age=3600'
+          });
         } catch (error) {
           // Continue to next extension
         }

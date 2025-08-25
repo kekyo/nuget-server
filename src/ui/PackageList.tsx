@@ -415,7 +415,7 @@ const PackageList = forwardRef<PackageListRef, PackageListProps>(({ serverConfig
                     size="small"
                     startIcon={<DownloadIcon />}
                     onClick={() => {
-                      const downloadUrl = `/api/package/${pkg.id.toLowerCase()}/${version.version}/${pkg.id.toLowerCase()}.${version.version}.nupkg`;
+                      const downloadUrl = `/v3/package/${pkg.id.toLowerCase()}/${version.version}/${pkg.id.toLowerCase()}.${version.version}.nupkg`;
                       window.open(downloadUrl, '_blank');
                     }}
                   >

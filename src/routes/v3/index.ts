@@ -9,6 +9,7 @@ import { AuthService } from '../../services/authService';
 import { createConditionalHybridAuthMiddleware, FastifyAuthConfig, AuthenticatedFastifyRequest } from '../../middleware/fastifyAuth';
 import { createPackageService } from '../../services/packageService';
 import { createUrlResolver } from '../../utils/urlResolver';
+import { streamFile } from '../../utils/fileStreaming';
 
 /**
  * Service Index Resource interface for NuGet V3 API
@@ -423,11 +424,11 @@ export const registerV3Routes = async (fastify: FastifyInstance, config: V3Route
         const downloadFileName = entry?.storage.fileName || filename;
 
         logger.info(`V3: Package served successfully: ${packageId} ${version} as "${downloadFileName}"`);
-        
-        reply.header('Content-Type', 'application/zip');
-        reply.header('Content-Disposition', `attachment; filename="${downloadFileName}"`);
 
-        return reply.sendFile(packagePath);
+        return streamFile(packagePath, reply, {
+          contentType: 'application/zip',
+          contentDisposition: `attachment; filename="${downloadFileName}"`
+        });
       } else {
         logger.warn(`V3: File not found: ${filename} for ${packageId} ${version}`);
         return reply.status(404).send({ error: 'File not found' });

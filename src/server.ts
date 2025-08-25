@@ -15,9 +15,10 @@ import fastifySecureSession from '@fastify/secure-session';
 import fastifyStatic from '@fastify/static';
 import { IncomingMessage, ServerResponse } from 'http';
 import path from 'path';
-import { promises as fs, existsSync } from 'fs';
+import { existsSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { name as packageName, version, git_commit_hash } from './generated/packageMetadata';
+import { streamFile } from './utils/fileStreaming';
 import { createMetadataService } from './services/metadataService';
 import { createAuthService } from './services/authService';
 import { createUserService } from './services/userService';
@@ -399,54 +400,8 @@ export const createFastifyInstance = async (config: ServerConfig, logger: Logger
 
     // Helper function to serve static files using streaming
     const serveStaticFile = async (filePath: string, reply: GetReply) => {
-      try {
-        if (!existsSync(filePath)) {
-          throw new Error('File not found');
-        }
-        
-        const stat = await fs.stat(filePath);
-        if (!stat.isFile()) {
-          throw new Error('Not a file');
-        }
-        
-        // Get MIME type based on file extension
-        const ext = path.extname(filePath).toLowerCase();
-        let contentType = 'application/octet-stream';
-        
-        switch (ext) {
-          case '.html':
-            contentType = 'text/html; charset=utf-8';
-            break;
-          case '.js':
-            contentType = 'application/javascript; charset=utf-8';
-            break;
-          case '.css':
-            contentType = 'text/css; charset=utf-8';
-            break;
-          case '.json':
-            contentType = 'application/json; charset=utf-8';
-            break;
-          case '.png':
-            contentType = 'image/png';
-            break;
-          case '.jpg':
-          case '.jpeg':
-            contentType = 'image/jpeg';
-            break;
-          case '.svg':
-            contentType = 'image/svg+xml';
-            break;
-          case '.ico':
-            contentType = 'image/x-icon';
-            break;
-        }
-        
-        reply.header('Content-Type', contentType);
-        
-        return reply.sendFile(filePath);
-      } catch (error) {
-        reply.code(404).send({ error: 'File not found' });
-      }
+      // Use the unified file streaming helper
+      return streamFile(filePath, reply);
     };
 
     // Serve UI at root path
