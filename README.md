@@ -197,7 +197,7 @@ Confirm password: ****
 Admin user created successfully!
 ============================================================
 Username: admin
-API Key: ngs_xxxxxxxxxxxxxxxxxxxxxx
+API password: ngs_xxxxxxxxxxxxxxxxxxxxxx
 ============================================================
 
 IMPORTANT: Save this API key securely. It cannot be retrieved again.

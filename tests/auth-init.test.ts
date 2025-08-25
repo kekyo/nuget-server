@@ -4,11 +4,12 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { join } from 'path';
-import { writeFile, mkdir, readFile } from 'fs/promises';
+import { writeFile, mkdir } from 'fs/promises';
 import { existsSync } from 'fs';
 import { runAuthInit } from '../src/authInit';
 import { createConsoleLogger } from '../src/logger';
 import { createTestDirectory, testGlobalLogLevel } from './helpers/test-helper';
+import { ServerConfig } from '../src/types';
 
 describe('Auth Init', () => {
   let testDir: string;
@@ -34,8 +35,18 @@ describe('Auth Init', () => {
         throw new Error(`Process exited with code ${code}`);
       });
 
+      const config: ServerConfig = {
+        port: 12345,
+        packageDir: configDir,
+        configDir: configDir,
+        realm: 'Test Fastify UI Server - Publish',
+        logLevel: testGlobalLogLevel,
+        noUi: false,
+        authMode: 'publish'
+      };
+
       // Expect the function to exit with error
-      await expect(runAuthInit({ configDir, logger })).rejects.toThrow('Process exited with code 1');
+      await expect(runAuthInit(config, logger)).rejects.toThrow('Process exited with code 1');
 
       // Verify error was logged
       expect(exitSpy).toHaveBeenCalledWith(1);
@@ -118,76 +129,6 @@ describe('Auth Init', () => {
       for (const password of validPasswords) {
         expect(password.length).toBeGreaterThanOrEqual(4);
       }
-    });
-  });
-
-  describe('File output', () => {
-    it('should create users.json with correct structure', async () => {
-      // This test verifies the expected structure of users.json
-      // In a real scenario, we would mock stdin and test the full flow
-      
-      const expectedStructure = {
-        id: expect.any(String),
-        username: expect.any(String),
-        passwordHash: expect.any(String),
-        salt: expect.any(String),
-        apiKeyHash: expect.any(String),
-        apiKeySalt: expect.any(String),
-        role: 'admin',
-        createdAt: expect.any(String),
-        updatedAt: expect.any(String)
-      };
-
-      // The structure would be validated after actual creation
-      // This test documents the expected format
-    });
-
-    it('should generate unique API key', async () => {
-      // API keys should follow the pattern: ngs_[random string]
-      // This is handled by the generateApiKey function in crypto utils
-      
-      const apiKeyPattern = /^ngs_[a-zA-Z0-9]{20,}$/;
-      
-      // In actual implementation, the API key is generated and shown once
-      // This test documents the expected format
-    });
-  });
-
-  describe('Error handling', () => {
-    it('should handle Ctrl+C gracefully', async () => {
-      // Test that Ctrl+C (SIGINT) is handled properly
-      // This would require mocking process.stdin in a real test
-      
-      // The implementation catches Ctrl+C and exits cleanly
-      // Verify the error message includes "Cancelled by user"
-    });
-
-    it('should limit password retry attempts', async () => {
-      // Maximum attempts is set to 3
-      const maxAttempts = 3;
-      
-      // After max attempts, process should exit with error
-      // This would be tested with mocked stdin providing mismatched passwords
-    });
-  });
-
-  describe('Success output', () => {
-    it('should display API key only once', async () => {
-      // The API key should be displayed immediately after creation
-      // It cannot be retrieved again for security reasons
-      
-      // Expected output format:
-      const expectedOutput = [
-        'Admin user created successfully!',
-        'Username: [username]',
-        'API Key: ngs_[key]',
-        'IMPORTANT: Save this API key securely. It cannot be retrieved again.',
-        'Use this API key for NuGet client authentication:',
-        '  Username: [username]',
-        '  Password: ngs_[key]'
-      ];
-
-      // This documents the expected success message format
     });
   });
 });

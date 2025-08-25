@@ -7,7 +7,7 @@ import { join } from 'path';
 import { access, mkdir } from 'fs/promises';
 import { constants } from 'fs';
 import { createUserService } from './services/userService';
-import { Logger } from './types';
+import { Logger, ServerConfig } from './types';
 
 /**
  * Options for auth initialization
@@ -134,8 +134,8 @@ const ensureConfigDir = async (configDir: string): Promise<void> => {
 /**
  * Run authentication initialization
  */
-export const runAuthInit = async (options: AuthInitOptions): Promise<void> => {
-  const { configDir, logger } = options;
+export const runAuthInit = async (config: ServerConfig, logger: Logger): Promise<void> => {
+  const { configDir } = config;
   
   logger.info('Initializing authentication...');
   
@@ -224,12 +224,18 @@ export const runAuthInit = async (options: AuthInitOptions): Promise<void> => {
       console.log('Admin user created successfully!');
       console.log('='.repeat(60));
       console.log(`Username: ${result.user.username}`);
-      console.log(`API Key: ${result.apiKey}`);
+      console.log(`Password: *********************`);
+      console.log(`API password: ${result.apiKey}`);
       console.log('='.repeat(60));
       console.log('\nIMPORTANT: Save this API key securely. It cannot be retrieved again.');
-      console.log('Use this API key for NuGet client authentication:');
-      console.log(`  Username: ${result.user.username}`);
-      console.log(`  Password: ${result.apiKey}`);
+      console.log('Use this API user/password combination for NuGet client authentication.');
+
+      if (config.baseUrl) {
+        console.log(`Example register: dotnet nuget add source "${config.baseUrl}/api/index.json" -n ref1 -u ${result.user.username} -p ${result.apiKey} --store-password-in-clear-text${config.baseUrl.startsWith('https:') ? '' : ' --allow-insecure-connections'}`);
+      } else {
+        console.log(`Example register: dotnet nuget add source "http://localhost:${config.port}/api/index.json" -n ref1 -u ${result.user.username} -p ${result.apiKey} --store-password-in-clear-text --allow-insecure-connections`);
+      }
+
       console.log('='.repeat(60) + '\n');
       
       logger.info('Authentication initialization completed.');

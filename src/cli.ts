@@ -38,8 +38,8 @@ program.
   version(version).
   option('-p, --port <port>', 'port number', '5963').
   option('-b, --base-url <url>', 'fixed base URL for API endpoints (overrides auto-detection)').
-  option('-p, --package-dir <dir>', 'package storage directory', './packages').
-  option('-c, --config-dir <dir>', 'configuration directory for authentication files', './').
+  option('-d, --package-dir <dir>', 'package storage directory', './packages').
+  option('-c, --config-dir <dir>', 'configuration directory', './').
   option('-r, --realm <realm>', `authentication realm (default: "${packageName} ${version}")`, `${packageName} ${version}`).
   option('-l, --log <level>', 'log level (debug, info, warn, error, ignore)', 'info').
   option('--no-ui', 'disable UI serving').
@@ -56,12 +56,6 @@ program.
 
     const logger = createConsoleLogger(packageName, options.log as LogLevel);
     const configDir = options.configDir || getConfigDirFromEnv() || './';
-
-    // Handle auth-init mode
-    if (options.authInit) {
-      await runAuthInit({ configDir, logger });
-      process.exit(0); // Exit after initialization
-    }
 
     // Get auth mode from CLI option or environment variable, default to 'none'
     const authMode = (options.enableAuth || getAuthModeFromEnv() || 'none') as AuthMode;
@@ -119,6 +113,12 @@ program.
       noUi: !options.ui
     };
     
+    // Handle auth-init mode
+    if (options.authInit) {
+      await runAuthInit(config, logger);
+      process.exit(0); // Exit after initialization
+    }
+
     try {
       logger.info('Starting Fastify server...');
       const server = await startFastifyServer(config, logger);

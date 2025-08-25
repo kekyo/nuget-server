@@ -40,7 +40,7 @@
     "build": "vite build",
     "dev": "vite dev",
     "test": "npm run build && vitest run",
-    "init": "node dist/cli.js -c ./dev --auth-init",
+    "init": "npm run build && node dist/cli.js -c ./dev --auth-init",
     "dump": "npm run build && screw-up dump",
     "pack": "npm run build && screw-up pack --pack-destination artifacts/"
   },

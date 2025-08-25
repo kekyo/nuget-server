@@ -79,11 +79,11 @@ describe('AuthFailureTracker - Basic Functionality', () => {
 
   it('should apply progressive delay based on failure count', async () => {
     const startTime = Date.now();
-    
+
     // First failure - should apply 100ms delay
     tracker.recordFailure(mockRequest, 'testuser');
     const delay1 = await tracker.applyDelay(mockRequest, 'testuser');
-    
+
     const elapsed1 = Date.now() - startTime;
     expect(delay1).toBe(100);
     expect(elapsed1).toBeGreaterThanOrEqual(100);
