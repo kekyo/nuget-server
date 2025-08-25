@@ -30,7 +30,6 @@ interface UserRegistrationDrawerProps {
   open: boolean;
   onClose: () => void;
   onRegistrationSuccess: () => void;
-  serverType?: 'fastify';
 }
 
 interface RegistrationResult {

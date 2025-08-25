@@ -223,7 +223,6 @@ describe('Fastify Authentication - Phase 2 Tests', () => {
       if (response.status === 200) {
         const data = await response.json();
         expect(data).toHaveProperty('authMode', 'full');
-        expect(data).toHaveProperty('serverType', 'fastify');
       }
     });
 
@@ -292,7 +291,6 @@ describe('Fastify Authentication - Phase 2 Tests', () => {
       const data = await response.json();
       expect(data).toEqual({
         status: 'ok',
-        serverType: 'fastify',
         version: expect.any(String)
       });
     });
@@ -348,7 +346,6 @@ describe('Fastify Authentication - Phase 2 Tests', () => {
       const data = await response.json();
       expect(data).toHaveProperty('authMode', 'full');
       expect(data).toHaveProperty('currentUser', null); // Not authenticated
-      expect(data).toHaveProperty('serverType', 'fastify');
     });
 
     test('should not trigger Basic auth popup for browser requests', async () => {

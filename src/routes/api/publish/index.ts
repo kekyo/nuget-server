@@ -14,6 +14,7 @@ import { PackageMetadata } from '../../../services/metadataService';
 import { Logger } from '../../../types';
 import { AuthService } from '../../../services/authService';
 import { createConditionalHybridAuthMiddleware, FastifyAuthConfig, AuthenticatedFastifyRequest } from '../../../middleware/fastifyAuth';
+import { createUrlResolver } from '../../../utils/urlResolver';
 
 /**
  * Service interface for handling package uploads
@@ -30,6 +31,7 @@ export interface PublishRoutesConfig {
   authService: AuthService;
   authConfig: FastifyAuthConfig;
   logger: Logger;
+  urlResolver: ReturnType<typeof createUrlResolver>;
 }
 
 /**
@@ -45,7 +47,7 @@ export interface PublishResponse {
  * Registers package publish API routes with Fastify instance
  */
 export const registerPublishRoutes = async (fastify: FastifyInstance, config: PublishRoutesConfig) => {
-  const { packagesRoot, authService, authConfig, logger } = config;
+  const { packagesRoot, authService, authConfig, logger, urlResolver } = config;
   
   let packageUploadService: PackageUploadService | null = null;
 
@@ -160,13 +162,10 @@ export const registerPublishRoutes = async (fastify: FastifyInstance, config: Pu
           }
         }
 
-        // Update package content URL
-        const protocol = request.headers['x-forwarded-proto'] as string || 
-                        (request.socket as any)?.encrypted ? 'https' : 'http';
-        const host = request.headers['x-forwarded-host'] as string || request.headers.host;
-        const baseUrl = `${protocol}://${host}/api`;
+        // Update package content URL using urlResolver
+        const baseUrl = urlResolver.resolveUrl(request).baseUrl;
         
-        packageMetadata.packageContentUrl = `${baseUrl}/package/${packageId.toLowerCase()}/${version}/${packageId.toLowerCase()}.${version}.nupkg`;
+        packageMetadata.packageContentUrl = `${baseUrl}/api/package/${packageId.toLowerCase()}/${version}/${packageId.toLowerCase()}.${version}.nupkg`;
 
         // Add to memory cache
         packageUploadService.addPackage(packageMetadata);

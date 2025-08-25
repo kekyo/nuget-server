@@ -11,7 +11,7 @@ interface GenericRequest {
   socket: {
     remoteAddress?: string;
   };
-  get(header: string): string | undefined;
+  headers: { [key: string]: string | string[] | undefined };
 }
 
 /**
@@ -49,7 +49,7 @@ export const createUrlResolver = (config: UrlResolverConfig = {}) => {
     }
     
     const clientIp = req.ip || req.socket.remoteAddress;
-    const forwardedFor = req.get('X-Forwarded-For');
+    const forwardedFor = req.headers['x-forwarded-for'] as string;
     
     const sourceIps = [clientIp];
     if (forwardedFor) {
@@ -92,14 +92,14 @@ export const createUrlResolver = (config: UrlResolverConfig = {}) => {
     }
 
     let protocol = req.protocol;
-    let host = req.get('Host') || 'localhost';
+    let host = (req.headers.host as string) || 'localhost';
     let port: string | undefined;
 
     if (isRequestFromTrustedProxy(req)) {
-      const forwardedProto = req.get('X-Forwarded-Proto');
-      const forwardedHost = req.get('X-Forwarded-Host');
-      const forwardedPort = req.get('X-Forwarded-Port');
-      const forwarded = req.get('Forwarded');
+      const forwardedProto = req.headers['x-forwarded-proto'] as string;
+      const forwardedHost = req.headers['x-forwarded-host'] as string;
+      const forwardedPort = req.headers['x-forwarded-port'] as string;
+      const forwarded = req.headers['forwarded'] as string;
 
       if (forwarded) {
         const parsed = parseForwardedHeader(forwarded);
@@ -118,7 +118,7 @@ export const createUrlResolver = (config: UrlResolverConfig = {}) => {
       : host;
 
     return {
-      baseUrl: `${protocol}://${hostWithPort}/api`,
+      baseUrl: `${protocol}://${hostWithPort}`,
       isFixed: false
     };
   };

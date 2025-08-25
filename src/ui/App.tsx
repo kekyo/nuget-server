@@ -29,7 +29,6 @@ interface ServerConfig {
     role: string;
     authenticated: boolean;
   } | null;
-  serverType?: 'fastify';
 }
 
 const App = () => {

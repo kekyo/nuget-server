@@ -166,7 +166,7 @@ export const createFastifyInstance = async (config: ServerConfig, logger: Logger
 
   // Basic health check endpoint
   fastify.get('/health', async (_request, _reply) => {
-    return { status: 'ok', serverType: 'fastify', version };
+    return { status: 'ok', version };
   });
 
   // Generate the add source command example
@@ -314,8 +314,7 @@ export const createFastifyInstance = async (config: ServerConfig, logger: Logger
           publish: authService.isAuthRequired('publish'),
           admin: authService.isAuthRequired('admin')
         },
-        currentUser: currentUser,
-        serverType: 'fastify'
+        currentUser: currentUser
       };
     });
 
@@ -326,7 +325,8 @@ export const createFastifyInstance = async (config: ServerConfig, logger: Logger
         authService,
         authConfig,
         packagesRoot,
-        logger
+        logger,
+        urlResolver
       });
     } catch (error) {
       logger.error(`Failed to register V3 routes: ${error}`);
@@ -359,7 +359,8 @@ export const createFastifyInstance = async (config: ServerConfig, logger: Logger
           packagesRoot,
           authService,
           authConfig,
-          logger
+          logger,
+          urlResolver
         });
         publishServiceSetter = publishRoutes.setPackageUploadService;
       }, { prefix: '/api' });
@@ -478,8 +479,7 @@ export const createFastifyInstance = async (config: ServerConfig, logger: Logger
     fastify.get('/', async (_request, _reply: GetReply) => {
       return {
         message: config.realm || `${packageName} ${version}`,
-        apiEndpoint: '/api',
-        serverType: 'fastify'
+        apiEndpoint: '/api'
       };
     });
   }

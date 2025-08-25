@@ -53,7 +53,6 @@ export interface ConfigResponse {
     role: string;
     authenticated: boolean;
   } | null;
-  serverType: string;
 }
 
 /**
@@ -237,8 +236,7 @@ export const registerUiRoutes = async (fastify: FastifyInstance, config: UiRoute
           publish: authService.isAuthRequired('publish'),
           admin: authService.isAuthRequired('admin')
         },
-        currentUser: currentUser,
-        serverType: 'fastify'
+        currentUser: currentUser
       };
 
       return reply.send(response);

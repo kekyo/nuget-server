@@ -10,6 +10,7 @@ import { createConditionalHybridAuthMiddleware, FastifyAuthConfig, Authenticated
 import { createPackageService } from '../../services/packageService';
 import { promises as fs } from 'fs';
 import { join, resolve } from 'path';
+import { createUrlResolver } from '../../utils/urlResolver';
 
 /**
  * Service Index Resource interface for NuGet V3 API
@@ -151,6 +152,7 @@ export interface V3RoutesConfig {
   authConfig: FastifyAuthConfig;
   packagesRoot: string;
   logger: Logger;
+  urlResolver: ReturnType<typeof createUrlResolver>;
 }
 
 /**
@@ -255,15 +257,12 @@ const createCatalogEntry = (baseUrl: string, metadata: PackageMetadata): Catalog
  * Registers NuGet V3 API routes with Fastify instance
  */
 export const registerV3Routes = async (fastify: FastifyInstance, config: V3RoutesConfig) => {
-  const { metadataService, authService, authConfig, packagesRoot, logger } = config;
+  const { metadataService, authService, authConfig, packagesRoot, logger, urlResolver } = config;
   const packageService = createPackageService(packagesRoot);
 
-  // Helper to get base URL from request
+  // Helper to get base URL from request using urlResolver
   const getBaseUrl = (request: FastifyRequest): string => {
-    const protocol = request.headers['x-forwarded-proto'] as string || 
-                    (request.socket as any)?.encrypted ? 'https' : 'http';
-    const host = request.headers['x-forwarded-host'] as string || request.headers.host;
-    return `${protocol}://${host}`;
+    return urlResolver.resolveUrl(request).baseUrl;
   };
 
   // Helper to create conditional auth middleware based on authMode

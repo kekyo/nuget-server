@@ -80,7 +80,6 @@ describe('Fastify Server - Phase 1 Basic Tests', () => {
     const data = await response.json();
     expect(data).toEqual({
       status: 'ok',
-      serverType: 'fastify',
       version: expect.any(String)
     });
   });
@@ -128,7 +127,6 @@ describe('Fastify Server - Phase 1 Basic Tests', () => {
     const data = await response.json();
     expect(data).toHaveProperty('message');
     expect(data).toHaveProperty('apiEndpoint', '/api');
-    expect(data).toHaveProperty('serverType', 'fastify');
   });
 
   test('should respond to config endpoint when UI is enabled', async () => {
@@ -153,7 +151,6 @@ describe('Fastify Server - Phase 1 Basic Tests', () => {
     expect(data).toHaveProperty('name');
     expect(data).toHaveProperty('version');
     expect(data).toHaveProperty('authMode', 'none');
-    expect(data).toHaveProperty('serverType', 'fastify');
   });
 
   test('should shutdown gracefully', async () => {

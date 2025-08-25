@@ -310,7 +310,6 @@ describe('Fastify UI Backend API - Phase 4 Tests', () => {
       const data = await response.json();
       expect(data).toHaveProperty('authMode', 'full');
       expect(data).toHaveProperty('currentUser', null); // Not authenticated
-      expect(data).toHaveProperty('serverType', 'fastify');
     });
 
   test('POST /api/ui/config - should handle browser Accept headers correctly', async () => {
