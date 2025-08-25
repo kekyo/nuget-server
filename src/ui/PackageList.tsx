@@ -23,6 +23,7 @@ import PackageSourceIcon from '@mui/icons-material/Source';
 import DownloadIcon from '@mui/icons-material/Download';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import { EditNote } from '@mui/icons-material';
+import { sortVersions } from '../utils/semver';
 
 interface SearchResultVersion {
   version: string;
@@ -140,36 +141,15 @@ const PackageList = forwardRef<PackageListRef, PackageListProps>(({ serverConfig
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const sortVersions = (versions: SearchResultVersion[]): SearchResultVersion[] => {
-    return [...versions].sort((a, b) => {
-      const parseVersion = (version: string) => {
-        const [main, prerelease] = version.split('-');
-        const parts = main.split('.').map(Number);
-        return { parts, prerelease };
-      };
-
-      const versionA = parseVersion(a.version);
-      const versionB = parseVersion(b.version);
-
-      // Compare main version parts (major.minor.patch)
-      for (let i = 0; i < Math.max(versionA.parts.length, versionB.parts.length); i++) {
-        const partA = versionA.parts[i] || 0;
-        const partB = versionB.parts[i] || 0;
-        
-        if (partA !== partB) {
-          return partB - partA; // Descending order (latest first)
-        }
-      }
-
-      // If main versions are equal, handle prerelease
-      if (versionA.prerelease && !versionB.prerelease) return 1; // stable comes before prerelease
-      if (!versionA.prerelease && versionB.prerelease) return -1; // stable comes before prerelease
-      if (versionA.prerelease && versionB.prerelease) {
-        return versionA.prerelease.localeCompare(versionB.prerelease); // alphabetical for prerelease
-      }
-
-      return 0;
-    });
+  // Helper function to sort SearchResultVersion arrays using the shared semver logic
+  const sortPackageVersions = (versions: SearchResultVersion[]): SearchResultVersion[] => {
+    const versionStrings = versions.map(v => v.version);
+    const sortedVersions = sortVersions(versionStrings, 'desc'); // Descending order (newest first)
+    
+    // Re-map sorted versions back to SearchResultVersion objects
+    return sortedVersions.map(versionString => 
+      versions.find(v => v.version === versionString)!
+    );
   };
 
   const fetchPackages = async () => {
@@ -208,7 +188,7 @@ const PackageList = forwardRef<PackageListRef, PackageListProps>(({ serverConfig
       // Sort versions for each package
       const packagesWithSortedVersions = data.data.map(pkg => ({
         ...pkg,
-        versions: sortVersions(pkg.versions)
+        versions: sortPackageVersions(pkg.versions)
       }));
       
       setPackages(packagesWithSortedVersions);

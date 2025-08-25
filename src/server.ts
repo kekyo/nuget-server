@@ -356,7 +356,8 @@ export const createFastifyInstance = async (config: ServerConfig, logger: Logger
           packagesRoot,
           logger,
           realm: config.realm || `${packageName} ${version}`,
-          addSourceCommand
+          addSourceCommand,
+          metadataService
         });
       }, { prefix: '/api/ui' });
     } catch (error) {

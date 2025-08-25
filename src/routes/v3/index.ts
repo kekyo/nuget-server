@@ -189,8 +189,8 @@ const createSearchResult = (baseUrl: string, packageId: string, versions: Packag
     throw new Error('No versions provided for package');
   }
 
-  // Use the latest version for main package info
-  const latestVersion = versions[versions.length - 1];
+  // Use the latest version for main package info (first element since sorted in descending order)
+  const latestVersion = versions[0];
   
   // Create version entries
   const versionEntries: SearchResultVersion[] = versions.map(version => ({
@@ -465,13 +465,14 @@ export const registerV3Routes = async (fastify: FastifyInstance, config: V3Route
       }));
 
       // Create a single page containing all versions
+      // Since versions are sorted in descending order: first = newest (upper), last = oldest (lower)
       const page: RegistrationPage = {
-        '@id': `${baseUrl}/v3/registrations/${lowerId}/index.json#page/${versions[0].version}/${versions[versions.length - 1].version}`,
+        '@id': `${baseUrl}/v3/registrations/${lowerId}/index.json#page/${versions[versions.length - 1].version}/${versions[0].version}`,
         '@type': 'catalog:CatalogPage',
         count: versions.length,
         items: registrationLeaves,
-        lower: versions[0].version,
-        upper: versions[versions.length - 1].version
+        lower: versions[versions.length - 1].version, // oldest version
+        upper: versions[0].version // newest version
       };
 
       const registrationIndex: RegistrationIndex = {

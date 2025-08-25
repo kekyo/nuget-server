@@ -10,6 +10,7 @@ import { UserService } from '../../../services/userService';
 import { SessionService } from '../../../services/sessionService';
 import { AuthService } from '../../../services/authService';
 import { createPackageService } from '../../../services/packageService';
+import { MetadataService } from '../../../services/metadataService';
 import { AuthenticatedFastifyRequest } from '../../../middleware/fastifyAuth';
 import { name as packageName, version, git_commit_hash } from '../../../generated/packageMetadata';
 import { streamFile } from '../../../utils/fileStreaming';
@@ -25,6 +26,7 @@ export interface UiRoutesConfig {
   logger: Logger;
   realm: string;
   addSourceCommand: string;
+  metadataService: MetadataService;
 }
 
 /**
@@ -173,7 +175,7 @@ const requireRole = (request: AuthenticatedFastifyRequest, reply: FastifyReply, 
  * Registers UI Backend API routes with Fastify instance
  */
 export const registerUiRoutes = async (fastify: FastifyInstance, config: UiRoutesConfig) => {
-  const { userService, sessionService, authService, packagesRoot, logger, realm, addSourceCommand } = config;
+  const { userService, sessionService, authService, packagesRoot, logger, realm, addSourceCommand, metadataService } = config;
   const packageService = createPackageService(packagesRoot);
   
   // Create session-only auth middleware
@@ -469,8 +471,36 @@ export const registerUiRoutes = async (fastify: FastifyInstance, config: UiRoute
         }
       }
       
-      // Icon not found
-      logger.warn(`Icon not found for package: ${packageId} ${version}`);
+      // Icon not found in specified version, try latest version as fallback
+      logger.info(`Icon not found in version ${version}, trying latest version for package: ${packageId}`);
+      
+      const latestEntry = metadataService.getLatestPackageEntry(packageId);
+      if (latestEntry && latestEntry.metadata.version !== version) {
+        logger.info(`Trying fallback to latest version: ${latestEntry.metadata.version}`);
+        
+        const latestPackageDir = join(packagesRoot, latestEntry.storage.dirName, latestEntry.metadata.version);
+        
+        for (const ext of iconExtensions) {
+          try {
+            const iconPath = join(latestPackageDir, `icon.${ext}`);
+            await fs.access(iconPath); // Check if file exists
+            
+            // Use streamFile with appropriate content type and cache control
+            const contentType = ext === 'svg' ? 'image/svg+xml' : `image/${ext}`;
+            logger.info(`Icon served from latest version: ${packageId} ${latestEntry.metadata.version} (requested: ${version})`);
+            
+            return streamFile(iconPath, reply, {
+              contentType,
+              cacheControl: 'public, max-age=3600'
+            });
+          } catch (error) {
+            // Continue to next extension
+          }
+        }
+      }
+      
+      // Icon not found in both specified version and latest version
+      logger.warn(`Icon not found for package: ${packageId} ${version} (also checked latest version)`);
       return reply.status(404).send({ error: 'Icon not found' });
     } catch (error) {
       logger.error(`Error serving icon for ${packageId} ${version}: ${error}`);
