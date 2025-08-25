@@ -425,17 +425,20 @@ export const registerV3Routes = async (fastify: FastifyInstance, config: V3Route
 
         logger.info(`V3: Package served successfully: ${packageId} ${version} as "${downloadFileName}"`);
 
-        return streamFile(packagePath, reply, {
+        await streamFile(logger, packagePath, reply, {
           contentType: 'application/zip',
           contentDisposition: `attachment; filename="${downloadFileName}"`
         });
+        return;
       } else {
         logger.warn(`V3: File not found: ${filename} for ${packageId} ${version}`);
-        return reply.status(404).send({ error: 'File not found' });
+        await reply.status(404).send({ error: 'File not found' });
+        return;
       }
     } catch (error) {
       logger.error(`V3: Error serving package file for ${packageId} ${version}: ${error}`);
-      return reply.status(500).send({ error: 'Internal server error' });
+      await reply.status(500).send({ error: 'Internal server error' });
+      return;
     }
   });
 

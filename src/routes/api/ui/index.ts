@@ -462,10 +462,11 @@ export const registerUiRoutes = async (fastify: FastifyInstance, config: UiRoute
           const contentType = ext === 'svg' ? 'image/svg+xml' : `image/${ext}`;
           logger.info(`Icon served successfully: ${packageId} ${version}`);
           
-          return streamFile(iconPath, reply, {
+          await streamFile(logger, iconPath, reply, {
             contentType,
             cacheControl: 'public, max-age=3600'
           });
+          return;
         } catch (error) {
           // Continue to next extension
         }
@@ -489,10 +490,11 @@ export const registerUiRoutes = async (fastify: FastifyInstance, config: UiRoute
             const contentType = ext === 'svg' ? 'image/svg+xml' : `image/${ext}`;
             logger.info(`Icon served from latest version: ${packageId} ${latestEntry.metadata.version} (requested: ${version})`);
             
-            return streamFile(iconPath, reply, {
+            await streamFile(logger, iconPath, reply, {
               contentType,
               cacheControl: 'public, max-age=3600'
             });
+            return;
           } catch (error) {
             // Continue to next extension
           }

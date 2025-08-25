@@ -55,17 +55,21 @@ describe('dotnet restore V3 API Integration Tests', () => {
 
     logger.info(`Starting server with authMode=${authMode} on port ${serverPort}`);
     const server = await startFastifyServer(testConfig, logger);
-    
-    // Wait for server to be ready by polling V3 API endpoint
     try {
-      await waitForServerReady(serverPort, authMode, 30, 500);
-      logger.info(`Server ready after polling /v3/index.json (authMode=${authMode})`);
-    } catch (error) {
-      logger.error(`Server readiness check failed: ${error}`);
+      // Wait for server to be ready by polling V3 API endpoint
+      try {
+        await waitForServerReady(serverPort, authMode, 30, 500);
+        logger.info(`Server ready after polling /v3/index.json (authMode=${authMode})`);
+      } catch (error) {
+        logger.error(`Server readiness check failed: ${error}`);
+        throw error;
+      }
+      
+      return { server, testBaseDir, testConfigDir, testPackagesDir, serverPort, logger };
+    } catch (error: any) {
+      await server.close();
       throw error;
     }
-    
-    return { server, testBaseDir, testConfigDir, testPackagesDir, serverPort, logger };
   };
 
   // Create test users for authentication tests

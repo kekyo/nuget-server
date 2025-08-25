@@ -34,7 +34,8 @@ import {
 } from './middleware/fastifyAuth';
 import { registerV3Routes } from './routes/v3/index';
 import { registerUiRoutes } from './routes/api/ui/index';
-import { registerPublishRoutes } from './routes/api/publish/index';
+import { registerPublishRoutes, type PublishRoutesConfig } from './routes/api/publish/index';
+import { delay } from 'async-primitives';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -67,7 +68,7 @@ export const createFastifyInstance = async (config: ServerConfig, logger: Logger
   });
 
   // Add content type parser for binary data (package uploads)
-  fastify.addContentTypeParser('application/octet-stream', { parseAs: 'buffer' }, (req, body, done) => {
+  fastify.addContentTypeParser('application/octet-stream', { parseAs: 'buffer' }, (_req, body, done) => {
     done(null, body);
   });
 
@@ -294,7 +295,7 @@ export const createFastifyInstance = async (config: ServerConfig, logger: Logger
     });
 
     // Serve config endpoint without authentication (public endpoint per CLAUDE.md spec)
-    fastify.get('/api/config', async (request: FastifyRequest, reply) => {
+    fastify.get('/api/config', async (request: FastifyRequest, _reply) => {
       // Get current user from session if available
       let currentUser = null;
       
@@ -369,13 +370,14 @@ export const createFastifyInstance = async (config: ServerConfig, logger: Logger
     try {
       let publishServiceSetter: any;
       await fastify.register(async (fastify) => {
-        const publishRoutes = await registerPublishRoutes(fastify, {
+        const config: PublishRoutesConfig = {
           packagesRoot,
           authService,
           authConfig,
           logger,
           urlResolver
-        });
+        };
+        const publishRoutes = await registerPublishRoutes(fastify, config);
         publishServiceSetter = publishRoutes.setPackageUploadService;
       }, { prefix: '/api' });
       
@@ -400,45 +402,45 @@ export const createFastifyInstance = async (config: ServerConfig, logger: Logger
     const imagesPath = path.join(__dirname, '..', 'images');
 
     // Helper function to serve static files using streaming
-    const serveStaticFile = async (filePath: string, reply: GetReply) => {
+    const serveStaticFile = (filePath: string, reply: GetReply) => {
       // Use the unified file streaming helper
-      return streamFile(filePath, reply);
+      return streamFile(logger, filePath, reply);
     };
 
     // Serve UI at root path
-    fastify.get('/', async (_request, reply: GetReply) => {
+    fastify.get('/', (_request, reply: GetReply) => {
       const indexPath = path.join(uiPath, 'index.html');
       return serveStaticFile(indexPath, reply);
     });
 
     // Serve login page
-    fastify.get('/login', async (_request, reply: GetReply) => {
+    fastify.get('/login', (_request, reply: GetReply) => {
       const loginPath = path.join(uiPath, 'login.html');
       return serveStaticFile(loginPath, reply);
     });
 
     // Serve other UI assets
-    fastify.get('/assets/*', async (request, reply: GetReply) => {
+    fastify.get('/assets/*', (request, reply: GetReply) => {
       const assetPath = (request.params as any)['*'];
       const fullPath = path.join(uiPath, 'assets', assetPath);
       return serveStaticFile(fullPath, reply);
     });
 
     // Serve images
-    fastify.get('/images/*', async (request, reply: GetReply) => {
+    fastify.get('/images/*', (request, reply: GetReply) => {
       const imagePath = (request.params as any)['*'];
       const fullPath = path.join(imagesPath, imagePath);
       return serveStaticFile(fullPath, reply);
     });
 
     // Serve favicon
-    fastify.get('/favicon.ico', async (_request, reply: GetReply) => {
+    fastify.get('/favicon.ico', (_request, reply: GetReply) => {
       const faviconPath = path.join(publicPath, 'favicon.ico');
       return serveStaticFile(faviconPath, reply);
     });
     
     // Serve icon
-    fastify.get('/icon.png', async (_request, reply: GetReply) => {
+    fastify.get('/icon.png', (_request, reply: GetReply) => {
       const iconPath = path.join(publicPath, 'icon.png');
       return serveStaticFile(iconPath, reply);
     });
@@ -511,16 +513,30 @@ export const startFastifyServer = async (config: ServerConfig, logger: Logger): 
     const serverInstance: FastifyServerInstance = {
       close: async () => {
         try {
+          logger.debug('Starting server close process...');
+          
+          logger.debug('Closing Fastify instance...');
           await fastify.close();
-          userService.destroy();
-          sessionService.destroy();
+          logger.debug('Fastify instance closed successfully');
         } catch (error) {
           logger.error(`Error closing Fastify server: ${error}`);
-          throw error;
+        } finally {
+          try {
+            logger.debug('Destroying user service...');
+            userService.destroy();
+            logger.debug('User service destroyed');
+          } finally {
+            try {
+              logger.debug('Destroying session service...');
+              sessionService.destroy();
+              logger.debug('Session service destroyed');
+            } finally {
+              logger.debug('Server close process completed');
+            }
+          }
         }
       }
     };
-
     return serverInstance;
   } catch (error) {
     logger.error(`Failed to start Fastify server: ${error}`);

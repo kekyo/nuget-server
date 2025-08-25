@@ -6,6 +6,8 @@ import { createReadStream } from 'fs';
 import { stat } from 'fs/promises';
 import { FastifyReply } from 'fastify';
 import { extname } from 'path';
+import { Logger } from '../types';
+import { createDeferred } from 'async-primitives';
 
 /**
  * Options for file streaming
@@ -37,11 +39,12 @@ export interface StreamFileOptions {
  * @param options - Optional headers and configuration
  * @returns Promise that resolves to the FastifyReply
  */
-export async function streamFile(
+export const streamFile = async (
+  logger: Logger,
   filePath: string,
   reply: FastifyReply,
   options: StreamFileOptions = {}
-): Promise<FastifyReply> {
+): Promise<void> => {
   try {
     // Check if file exists and get its stats
     const stats = await stat(filePath);
@@ -66,18 +69,51 @@ export async function streamFile(
       reply.header('Cache-Control', options.cacheControl);
     }
     
+    // Add stream event logging for debugging
+    const streamId = `stream-${Date.now()}`;
+    const shortPath = filePath.split('/').slice(-3).join('/');
+    logger.debug(`[${streamId}] Creating stream for ${shortPath}`);
+
+    // Also log when reply is sent
+    logger.debug(`[${streamId}] Sending stream to reply at ${Date.now()}`);
+
     // Create and send file stream
+    const deferred = createDeferred<void>();
     const stream = createReadStream(filePath);
-    
-    // Handle stream errors
-    stream.on('error', () => {
-      if (!reply.sent) {
-        reply.status(500).send({ error: 'Error reading file' });
-      }
+
+    stream.on('open', () => {
+      logger.debug(`[${streamId}] Event: open at ${Date.now()}`);
     });
-    
-    return reply.send(stream);
-    
+
+    stream.on('data', (chunk) => {
+      logger.debug(`[${streamId}] Event: data (${chunk.length} bytes) at ${Date.now()}`);
+    });
+
+    stream.on('end', () => {
+      logger.debug(`[${streamId}] Event: end (read complete) at ${Date.now()}`);
+    });
+
+    stream.on('finish', () => {
+      logger.debug(`[${streamId}] Event: finish at ${Date.now()}`);
+    });
+
+    stream.on('close', () => {
+      logger.debug(`[${streamId}] Event: close at ${Date.now()}`);
+      deferred.resolve();
+    });
+
+    // Handle stream errors
+    stream.on('error', error => {
+      logger.debug(`[${streamId}] Event: error at ${Date.now()}`);
+      deferred.reject(error);
+    });
+
+    try {
+      await reply.send(stream);
+      await deferred.promise;
+    } finally {
+      stream.close();
+    }
   } catch (error: any) {
     // Handle file not found error
     if (error.code === 'ENOENT') {
@@ -92,7 +128,7 @@ export async function streamFile(
     // Handle other errors
     throw error;
   }
-}
+};
 
 /**
  * Get MIME type based on file extension

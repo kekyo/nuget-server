@@ -17,7 +17,6 @@ import { createTestDirectory, getTestPort, testGlobalLogLevel } from './helpers/
  * - Parallel operation with Express server
  */
 describe('Fastify Server - Phase 1 Basic Tests', () => {
-  let server: FastifyServerInstance | null = null;
   let testBaseDir: string;
   let testPackagesDir: string;
   let testConfigDir: string;
@@ -36,13 +35,6 @@ describe('Fastify Server - Phase 1 Basic Tests', () => {
     serverPort = getTestPort(6001);
   });
 
-  afterEach(async () => {
-    if (server) {
-      await server.close();
-      server = null;
-    }
-  });
-
   test('should start Fastify server successfully', async () => {
     const logger = createConsoleLogger('fastify-server', testGlobalLogLevel);
     const testConfig: ServerConfig = {
@@ -55,10 +47,14 @@ describe('Fastify Server - Phase 1 Basic Tests', () => {
       authMode: 'none'
     };
     
-    server = await startFastifyServer(testConfig, logger);
-    expect(server).toBeDefined();
-    expect(typeof server.close).toBe('function');
-  });
+    const server = await startFastifyServer(testConfig, logger);
+    try {
+      expect(server).toBeDefined();
+      expect(typeof server.close).toBe('function');
+    } finally {
+      await server.close();
+    }
+  }, 30000);
 
   test('should respond to health check endpoint', async () => {
     const logger = createConsoleLogger('fastify-server', testGlobalLogLevel);
@@ -72,17 +68,20 @@ describe('Fastify Server - Phase 1 Basic Tests', () => {
       authMode: 'none'
     };
     
-    server = await startFastifyServer(testConfig, logger);
-    
-    const response = await fetch(`http://localhost:${serverPort}/health`);
-    expect(response.status).toBe(200);
-    
-    const data = await response.json();
-    expect(data).toEqual({
-      status: 'ok',
-      version: expect.any(String)
-    });
-  });
+    const server = await startFastifyServer(testConfig, logger);
+    try {
+      const response = await fetch(`http://localhost:${serverPort}/health`);
+      expect(response.status).toBe(200);
+      
+      const data = await response.json();
+      expect(data).toEqual({
+        status: 'ok',
+        version: expect.any(String)
+      });
+    } finally {
+      await server.close();
+    }
+  }, 30000);
 
   test('should respond to root endpoint with HTML UI when UI enabled', async () => {
     const logger = createConsoleLogger('fastify-server', testGlobalLogLevel);
@@ -96,16 +95,19 @@ describe('Fastify Server - Phase 1 Basic Tests', () => {
       authMode: 'none'
     };
     
-    server = await startFastifyServer(testConfig, logger);
-    
-    const response = await fetch(`http://localhost:${serverPort}/`);
-    expect(response.status).toBe(200);
-    expect(response.headers.get('content-type')).toContain('text/html');
-    
-    const html = await response.text();
-    expect(html).toContain('<!DOCTYPE html>');
-    expect(html).toContain('<title>nuget-server</title>');
-  });
+    const server = await startFastifyServer(testConfig, logger);
+    try {
+      const response = await fetch(`http://localhost:${serverPort}/`);
+      expect(response.status).toBe(200);
+      expect(response.headers.get('content-type')).toContain('text/html');
+      
+      const html = await response.text();
+      expect(html).toContain('<!DOCTYPE html>');
+      expect(html).toContain('<title>nuget-server</title>');
+    } finally {
+      await server.close();
+    }
+  }, 30000);
 
   test('should respond to root endpoint with JSON when UI disabled', async () => {
     const logger = createConsoleLogger('fastify-server', testGlobalLogLevel);
@@ -119,15 +121,18 @@ describe('Fastify Server - Phase 1 Basic Tests', () => {
       authMode: 'none'
     };
     
-    server = await startFastifyServer(testConfig, logger);
-    
-    const response = await fetch(`http://localhost:${serverPort}/`);
-    expect(response.status).toBe(200);
-    
-    const data = await response.json();
-    expect(data).toHaveProperty('message');
-    expect(data).toHaveProperty('apiEndpoint', '/api');
-  });
+    const server = await startFastifyServer(testConfig, logger);
+    try {
+      const response = await fetch(`http://localhost:${serverPort}/`);
+      expect(response.status).toBe(200);
+      
+      const data = await response.json();
+      expect(data).toHaveProperty('message');
+      expect(data).toHaveProperty('apiEndpoint', '/api');
+    } finally {
+      await server.close();
+    }
+  }, 30000);
 
   test('should respond to config endpoint when UI is enabled', async () => {
     const logger = createConsoleLogger('fastify-server', testGlobalLogLevel);
@@ -141,17 +146,20 @@ describe('Fastify Server - Phase 1 Basic Tests', () => {
       authMode: 'none'
     };
     
-    server = await startFastifyServer(testConfig, logger);
-    
-    const response = await fetch(`http://localhost:${serverPort}/api/config`);
-    expect(response.status).toBe(200);
-    
-    const data = await response.json();
-    expect(data).toHaveProperty('realm');
-    expect(data).toHaveProperty('name');
-    expect(data).toHaveProperty('version');
-    expect(data).toHaveProperty('authMode', 'none');
-  });
+    const server = await startFastifyServer(testConfig, logger);
+    try {
+      const response = await fetch(`http://localhost:${serverPort}/api/config`);
+      expect(response.status).toBe(200);
+      
+      const data = await response.json();
+      expect(data).toHaveProperty('realm');
+      expect(data).toHaveProperty('name');
+      expect(data).toHaveProperty('version');
+      expect(data).toHaveProperty('authMode', 'none');
+    } finally {
+      await server.close();
+    }
+  }, 30000);
 
   test('should shutdown gracefully', async () => {
     const logger = createConsoleLogger('fastify-server', testGlobalLogLevel);
@@ -165,13 +173,16 @@ describe('Fastify Server - Phase 1 Basic Tests', () => {
       authMode: 'none'
     };
     
-    server = await startFastifyServer(testConfig, logger);
-    expect(server).toBeDefined();
-    
-    // Test that server is still responding before shutdown
-    const response = await fetch(`http://localhost:${serverPort}/health`);
-    expect(response.status).toBe(200);
-    
+    const server = await startFastifyServer(testConfig, logger);
+    try {
+      // Test that server is still responding before shutdown
+      const response = await fetch(`http://localhost:${serverPort}/health`);
+      expect(response.status).toBe(200);
+    } catch (error: any) {
+      await server.close();
+      throw error;
+    }
+      
     // Shutdown server
     await server.close();
     
@@ -184,8 +195,6 @@ describe('Fastify Server - Phase 1 Basic Tests', () => {
       // Expect connection error when server is shut down
       expect(error).toBeDefined();
     }
-    
-    server = null;
-  });
+  }, 30000);
 });
 
