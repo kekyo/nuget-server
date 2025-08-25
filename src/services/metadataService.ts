@@ -65,14 +65,14 @@ export interface PackageEntry {
  * Service interface for managing package metadata and caching
  */
 export interface MetadataService {
-  initialize(): Promise<void>;
-  getPackageMetadata(packageId: string): PackageMetadata[];
-  getPackageVersion(packageId: string, version: string): PackageMetadata | null;
-  getPackageEntry(packageId: string, version: string): PackageEntry | null;
-  getAllPackageIds(): string[];
-  updateBaseUrl(baseUrl: string): void;
-  addPackage(metadata: PackageMetadata): void;
-  addPackageEntry(entry: PackageEntry): void;
+  readonly initialize: () => Promise<void>;
+  readonly getPackageMetadata: (packageId: string) => PackageMetadata[];
+  readonly getPackageVersion: (packageId: string, version: string) => PackageMetadata | null;
+  readonly getPackageEntry: (packageId: string, version: string) => PackageEntry | null;
+  readonly getAllPackageIds: () => string[];
+  readonly updateBaseUrl: (baseUrl: string) => void;
+  readonly addPackage: (metadata: PackageMetadata) => void;
+  readonly addPackageEntry: (entry: PackageEntry) => void;
 }
 
 /**

@@ -39,16 +39,16 @@ export interface SessionServiceConfig {
  * Session service interface for managing in-memory sessions
  */
 export interface SessionService {
-  initialize(): void;
-  destroy(): void;
-  createSession(request: CreateSessionRequest): Session;
-  getSession(token: string): Session | null;
-  validateSession(token: string): Session | null;
-  deleteSession(token: string): boolean;
-  deleteAllUserSessions(userId: string): number;
-  getActiveSessions(): Session[];
-  getActiveSessionCount(): number;
-  cleanup(): number;
+  readonly initialize: () => void;
+  readonly destroy: () => void;
+  readonly createSession: (request: CreateSessionRequest) => Session;
+  readonly getSession: (token: string) => Session | null;
+  readonly validateSession: (token: string) => Session | null;
+  readonly deleteSession: (token: string) => boolean;
+  readonly deleteAllUserSessions: (userId: string) => number;
+  readonly getActiveSessions: () => Session[];
+  readonly getActiveSessionCount: () => number;
+  readonly cleanup: () => number;
 }
 
 /**
@@ -108,11 +108,28 @@ export const createSessionService = (config: SessionServiceConfig): SessionServi
     }
   };
 
+  /**
+   * Gets all active (non-expired) sessions
+   * @returns Array of active sessions
+   */
+  const getActiveSessions = (): Session[] => {
+    const now = new Date();
+    const activeSessions: Session[] = [];
+
+    for (const session of sessions.values()) {
+      if (session.expiresAt > now) {
+        activeSessions.push(session);
+      }
+    }
+
+    return activeSessions;
+  };
+
   return {
     /**
      * Initializes the session service
      */
-    initialize(): void {
+    initialize: (): void => {
       logger.info('Initializing session service');
       sessions.clear();
       startCleanupTimer();
@@ -122,7 +139,7 @@ export const createSessionService = (config: SessionServiceConfig): SessionServi
     /**
      * Destroys the session service and cleans up resources
      */
-    destroy(): void {
+    destroy: (): void => {
       logger.info('Destroying session service');
       stopCleanupTimer();
       sessions.clear();
@@ -134,7 +151,7 @@ export const createSessionService = (config: SessionServiceConfig): SessionServi
      * @param request - Session creation request
      * @returns Created session
      */
-    createSession(request: CreateSessionRequest): Session {
+    createSession: (request: CreateSessionRequest): Session => {
       const token = generateSessionToken();
       const now = new Date();
       const expirationHours = request.expirationHours || 24;
@@ -162,7 +179,7 @@ export const createSessionService = (config: SessionServiceConfig): SessionServi
      * @param token - Session token
      * @returns Session or null if not found
      */
-    getSession(token: string): Session | null {
+    getSession: (token: string): Session | null => {
       return sessions.get(token) || null;
     },
 
@@ -171,7 +188,7 @@ export const createSessionService = (config: SessionServiceConfig): SessionServi
      * @param token - Session token
      * @returns Valid session or null
      */
-    validateSession(token: string): Session | null {
+    validateSession: (token: string): Session | null => {
       const session = sessions.get(token);
       if (!session) {
         return null;
@@ -192,7 +209,7 @@ export const createSessionService = (config: SessionServiceConfig): SessionServi
      * @param token - Session token to delete
      * @returns True if session was deleted, false if not found
      */
-    deleteSession(token: string): boolean {
+    deleteSession: (token: string): boolean => {
       const session = sessions.get(token);
       const deleted = sessions.delete(token);
       
@@ -209,7 +226,7 @@ export const createSessionService = (config: SessionServiceConfig): SessionServi
      * @param userId - User ID
      * @returns Number of sessions deleted
      */
-    deleteAllUserSessions(userId: string): number {
+    deleteAllUserSessions: (userId: string): number => {
       let deletedCount = 0;
       
       for (const [token, session] of sessions) {
@@ -231,32 +248,21 @@ export const createSessionService = (config: SessionServiceConfig): SessionServi
      * Gets all active (non-expired) sessions
      * @returns Array of active sessions
      */
-    getActiveSessions(): Session[] {
-      const now = new Date();
-      const activeSessions: Session[] = [];
-
-      for (const session of sessions.values()) {
-        if (session.expiresAt > now) {
-          activeSessions.push(session);
-        }
-      }
-
-      return activeSessions;
-    },
+    getActiveSessions: getActiveSessions,
 
     /**
      * Gets the count of active sessions
      * @returns Number of active sessions
      */
-    getActiveSessionCount(): number {
-      return this.getActiveSessions().length;
+    getActiveSessionCount: (): number => {
+      return getActiveSessions().length;
     },
 
     /**
      * Manually triggers cleanup of expired sessions
      * @returns Number of sessions cleaned up
      */
-    cleanup(): number {
+    cleanup: (): number => {
       return cleanupExpiredSessions();
     }
   };

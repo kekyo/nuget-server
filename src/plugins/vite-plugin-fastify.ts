@@ -11,6 +11,8 @@ import { LogLevel, ServerConfig } from '../types';
 import { createConsoleLogger } from '../logger';
 import { name } from '../generated/packageMetadata';
 
+// Vite plugin for combining both fastify server and UI on development.
+
 type HTTPMethods = 'DELETE' | 'delete' | 'GET' | 'get' | 'HEAD' | 'head' | 
                    'PATCH' | 'patch' | 'POST' | 'post' | 'PUT' | 'put' | 'OPTIONS' | 'options';
 

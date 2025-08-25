@@ -5,7 +5,6 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { join } from 'path';
 import { mkdir, unlink, writeFile, copyFile } from 'fs/promises';
-import { createWriteStream } from 'fs';
 import { tmpdir } from 'os';
 import { randomUUID } from 'crypto';
 import xml2js from 'xml2js';

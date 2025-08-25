@@ -9,7 +9,6 @@ import { createAsyncLock } from 'async-primitives';
 import { Logger } from '../types';
 import { generateSalt, hashPassword, verifyPassword, generateApiKey, generateUserId } from '../utils/crypto';
 
-
 /**
  * User data structure
  */
@@ -61,18 +60,18 @@ export interface UserServiceConfig {
  * User service interface for managing JSON-based user data
  */
 export interface UserService {
-  initialize(): Promise<void>;
-  destroy(): void;
-  createUser(request: CreateUserRequest): Promise<CreateUserResponse>;
-  getUser(username: string): Promise<User | null>;
-  getAllUsers(): Promise<User[]>;
-  updateUser(username: string, updates: Partial<Pick<User, 'role'>> | { password: string }): Promise<User | null>;
-  deleteUser(username: string): Promise<boolean>;
-  regenerateApiKey(username: string): Promise<RegenerateApiKeyResponse | null>;
-  validateCredentials(username: string, password: string): Promise<User | null>;
-  validateApiKey(username: string, apiKey: string): Promise<User | null>;
-  getUserCount(): Promise<number>;
-  isReady(): boolean;
+  readonly initialize: () => Promise<void>;
+  readonly destroy: () => void;
+  readonly createUser: (request: CreateUserRequest) => Promise<CreateUserResponse>;
+  readonly getUser: (username: string) => Promise<User | null>;
+  readonly getAllUsers: () => Promise<User[]>;
+  readonly updateUser: (username: string, updates: Partial<Pick<User, 'role'>> | { password: string }) => Promise<User | null>;
+  readonly deleteUser: (username: string) => Promise<boolean>;
+  readonly regenerateApiKey: (username: string) => Promise<RegenerateApiKeyResponse | null>;
+  readonly validateCredentials: (username: string, password: string) => Promise<User | null>;
+  readonly validateApiKey: (username: string, apiKey: string) => Promise<User | null>;
+  readonly getUserCount: () => Promise<number>;
+  readonly isReady: () => boolean;
 }
 
 /**
@@ -194,7 +193,7 @@ export const createUserService = (config: UserServiceConfig): UserService => {
     /**
      * Initializes the user service and loads user data
      */
-    async initialize(): Promise<void> {
+    initialize: async (): Promise<void> => {
       if (isInitialized) {
         return;
       }
@@ -212,7 +211,7 @@ export const createUserService = (config: UserServiceConfig): UserService => {
     /**
      * Destroys the user service and cleans up resources
      */
-    destroy(): void {
+    destroy: (): void => {
       users.clear();
       isInitialized = false;
     },
@@ -222,7 +221,7 @@ export const createUserService = (config: UserServiceConfig): UserService => {
      * @param request - User creation request
      * @returns User creation response with API key
      */
-    async createUser(request: CreateUserRequest): Promise<CreateUserResponse> {
+    createUser: async (request: CreateUserRequest): Promise<CreateUserResponse> => {
       const handle = await fileLock.lock();
       try {
         validateUsername(request.username);
@@ -269,7 +268,7 @@ export const createUserService = (config: UserServiceConfig): UserService => {
      * @param username - Username to look up
      * @returns User data or null if not found
      */
-    async getUser(username: string): Promise<User | null> {
+    getUser: async (username: string): Promise<User | null> => {
       return users.get(username) || null;
     },
 
@@ -277,7 +276,7 @@ export const createUserService = (config: UserServiceConfig): UserService => {
      * Gets all users
      * @returns Array of all users
      */
-    async getAllUsers(): Promise<User[]> {
+    getAllUsers: async (): Promise<User[]> => {
       return Array.from(users.values());
     },
 
@@ -287,7 +286,7 @@ export const createUserService = (config: UserServiceConfig): UserService => {
      * @param updates - Properties to update
      * @returns Updated user or null if not found
      */
-    async updateUser(username: string, updates: Partial<Pick<User, 'role'>> | { password: string }): Promise<User | null> {
+    updateUser: async (username: string, updates: Partial<Pick<User, 'role'>> | { password: string }): Promise<User | null> => {
       const handle = await fileLock.lock();
       try {
         const user = users.get(username);
@@ -323,7 +322,7 @@ export const createUserService = (config: UserServiceConfig): UserService => {
      * @param username - Username to delete
      * @returns True if user was deleted, false if not found
      */
-    async deleteUser(username: string): Promise<boolean> {
+    deleteUser: async (username: string): Promise<boolean> => {
       const handle = await fileLock.lock();
       try {
         const deleted = users.delete(username);
@@ -342,7 +341,7 @@ export const createUserService = (config: UserServiceConfig): UserService => {
      * @param username - Username to regenerate API key for
      * @returns New API key or null if user not found
      */
-    async regenerateApiKey(username: string): Promise<RegenerateApiKeyResponse | null> {
+    regenerateApiKey: async (username: string): Promise<RegenerateApiKeyResponse | null> => {
       const handle = await fileLock.lock();
       try {
         const user = users.get(username);
@@ -375,7 +374,7 @@ export const createUserService = (config: UserServiceConfig): UserService => {
      * @param password - Password
      * @returns User data if valid, null otherwise
      */
-    async validateCredentials(username: string, password: string): Promise<User | null> {
+    validateCredentials: async (username: string, password: string): Promise<User | null> => {
       const user = users.get(username);
       if (!user) {
         return null;
@@ -391,7 +390,7 @@ export const createUserService = (config: UserServiceConfig): UserService => {
      * @param apiKey - API key
      * @returns User data if valid, null otherwise
      */
-    async validateApiKey(username: string, apiKey: string): Promise<User | null> {
+    validateApiKey: async (username: string, apiKey: string): Promise<User | null> => {
       const user = users.get(username);
       if (!user) {
         return null;
@@ -405,7 +404,7 @@ export const createUserService = (config: UserServiceConfig): UserService => {
      * Gets the total number of users
      * @returns User count
      */
-    async getUserCount(): Promise<number> {
+    getUserCount: async (): Promise<number> => {
       return users.size;
     },
 
@@ -413,7 +412,7 @@ export const createUserService = (config: UserServiceConfig): UserService => {
      * Checks if the service is ready
      * @returns True if initialized
      */
-    isReady(): boolean {
+    isReady: (): boolean => {
       return isInitialized;
     }
   };

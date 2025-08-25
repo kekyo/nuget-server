@@ -28,6 +28,7 @@ const getAuthModeFromEnv = (): AuthMode | undefined => {
   return undefined;
 };
 
+/////////////////////////////////////////////////////////////////////////
 
 const program = new Command();
 
@@ -37,7 +38,7 @@ program.
   version(version).
   option('-p, --port <port>', 'port number', '5963').
   option('-b, --base-url <url>', 'fixed base URL for API endpoints (overrides auto-detection)').
-  option('-d, --package-dir <dir>', 'package storage directory', './packages').
+  option('-p, --package-dir <dir>', 'package storage directory', './packages').
   option('-c, --config-dir <dir>', 'configuration directory for authentication files', './').
   option('-r, --realm <realm>', `authentication realm (default: "${packageName} ${version}")`, `${packageName} ${version}`).
   option('-l, --log <level>', 'log level (debug, info, warn, error, ignore)', 'info').

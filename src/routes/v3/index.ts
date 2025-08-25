@@ -8,8 +8,6 @@ import { MetadataService, PackageMetadata } from '../../services/metadataService
 import { AuthService } from '../../services/authService';
 import { createConditionalHybridAuthMiddleware, FastifyAuthConfig, AuthenticatedFastifyRequest } from '../../middleware/fastifyAuth';
 import { createPackageService } from '../../services/packageService';
-import { promises as fs } from 'fs';
-import { join, resolve } from 'path';
 import { createUrlResolver } from '../../utils/urlResolver';
 
 /**

@@ -16,8 +16,8 @@ export default defineConfig(({ mode, command }) => {
   // Development server configuration
   const devConfig: ServerConfig = {
     port: 5963,
-    packageDir: './packages',
-    configDir: './config',
+    packageDir: './dev/packages',
+    configDir: './dev',
     realm: 'nuget-server dev',
     noUi: false,
     authMode: 'publish',

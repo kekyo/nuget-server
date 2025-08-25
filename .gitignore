@@ -57,6 +57,5 @@ test-results/
 playwright-report/
 artifacts/
 
-# Running nuget-server
-packages/
-config/
+# Running nuget-server in vite dev
+dev/

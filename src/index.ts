@@ -3,10 +3,6 @@
 // License under MIT.
 
 /**
- * @fileoverview Main entry point for nuget-server
- */
-
-/**
  * Export the startFastifyServer function from server.fastify module
  */
 export { startFastifyServer } from './server';

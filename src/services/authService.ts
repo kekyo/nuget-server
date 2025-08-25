@@ -16,8 +16,8 @@ export interface AuthModeServiceConfig {
  * Authentication mode service interface for managing authentication requirements
  */
 export interface AuthModeService {
-  getAuthMode(): AuthMode;
-  isAuthRequired(endpoint: 'general' | 'publish' | 'admin'): boolean;
+  readonly getAuthMode: () => AuthMode;
+  readonly isAuthRequired: (endpoint: 'general' | 'publish' | 'admin') => boolean;
 }
 
 /**
@@ -40,7 +40,7 @@ export const createAuthService = (config: AuthModeServiceConfig): AuthModeServic
      * Gets the current authentication mode
      * @returns Current authentication mode
      */
-    getAuthMode(): AuthMode {
+    getAuthMode: (): AuthMode => {
       return authMode;
     },
 
@@ -49,7 +49,7 @@ export const createAuthService = (config: AuthModeServiceConfig): AuthModeServic
      * @param endpoint - The endpoint type to check
      * @returns True if authentication is required for the endpoint
      */
-    isAuthRequired(endpoint: 'general' | 'publish' | 'admin'): boolean {
+    isAuthRequired: (endpoint: 'general' | 'publish' | 'admin'): boolean => {
       switch (authMode) {
         case 'none':
           return false;

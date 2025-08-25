@@ -26,12 +26,12 @@ export interface PackageInfo {
  * Service interface for accessing package files from disk
  */
 export interface PackageService {
-  getPackageVersions(packageId: string): Promise<string[]>;
-  getPackageFile(packageId: string, version: string): Promise<Buffer | null>;
-  getNuspecFile(packageId: string, version: string): Promise<Buffer | null>;
-  getPackageFilePath(packageId: string, version: string): Promise<string | null>;
-  getNuspecFilePath(packageId: string, version: string): Promise<string | null>;
-  packageExists(packageId: string, version: string): Promise<boolean>;
+  readonly getPackageVersions: (packageId: string) => Promise<string[]>;
+  readonly getPackageFile: (packageId: string, version: string) => Promise<Buffer | null>;
+  readonly getNuspecFile: (packageId: string, version: string) => Promise<Buffer | null>;
+  readonly getPackageFilePath: (packageId: string, version: string) => Promise<string | null>;
+  readonly getNuspecFilePath: (packageId: string, version: string) => Promise<string | null>;
+  readonly packageExists: (packageId: string, version: string) => Promise<boolean>;
 }
 
 /**
@@ -49,32 +49,32 @@ export const createPackageService = (packagesRoot: string = './packages'): Packa
     getPackageVersions: async (packageId: string): Promise<string[]> => {
       const packageDir = path.join(packagesRoot, packageId);
     
-    try {
-      const versionDirs = await fs.readdir(packageDir);
-      const versions = [];
-      
-      for (const versionDir of versionDirs) {
-        const versionPath = path.join(packageDir, versionDir);
-        const stat = await fs.stat(versionPath);
+      try {
+        const versionDirs = await fs.readdir(packageDir);
+        const versions = [];
         
-        if (stat.isDirectory()) {
-          const packageFile = `${packageId}.${versionDir}.nupkg`;
-          const packagePath = path.join(versionPath, packageFile);
+        for (const versionDir of versionDirs) {
+          const versionPath = path.join(packageDir, versionDir);
+          const stat = await fs.stat(versionPath);
           
-          try {
-            await fs.access(packagePath);
-            versions.push(versionDir);
-          } catch {
-            // Package file doesn't exist, skip this version
+          if (stat.isDirectory()) {
+            const packageFile = `${packageId}.${versionDir}.nupkg`;
+            const packagePath = path.join(versionPath, packageFile);
+            
+            try {
+              await fs.access(packagePath);
+              versions.push(versionDir);
+            } catch {
+              // Package file doesn't exist, skip this version
+            }
           }
         }
+        
+        return versions.sort();
+      } catch (error) {
+        // Package directory doesn't exist
+        return [];
       }
-      
-      return versions.sort();
-    } catch (error) {
-      // Package directory doesn't exist
-      return [];
-    }
     },
 
     /**
