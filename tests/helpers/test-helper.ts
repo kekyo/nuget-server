@@ -39,7 +39,7 @@ export const createTestDirectory = async (categoryName: string, testName: string
   );
   await fs.ensureDir(testDir);
   return testDir;
-}
+};
 
 // Port counter for sequential uniqueness
 let portCounter = 0;
@@ -61,7 +61,7 @@ export const getTestPort = (basePort: number = 6000): number => {
   }
   
   return port;
-}
+};
 
 /**
  * Forcefully terminates any remaining CLI processes
@@ -75,4 +75,67 @@ export const cleanupCLIProcesses = async (): Promise<void> => {
   } catch (error) {
     // Silently ignore all errors - this is expected when no processes exist
   }
-}
+};
+
+/**
+ * Waits for the NuGet server to be ready by polling the V3 service index
+ * @param serverPort - The port where the server is running
+ * @param authMode - The authentication mode ('none', 'publish', or 'full')
+ * @param maxRetries - Maximum number of retry attempts (default: 30)
+ * @param retryDelay - Delay between retries in milliseconds (default: 500)
+ * @returns Promise that resolves when the server is ready
+ * @throws Error if the server doesn't become ready within the timeout
+ */
+export const waitForServerReady = async (
+  serverPort: number,
+  authMode: 'none' | 'publish' | 'full',
+  maxRetries: number = 30,
+  retryDelay: number = 500
+): Promise<void> => {
+  const url = `http://localhost:${serverPort}/v3/index.json`;
+  
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      // Set a short timeout to avoid blocking
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 2000);
+      
+      const response = await fetch(url, {
+        signal: controller.signal,
+        // Avoid following redirects that might hang
+        redirect: 'manual'
+      });
+      
+      clearTimeout(timeoutId);
+      
+      // Check expected status based on auth mode
+      if (authMode === 'none' || authMode === 'publish') {
+        // These modes should allow anonymous access to V3 API
+        if (response.status === 200) {
+          return; // Server is ready
+        }
+      } else if (authMode === 'full') {
+        // Full auth mode should return 401 for unauthorized access
+        if (response.status === 401) {
+          return; // Server is ready (and properly rejecting unauthorized requests)
+        }
+      }
+      
+      // Unexpected status, continue retrying
+      if (i === maxRetries - 1) {
+        throw new Error(`Server returned unexpected status ${response.status} for authMode=${authMode}`);
+      }
+    } catch (error: any) {
+      // Handle fetch errors (connection refused, timeout, etc.)
+      if (i === maxRetries - 1) {
+        // Last attempt failed
+        throw new Error(`Server failed to start within ${(maxRetries * retryDelay) / 1000} seconds: ${error.message}`);
+      }
+      
+      // Server not ready yet, continue retrying
+    }
+    
+    // Wait before next attempt
+    await new Promise(resolve => setTimeout(resolve, retryDelay));
+  }
+};

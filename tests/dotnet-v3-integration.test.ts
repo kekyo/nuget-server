@@ -6,11 +6,10 @@ import { describe, test, expect } from 'vitest';
 import path from 'node:path';
 import fs from 'fs-extra';
 import AdmZip from 'adm-zip';
-import { delay } from 'async-primitives';
 import { startFastifyServer } from '../src/server.js';
 import { createConsoleLogger } from '../src/logger.js';
 import { Logger, ServerConfig } from '../src/types.js';
-import { createTestDirectory, getTestPort, testGlobalLogLevel } from './helpers/test-helper.js';
+import { createTestDirectory, getTestPort, testGlobalLogLevel, waitForServerReady } from './helpers/test-helper.js';
 import {
   createTestProject,
   addNuGetSource,
@@ -56,9 +55,14 @@ describe('dotnet restore V3 API Integration Tests', () => {
     logger.info(`Starting server with authMode=${authMode} on port ${serverPort}`);
     const server = await startFastifyServer(testConfig, logger);
     
-    // Wait for metadata service to initialize
-    await delay(5000);
-    //await new Promise(resolve => setTimeout(resolve, 5000));
+    // Wait for server to be ready by polling V3 API endpoint
+    try {
+      await waitForServerReady(serverPort, authMode, 30, 500);
+      logger.info(`Server ready after polling /v3/index.json (authMode=${authMode})`);
+    } catch (error) {
+      logger.error(`Server readiness check failed: ${error}`);
+      throw error;
+    }
     
     return { server, testBaseDir, testConfigDir, testPackagesDir, serverPort, logger };
   };
@@ -150,11 +154,28 @@ describe('dotnet restore V3 API Integration Tests', () => {
       await createTestProject(dotnetDir, packageId, packageVersion);
       await addNuGetSource(dotnetDir, `http://localhost:${serverPort}`);
       
-      const restoreResult = await runDotNetRestore(dotnetDir);
+      // Debug: Show project files before restore
+      try {
+        const projectFiles = await fs.readdir(dotnetDir);
+        logger.info(`Project directory contents: ${projectFiles.join(', ')}`);
+      } catch (error) {
+        logger.warn(`Could not read project directory: ${error}`);
+      }
+      
+      const restoreResult = await runDotNetRestore(logger, dotnetDir);
       
       if (!restoreResult.success) {
+        logger.error(`Restore failed with exit code: ${restoreResult.exitCode}`);
         logger.info(`Restore stdout: ${restoreResult.stdout}`);
         logger.info(`Restore stderr: ${restoreResult.stderr}`);
+        
+        // Debug: Check if NuGet.config exists and is readable
+        try {
+          const nugetConfig = await fs.readFile(path.join(dotnetDir, 'NuGet.config'), 'utf-8');
+          logger.info(`NuGet.config content: ${nugetConfig}`);
+        } catch (error) {
+          logger.error(`Failed to read NuGet.config: ${error}`);
+        }
       }
       
       expect(restoreResult.success).toBe(true);
@@ -172,7 +193,7 @@ describe('dotnet restore V3 API Integration Tests', () => {
     
     try {
       // Clear NuGet cache to ensure test isolation
-      await clearNuGetCache();
+      await clearNuGetCache(logger);
 
       const packageId = 'FlashCap';
       const version = '1.11.0';
@@ -181,7 +202,7 @@ describe('dotnet restore V3 API Integration Tests', () => {
       await createTestProject(dotnetDir, packageId, version);
       await addNuGetSource(dotnetDir, `http://localhost:${serverPort}`);
       
-      const restoreResult = await runDotNetRestore(dotnetDir);
+      const restoreResult = await runDotNetRestore(logger, dotnetDir);
       
       if (!restoreResult.success) {
         logger.info(`Restore failed for ${packageId} ${version}:`);
@@ -210,7 +231,7 @@ describe('dotnet restore V3 API Integration Tests', () => {
       await createTestProject(dotnetDir, packageId, version);
       await addNuGetSource(dotnetDir, `http://localhost:${serverPort}`);
       
-      const restoreResult = await runDotNetRestore(dotnetDir);
+      const restoreResult = await runDotNetRestore(logger, dotnetDir);
       
       if (!restoreResult.success) {
         logger.info(`Restore failed for ${packageId} ${version}:`);
@@ -264,11 +285,28 @@ describe('dotnet restore V3 API Integration Tests', () => {
       await createTestProject(dotnetDir, packageId, packageVersion);
       await addNuGetSource(dotnetDir, `http://localhost:${serverPort}`);
       
-      const restoreResult = await runDotNetRestore(dotnetDir);
+      // Debug: Show project files before restore
+      try {
+        const projectFiles = await fs.readdir(dotnetDir);
+        logger.info(`Project directory contents: ${projectFiles.join(', ')}`);
+      } catch (error) {
+        logger.warn(`Could not read project directory: ${error}`);
+      }
+      
+      const restoreResult = await runDotNetRestore(logger, dotnetDir);
       
       if (!restoreResult.success) {
+        logger.error(`Restore failed with exit code: ${restoreResult.exitCode}`);
         logger.info(`Restore stdout: ${restoreResult.stdout}`);
         logger.info(`Restore stderr: ${restoreResult.stderr}`);
+        
+        // Debug: Check if NuGet.config exists and is readable
+        try {
+          const nugetConfig = await fs.readFile(path.join(dotnetDir, 'NuGet.config'), 'utf-8');
+          logger.info(`NuGet.config content: ${nugetConfig}`);
+        } catch (error) {
+          logger.error(`Failed to read NuGet.config: ${error}`);
+        }
       }
       
       expect(restoreResult.success).toBe(true);
@@ -294,11 +332,28 @@ describe('dotnet restore V3 API Integration Tests', () => {
       await createTestProject(dotnetDir, packageId, packageVersion);
       await addNuGetSource(dotnetDir, `http://localhost:${serverPort}`);
       
-      const restoreResult = await runDotNetRestore(dotnetDir);
+      // Debug: Show project files before restore
+      try {
+        const projectFiles = await fs.readdir(dotnetDir);
+        logger.info(`Project directory contents: ${projectFiles.join(', ')}`);
+      } catch (error) {
+        logger.warn(`Could not read project directory: ${error}`);
+      }
+      
+      const restoreResult = await runDotNetRestore(logger, dotnetDir);
       
       if (!restoreResult.success) {
+        logger.error(`Restore failed with exit code: ${restoreResult.exitCode}`);
         logger.info(`Restore stdout: ${restoreResult.stdout}`);
         logger.info(`Restore stderr: ${restoreResult.stderr}`);
+        
+        // Debug: Check if NuGet.config exists and is readable
+        try {
+          const nugetConfig = await fs.readFile(path.join(dotnetDir, 'NuGet.config'), 'utf-8');
+          logger.info(`NuGet.config content: ${nugetConfig}`);
+        } catch (error) {
+          logger.error(`Failed to read NuGet.config: ${error}`);
+        }
       }
       
       expect(restoreResult.success).toBe(true);
@@ -341,7 +396,7 @@ describe('dotnet restore V3 API Integration Tests', () => {
     
     try {
       // Clear NuGet cache to ensure test isolation
-      await clearNuGetCache();
+      await clearNuGetCache(logger);
       
       // Test V3 API directly first
       const serviceIndexResponse = await fetch(`http://localhost:${serverPort}/v3/index.json`);
@@ -354,7 +409,7 @@ describe('dotnet restore V3 API Integration Tests', () => {
       await createTestProject(dotnetDir, packageId, packageVersion);
       await addNuGetSource(dotnetDir, `http://localhost:${serverPort}`);
       
-      const restoreResult = await runDotNetRestore(dotnetDir);
+      const restoreResult = await runDotNetRestore(logger, dotnetDir);
       
       // Should fail without authentication
       expect(restoreResult.success).toBe(false);
@@ -369,11 +424,11 @@ describe('dotnet restore V3 API Integration Tests', () => {
   }, 60000);
 
   test('[authMode=full] should succeed with authentication in NuGet.config', async () => {
-    const { server, testBaseDir, serverPort, logger} = await startTestServer('full', 'succeed-with-auth');
+    const { server, testBaseDir, serverPort, logger } = await startTestServer('full', 'succeed-with-auth');
     
     try {
       // Clear NuGet cache to ensure test isolation
-      await clearNuGetCache();
+      await clearNuGetCache(logger);
 
       const packageId = 'FlashCap';
       const packageVersion = '1.10.0';
@@ -389,11 +444,28 @@ describe('dotnet restore V3 API Integration Tests', () => {
         'admin-api-key-123'
       );
       
-      const restoreResult = await runDotNetRestore(dotnetDir);
+      // Debug: Show project files before restore
+      try {
+        const projectFiles = await fs.readdir(dotnetDir);
+        logger.info(`Project directory contents: ${projectFiles.join(', ')}`);
+      } catch (error) {
+        logger.warn(`Could not read project directory: ${error}`);
+      }
+      
+      const restoreResult = await runDotNetRestore(logger, dotnetDir);
       
       if (!restoreResult.success) {
+        logger.error(`Restore failed with exit code: ${restoreResult.exitCode}`);
         logger.info(`Restore stdout: ${restoreResult.stdout}`);
         logger.info(`Restore stderr: ${restoreResult.stderr}`);
+        
+        // Debug: Check if NuGet.config exists and is readable
+        try {
+          const nugetConfig = await fs.readFile(path.join(dotnetDir, 'NuGet.config'), 'utf-8');
+          logger.info(`NuGet.config content: ${nugetConfig}`);
+        } catch (error) {
+          logger.error(`Failed to read NuGet.config: ${error}`);
+        }
       }
       
       expect(restoreResult.success).toBe(true);

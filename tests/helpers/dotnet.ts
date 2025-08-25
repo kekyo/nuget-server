@@ -1,6 +1,7 @@
 import { execa } from 'execa';
 import fs from 'fs-extra';
 import path from 'path';
+import { Logger } from '../../src/types';
 
 export interface DotNetRestoreResult {
   success: boolean;
@@ -13,14 +14,25 @@ export interface DotNetRestoreResult {
  * Clears all NuGet caches to ensure clean test environment
  * This includes global packages, http cache, temp cache, and plugin cache
  */
-export const clearNuGetCache = async (): Promise<void> => {
+export const clearNuGetCache = async (logger: Logger): Promise<void> => {
   try {
+    // Check if dotnet command is available first
+    const dotnetPath = process.env.HOME ? `${process.env.HOME}/.dotnet` : '/usr/local/share/dotnet';
+    const env = {
+      ...process.env,
+      PATH: `${dotnetPath}:${process.env.PATH || ''}`,
+      DOTNET_ROOT: dotnetPath
+    };
+    
     await execa('dotnet', ['nuget', 'locals', 'all', '--clear'], {
-      timeout: 30000 // 30 seconds timeout
+      timeout: 30000, // 30 seconds timeout
+      env,
+      extendEnv: true
     });
+    logger.info('NuGet cache cleared successfully');
   } catch (error: any) {
-    // Log but don't fail if cache clear fails
-    console.warn('Failed to clear NuGet cache:', error.message);
+    // Log detailed error information but don't fail the test
+    logger.warn(`Failed to clear NuGet cache: ${error.message}, ${error.exitCode}, ${error.command}, ${error.stdout}, ${error.stderr}`);
   }
 };
 
@@ -36,6 +48,8 @@ export const createTestProject = async (
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <DisableImplicitFrameworkReferences>true</DisableImplicitFrameworkReferences>
+    <DisableImplicitNuGetFallbackFolder>true</DisableImplicitNuGetFallbackFolder>
   </PropertyGroup>
   
   <ItemGroup>
@@ -51,6 +65,7 @@ export const addNuGetSource = async (
   dotnetDir: string,
   serverUrl: string
 ): Promise<void> => {
+  // WARNING: DO NOT REMOVE `<clear />`, we MUST test on only local-nuget-server.
   const nugetConfigContent = `<?xml version="1.0" encoding="utf-8"?>
 <configuration>
   <packageSources>
@@ -69,6 +84,7 @@ export const addNuGetSourceWithAuth = async (
   username: string,
   password: string
 ): Promise<void> => {
+  // WARNING: DO NOT REMOVE `<clear />`, we MUST test on only local-nuget-server.
   const nugetConfigContent = `<?xml version="1.0" encoding="utf-8"?>
 <configuration>
   <packageSources>
@@ -87,12 +103,35 @@ export const addNuGetSourceWithAuth = async (
   await fs.writeFile(nugetConfigPath, nugetConfigContent);
 }
 
-export const runDotNetRestore = async (projectDir: string): Promise<DotNetRestoreResult> => {
+export const runDotNetRestore = async (logger: Logger, projectDir: string): Promise<DotNetRestoreResult> => {
   try {
-    const result = await execa('dotnet', ['restore', '--no-cache', '--force', '--verbosity', 'detailed'], {
+    // Set up environment variables for dotnet CLI
+    const dotnetPath = process.env.HOME ? `${process.env.HOME}/.dotnet` : '/usr/local/share/dotnet';
+    const env = {
+      ...process.env,
+      PATH: `${dotnetPath}:${process.env.PATH || ''}`,
+      DOTNET_ROOT: dotnetPath,
+      DOTNET_CLI_TELEMETRY_OPTOUT: '1', // Disable telemetry for cleaner output
+      DOTNET_SKIP_FIRST_TIME_EXPERIENCE: '1'
+    };
+
+    // Log debug information
+    logger.info(`Running dotnet restore with environment: ${projectDir}, ${dotnetPath}, ${env.PATH?.substring(0, 200)}...`);
+
+    // First check if dotnet is available
+    try {
+      const versionResult = await execa('dotnet', ['--version'], { env, extendEnv: true, timeout: 10000 });
+      logger.info('dotnet version:' + versionResult.stdout);
+    } catch (versionError) {
+      logger.warn('dotnet version check failed: ' + versionError);
+    }
+
+    const result = await execa('dotnet', ['restore', '--no-cache', '--force', '--verbosity', 'normal'], {
       cwd: projectDir,
       stdio: 'pipe',
-      timeout: 60000 // 60 seconds timeout
+      timeout: 60000, // 60 seconds timeout
+      env,
+      extendEnv: true
     });
     
     return {
@@ -102,11 +141,14 @@ export const runDotNetRestore = async (projectDir: string): Promise<DotNetRestor
       stderr: result.stderr
     };
   } catch (error: any) {
+    // Log detailed error information
+    logger.info(`dotnet restore failed: ${error.message}, ${error.exitCode}, ${error.command}, ${projectDir}, ${error.stdout || 'No stdout'}, ${error.stderr || 'No stderr'}`);
+
     return {
       success: false,
       exitCode: error.exitCode ?? 1,
       stdout: error.stdout || '',
-      stderr: error.stderr || ''
+      stderr: error.stderr || error.message || 'Unknown error'
     };
   }
 }
