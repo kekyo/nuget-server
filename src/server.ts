@@ -22,6 +22,7 @@ import { createMetadataService } from './services/metadataService';
 import { createAuthService } from './services/authService';
 import { createUserService } from './services/userService';
 import { createSessionService } from './services/sessionService';
+import { createAuthFailureTrackerFromEnv } from './services/authFailureTracker';
 import { Logger, ServerConfig } from './types';
 import { createUrlResolver } from './utils/urlResolver';
 import { createFastifyLoggerAdapter } from './utils/fastifyLoggerAdapter';
@@ -119,6 +120,9 @@ export const createFastifyInstance = async (config: ServerConfig, logger: Logger
     throw error;
   }
 
+  // Initialize auth failure tracker
+  const authFailureTracker = createAuthFailureTrackerFromEnv(logger);
+
   // Configure secure session plugin with session decorator
   await fastify.register(fastifySecureSession, {
     key: Buffer.from('a'.repeat(32)), // TODO: Use proper secret key from config
@@ -146,6 +150,7 @@ export const createFastifyInstance = async (config: ServerConfig, logger: Logger
     realm: config.realm || `${packageName} ${version}`,
     userService,
     sessionService,
+    authFailureTracker,
     logger
   };
 
@@ -185,11 +190,18 @@ export const createFastifyInstance = async (config: ServerConfig, logger: Logger
       try {
         const user = await userService.validateCredentials(username, password);
         if (!user) {
+          // Record failure and apply delay before responding
+          authFailureTracker.recordFailure(request, username);
+          await authFailureTracker.applyDelay(request, username);
+          
           return reply.status(401).send({
             success: false,
             message: 'Invalid credentials'
           });
         }
+
+        // Clear failures on successful authentication
+        authFailureTracker.clearFailures(request, username);
 
         // Create session
         const expirationHours = rememberMe ? 7 * 24 : 24; // 7 days or 24 hours

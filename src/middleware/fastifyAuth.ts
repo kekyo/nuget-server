@@ -8,6 +8,7 @@ import { BasicStrategy } from 'passport-http';
 import { Logger } from '../types';
 import { UserService } from '../services/userService';
 import { SessionService } from '../services/sessionService';
+import { AuthFailureTracker } from '../services/authFailureTracker';
 
 /**
  * Fastify authentication middleware configuration
@@ -16,6 +17,7 @@ export interface FastifyAuthConfig {
   realm?: string;
   userService: UserService;
   sessionService: SessionService;
+  authFailureTracker?: AuthFailureTracker;
   logger: Logger;
 }
 
@@ -159,7 +161,7 @@ export const createBasicStrategy = (config: FastifyAuthConfig): BasicStrategy =>
  */
 export const createHybridAuthMiddleware = (config: FastifyAuthConfig) => {
   const realm = config.realm || 'NuGet Server';
-  const { userService, sessionService, logger } = config;
+  const { userService, sessionService, authFailureTracker, logger } = config;
 
   return async (request: AuthenticatedFastifyRequest, reply: FastifyReply) => {
     logger.debug(`Hybrid auth check for ${request.method} ${request.url}`);
@@ -203,6 +205,12 @@ export const createHybridAuthMiddleware = (config: FastifyAuthConfig) => {
             const user = await userService.validateApiKey(credentials.username, credentials.password);
             if (user) {
               logger.debug(`Basic auth successful for user: ${user.username}`);
+              
+              // Clear failures on successful authentication
+              if (authFailureTracker) {
+                authFailureTracker.clearFailures(request, credentials.username);
+              }
+              
               request.user = {
                 username: user.username,
                 role: user.role
@@ -210,10 +218,22 @@ export const createHybridAuthMiddleware = (config: FastifyAuthConfig) => {
               return;
             } else {
               logger.info(`Basic auth failed for user: ${credentials.username} - returning 401 Unauthorized`);
+              
+              // Record failure and apply delay before responding
+              if (authFailureTracker) {
+                authFailureTracker.recordFailure(request, credentials.username);
+                await authFailureTracker.applyDelay(request, credentials.username);
+              }
             }
           }
         } else {
           logger.info('Invalid Basic auth header format - returning 401 Unauthorized');
+          
+          // Record failure for invalid Basic auth format
+          if (authFailureTracker) {
+            authFailureTracker.recordFailure(request);
+            await authFailureTracker.applyDelay(request);
+          }
         }
       }
 
