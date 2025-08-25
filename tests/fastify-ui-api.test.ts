@@ -474,42 +474,145 @@ describe('Fastify UI Backend API - Phase 4 Tests', () => {
     expect(response.status).toBe(403);
   });
 
-  describe('POST /api/ui/apikey (session required)', () => {
-    let sessionToken: string;
+});
 
-    beforeEach(async () => {
-      // Generate new port for nested test to avoid conflicts
-      serverPort = getTestPort(7200);
-      
-      const config: ServerConfig = {
-        port: serverPort,
-        packageDir: testPackagesDir,
-        configDir: testConfigDir,
-        realm: 'Test Fastify UI Server - Full',
-        logLevel: testGlobalLogLevel,
-        noUi: false,
-        authMode: 'full'
-      };
-      
-      server = await startFastifyServer(config, logger);
-      
-      // Login to get session token
-      const loginResponse = await fetch(`http://localhost:${serverPort}/api/auth/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          username: 'testpublishui',
-          password: 'publishpass'
-        })
-      });
+describe('Fastify UI API - POST /api/ui/apikey (session required)', () => {
+  let server: FastifyServerInstance | null = null;
+  let testBaseDir: string;
+  let testConfigDir: string;
+  let testPackagesDir: string;
+  let serverPort: number;
+  let sessionToken: string;
+  const logger = createConsoleLogger('fastify-ui-api-apikey', testGlobalLogLevel);
 
-      expect(loginResponse.status).toBe(200);
-      const cookies = loginResponse.headers.get('set-cookie') || '';
-      sessionToken = cookies.match(/sessionToken=([^;]+)/)?.[1] || '';
-      expect(sessionToken).toBeTruthy();
+  beforeEach(async (fn) => {
+    // Create isolated test directory for each test
+    testBaseDir = await createTestDirectory('fastify-ui-api-apikey', fn.task.name);
+    testConfigDir = testBaseDir;
+    testPackagesDir = path.join(testBaseDir, 'packages');
+    
+    // Create test directories and data
+    await fs.mkdir(testPackagesDir, { recursive: true });
+    await createTestUsers();
+    await setupTestPackage();
+    
+    // Generate unique port for this test group
+    serverPort = getTestPort(7200);
+    
+    const config: ServerConfig = {
+      port: serverPort,
+      packageDir: testPackagesDir,
+      configDir: testConfigDir,
+      realm: 'Test Fastify UI Server - Full',
+      logLevel: testGlobalLogLevel,
+      noUi: false,
+      authMode: 'full'
+    };
+    
+    server = await startFastifyServer(config, logger);
+    
+    // Login to get session token
+    const loginResponse = await fetch(`http://localhost:${serverPort}/api/auth/login`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        username: 'testpublishui',
+        password: 'publishpass'
+      })
     });
+
+    expect(loginResponse.status).toBe(200);
+    const cookies = loginResponse.headers.get('set-cookie') || '';
+    sessionToken = cookies.match(/sessionToken=([^;]+)/)?.[1] || '';
+    expect(sessionToken).toBeTruthy();
+  }, 30000);
+
+  afterEach(async () => {
+    if (server) {
+      await server.close();
+      server = null;
+    }
+  }, 10000);
+
+  // Helper functions (duplicated for independence)
+  const createTestUsers = async () => {
+    const testUsers = [
+      {
+        id: "test-admin-ui",
+        username: "testadminui",
+        passwordHash: "PSRt9HqDyLtH7LC8iUnS7F9ObKU=", // password: "adminpass"
+        salt: "test-salt-admin-ui",
+        apiKeyHash: "fEE9WeQqltjkrNwKP6WZb4lPLJ0=", // apiKey: "admin-api-key-123"  
+        apiKeySalt: "test-api-salt-admin-ui",
+        role: "admin",
+        createdAt: "2024-01-01T00:00:00Z",
+        updatedAt: "2024-01-01T00:00:00Z"
+      },
+      {
+        id: "test-publish-ui",
+        username: "testpublishui",
+        passwordHash: "OxSWKpMyC4Ycbk6AVlacKvtFzp4=", // password: "publishpass"
+        salt: "test-salt-publish-ui",
+        apiKeyHash: "kRHDw5YZn/Ic+ynzwmVQvFdFCJw=", // apiKey: "publish-api-key-123"
+        apiKeySalt: "test-api-salt-publish-ui",
+        role: "publish",
+        createdAt: "2024-01-01T00:00:00Z",
+        updatedAt: "2024-01-01T00:00:00Z"
+      },
+      {
+        id: "test-read-ui",
+        username: "testreadui",
+        passwordHash: "kB94DvNnBYRvYaV/ZGoHQCyK1/k=", // password: "readpass"
+        salt: "test-salt-read-ui",
+        apiKeyHash: "DRkROp0nFzqicoShFhroRDxemVE=", // apiKey: "read-api-key-123"
+        apiKeySalt: "test-api-salt-read-ui",
+        role: "read",
+        createdAt: "2024-01-01T00:00:00Z",
+        updatedAt: "2024-01-01T00:00:00Z"
+      }
+    ];
+
+    await fs.writeFile(
+      path.join(testConfigDir, 'users.json'),
+      JSON.stringify(testUsers, null, 2)
+    );
+  };
+
+  const setupTestPackage = async () => {
+    // Use actual test package from fixtures
+    const sourcePackage = path.join(__dirname, 'fixtures', 'packages', 'FlashCap.1.10.0.nupkg');
+    const packageDir = path.join(testPackagesDir, 'FlashCap', '1.10.0');
+    await fs.mkdir(packageDir, { recursive: true });
+    
+    // Extract necessary files from the nupkg
+    const tempDir = path.join(testBaseDir, 'temp-extract');
+    await fs.mkdir(tempDir, { recursive: true });
+    
+    try {
+      // Extract the nupkg to temp directory
+      execSync(`unzip -q -o "${sourcePackage}" -d "${tempDir}"`);
+      
+      // Copy the nupkg file
+      await fs.copyFile(sourcePackage, path.join(packageDir, 'FlashCap.1.10.0.nupkg'));
+      
+      // Copy the nuspec file
+      const nuspecSource = path.join(tempDir, 'FlashCap.nuspec');
+      if (await fs.access(nuspecSource).then(() => true).catch(() => false)) {
+        await fs.copyFile(nuspecSource, path.join(packageDir, 'FlashCap.nuspec'));
+      }
+      
+      // Copy icon file if exists
+      const iconSource = path.join(tempDir, 'FlashCap.100.png');
+      if (await fs.access(iconSource).then(() => true).catch(() => false)) {
+        await fs.copyFile(iconSource, path.join(packageDir, 'icon.png'));
+      }
+    } finally {
+      // Clean up temp directory
+      await fs.rm(tempDir, { recursive: true, force: true });
+    }
+  };
 
     test('should require session authentication for API key regeneration', async () => {
       const response = await fetch(`http://localhost:${serverPort}/api/ui/apikey`, {
@@ -540,62 +643,163 @@ describe('Fastify UI Backend API - Phase 4 Tests', () => {
       expect(typeof data.apiKey).toBe('string');
       expect(data.apiKey.length).toBeGreaterThan(0);
     });
-  });
+});
 
-  describe('POST /api/ui/password (session required)', () => {
-    let sessionToken: string;
-    let adminSessionToken: string;
+describe('Fastify UI API - POST /api/ui/password (session required)', () => {
+  let server: FastifyServerInstance | null = null;
+  let testBaseDir: string;
+  let testConfigDir: string;
+  let testPackagesDir: string;
+  let serverPort: number;
+  let sessionToken: string;
+  let adminSessionToken: string;
+  const logger = createConsoleLogger('fastify-ui-api-password', testGlobalLogLevel);
 
-    beforeEach(async () => {
-      // Generate new port for nested test to avoid conflicts
-      serverPort = getTestPort(7300);
-      
-      const config: ServerConfig = {
-        port: serverPort,
-        packageDir: testPackagesDir,
-        configDir: testConfigDir,
-        realm: 'Test Fastify UI Server - Full',
-        logLevel: testGlobalLogLevel,
-        noUi: false,
-        authMode: 'full'
-      };
-      
-      server = await startFastifyServer(config, logger);
-      
-      // Login as regular user to get session token
-      const loginResponse = await fetch(`http://localhost:${serverPort}/api/auth/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          username: 'testpublishui',
-          password: 'publishpass'
-        })
-      });
-
-      expect(loginResponse.status).toBe(200);
-      const cookies = loginResponse.headers.get('set-cookie') || '';
-      sessionToken = cookies.match(/sessionToken=([^;]+)/)?.[1] || '';
-      expect(sessionToken).toBeTruthy();
-
-      // Also login as admin for admin tests
-      const adminLoginResponse = await fetch(`http://localhost:${serverPort}/api/auth/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          username: 'testadminui',
-          password: 'adminpass'
-        })
-      });
-
-      expect(adminLoginResponse.status).toBe(200);
-      const adminCookies = adminLoginResponse.headers.get('set-cookie') || '';
-      adminSessionToken = adminCookies.match(/sessionToken=([^;]+)/)?.[1] || '';
-      expect(adminSessionToken).toBeTruthy();
+  beforeEach(async (fn) => {
+    // Create isolated test directory for each test
+    testBaseDir = await createTestDirectory('fastify-ui-api-password', fn.task.name);
+    testConfigDir = testBaseDir;
+    testPackagesDir = path.join(testBaseDir, 'packages');
+    
+    // Create test directories and data
+    await fs.mkdir(testPackagesDir, { recursive: true });
+    await createTestUsers();
+    await setupTestPackage();
+    
+    // Generate unique port for this test group
+    serverPort = getTestPort(7300);
+    
+    const config: ServerConfig = {
+      port: serverPort,
+      packageDir: testPackagesDir,
+      configDir: testConfigDir,
+      realm: 'Test Fastify UI Server - Full',
+      logLevel: testGlobalLogLevel,
+      noUi: false,
+      authMode: 'full'
+    };
+    
+    server = await startFastifyServer(config, logger);
+    
+    // Login as regular user to get session token
+    const loginResponse = await fetch(`http://localhost:${serverPort}/api/auth/login`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        username: 'testpublishui',
+        password: 'publishpass'
+      })
     });
+
+    expect(loginResponse.status).toBe(200);
+    const cookies = loginResponse.headers.get('set-cookie') || '';
+    sessionToken = cookies.match(/sessionToken=([^;]+)/)?.[1] || '';
+    expect(sessionToken).toBeTruthy();
+
+    // Also login as admin for admin tests
+    const adminLoginResponse = await fetch(`http://localhost:${serverPort}/api/auth/login`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        username: 'testadminui',
+        password: 'adminpass'
+      })
+    });
+
+    expect(adminLoginResponse.status).toBe(200);
+    const adminCookies = adminLoginResponse.headers.get('set-cookie') || '';
+    adminSessionToken = adminCookies.match(/sessionToken=([^;]+)/)?.[1] || '';
+    expect(adminSessionToken).toBeTruthy();
+  }, 30000);
+
+  afterEach(async () => {
+    if (server) {
+      await server.close();
+      server = null;
+    }
+  }, 10000);
+
+  // Helper functions (duplicated for independence)
+  const createTestUsers = async () => {
+    const testUsers = [
+      {
+        id: "test-admin-ui",
+        username: "testadminui",
+        passwordHash: "PSRt9HqDyLtH7LC8iUnS7F9ObKU=", // password: "adminpass"
+        salt: "test-salt-admin-ui",
+        apiKeyHash: "fEE9WeQqltjkrNwKP6WZb4lPLJ0=", // apiKey: "admin-api-key-123"  
+        apiKeySalt: "test-api-salt-admin-ui",
+        role: "admin",
+        createdAt: "2024-01-01T00:00:00Z",
+        updatedAt: "2024-01-01T00:00:00Z"
+      },
+      {
+        id: "test-publish-ui",
+        username: "testpublishui",
+        passwordHash: "OxSWKpMyC4Ycbk6AVlacKvtFzp4=", // password: "publishpass"
+        salt: "test-salt-publish-ui",
+        apiKeyHash: "kRHDw5YZn/Ic+ynzwmVQvFdFCJw=", // apiKey: "publish-api-key-123"
+        apiKeySalt: "test-api-salt-publish-ui",
+        role: "publish",
+        createdAt: "2024-01-01T00:00:00Z",
+        updatedAt: "2024-01-01T00:00:00Z"
+      },
+      {
+        id: "test-read-ui",
+        username: "testreadui",
+        passwordHash: "kB94DvNnBYRvYaV/ZGoHQCyK1/k=", // password: "readpass"
+        salt: "test-salt-read-ui",
+        apiKeyHash: "DRkROp0nFzqicoShFhroRDxemVE=", // apiKey: "read-api-key-123"
+        apiKeySalt: "test-api-salt-read-ui",
+        role: "read",
+        createdAt: "2024-01-01T00:00:00Z",
+        updatedAt: "2024-01-01T00:00:00Z"
+      }
+    ];
+
+    await fs.writeFile(
+      path.join(testConfigDir, 'users.json'),
+      JSON.stringify(testUsers, null, 2)
+    );
+  };
+
+  const setupTestPackage = async () => {
+    // Use actual test package from fixtures
+    const sourcePackage = path.join(__dirname, 'fixtures', 'packages', 'FlashCap.1.10.0.nupkg');
+    const packageDir = path.join(testPackagesDir, 'FlashCap', '1.10.0');
+    await fs.mkdir(packageDir, { recursive: true });
+    
+    // Extract necessary files from the nupkg
+    const tempDir = path.join(testBaseDir, 'temp-extract');
+    await fs.mkdir(tempDir, { recursive: true });
+    
+    try {
+      // Extract the nupkg to temp directory
+      execSync(`unzip -q -o "${sourcePackage}" -d "${tempDir}"`);
+      
+      // Copy the nupkg file
+      await fs.copyFile(sourcePackage, path.join(packageDir, 'FlashCap.1.10.0.nupkg'));
+      
+      // Copy the nuspec file
+      const nuspecSource = path.join(tempDir, 'FlashCap.nuspec');
+      if (await fs.access(nuspecSource).then(() => true).catch(() => false)) {
+        await fs.copyFile(nuspecSource, path.join(packageDir, 'FlashCap.nuspec'));
+      }
+      
+      // Copy icon file if exists
+      const iconSource = path.join(tempDir, 'FlashCap.100.png');
+      if (await fs.access(iconSource).then(() => true).catch(() => false)) {
+        await fs.copyFile(iconSource, path.join(packageDir, 'icon.png'));
+      }
+    } finally {
+      // Clean up temp directory
+      await fs.rm(tempDir, { recursive: true, force: true });
+    }
+  };
 
     test('should require session authentication for password change', async () => {
       const response = await fetch(`http://localhost:${serverPort}/api/ui/password`, {
@@ -683,9 +887,115 @@ describe('Fastify UI Backend API - Phase 4 Tests', () => {
 
       expect(response.status).toBe(403);
     });
-  });
+});
 
-  describe('GET /api/ui/icon/{id}/{version} (auth based on mode)', () => {
+describe('Fastify UI API - GET /api/ui/icon/{id}/{version} (auth based on mode)', () => {
+  let server: FastifyServerInstance | null = null;
+  let testBaseDir: string;
+  let testConfigDir: string;
+  let testPackagesDir: string;
+  let serverPort: number;
+  const logger = createConsoleLogger('fastify-ui-api-icon', testGlobalLogLevel);
+
+  beforeEach(async (fn) => {
+    // Create isolated test directory for each test
+    testBaseDir = await createTestDirectory('fastify-ui-api-icon', fn.task.name);
+    testConfigDir = testBaseDir;
+    testPackagesDir = path.join(testBaseDir, 'packages');
+    
+    // Create test directories and data
+    await fs.mkdir(testPackagesDir, { recursive: true });
+    await createTestUsers();
+    await setupTestPackage();
+    
+    // Generate unique port for this test group
+    serverPort = getTestPort(7400);
+  }, 30000);
+
+  afterEach(async () => {
+    if (server) {
+      await server.close();
+      server = null;
+    }
+  }, 10000);
+
+  // Helper functions (duplicated for independence)
+  const createTestUsers = async () => {
+    const testUsers = [
+      {
+        id: "test-admin-ui",
+        username: "testadminui",
+        passwordHash: "PSRt9HqDyLtH7LC8iUnS7F9ObKU=", // password: "adminpass"
+        salt: "test-salt-admin-ui",
+        apiKeyHash: "fEE9WeQqltjkrNwKP6WZb4lPLJ0=", // apiKey: "admin-api-key-123"  
+        apiKeySalt: "test-api-salt-admin-ui",
+        role: "admin",
+        createdAt: "2024-01-01T00:00:00Z",
+        updatedAt: "2024-01-01T00:00:00Z"
+      },
+      {
+        id: "test-publish-ui",
+        username: "testpublishui",
+        passwordHash: "OxSWKpMyC4Ycbk6AVlacKvtFzp4=", // password: "publishpass"
+        salt: "test-salt-publish-ui",
+        apiKeyHash: "kRHDw5YZn/Ic+ynzwmVQvFdFCJw=", // apiKey: "publish-api-key-123"
+        apiKeySalt: "test-api-salt-publish-ui",
+        role: "publish",
+        createdAt: "2024-01-01T00:00:00Z",
+        updatedAt: "2024-01-01T00:00:00Z"
+      },
+      {
+        id: "test-read-ui",
+        username: "testreadui",
+        passwordHash: "kB94DvNnBYRvYaV/ZGoHQCyK1/k=", // password: "readpass"
+        salt: "test-salt-read-ui",
+        apiKeyHash: "DRkROp0nFzqicoShFhroRDxemVE=", // apiKey: "read-api-key-123"
+        apiKeySalt: "test-api-salt-read-ui",
+        role: "read",
+        createdAt: "2024-01-01T00:00:00Z",
+        updatedAt: "2024-01-01T00:00:00Z"
+      }
+    ];
+
+    await fs.writeFile(
+      path.join(testConfigDir, 'users.json'),
+      JSON.stringify(testUsers, null, 2)
+    );
+  };
+
+  const setupTestPackage = async () => {
+    // Use actual test package from fixtures
+    const sourcePackage = path.join(__dirname, 'fixtures', 'packages', 'FlashCap.1.10.0.nupkg');
+    const packageDir = path.join(testPackagesDir, 'FlashCap', '1.10.0');
+    await fs.mkdir(packageDir, { recursive: true });
+    
+    // Extract necessary files from the nupkg
+    const tempDir = path.join(testBaseDir, 'temp-extract');
+    await fs.mkdir(tempDir, { recursive: true });
+    
+    try {
+      // Extract the nupkg to temp directory
+      execSync(`unzip -q -o "${sourcePackage}" -d "${tempDir}"`);
+      
+      // Copy the nupkg file
+      await fs.copyFile(sourcePackage, path.join(packageDir, 'FlashCap.1.10.0.nupkg'));
+      
+      // Copy the nuspec file
+      const nuspecSource = path.join(tempDir, 'FlashCap.nuspec');
+      if (await fs.access(nuspecSource).then(() => true).catch(() => false)) {
+        await fs.copyFile(nuspecSource, path.join(packageDir, 'FlashCap.nuspec'));
+      }
+      
+      // Copy icon file if exists
+      const iconSource = path.join(tempDir, 'FlashCap.100.png');
+      if (await fs.access(iconSource).then(() => true).catch(() => false)) {
+        await fs.copyFile(iconSource, path.join(packageDir, 'icon.png'));
+      }
+    } finally {
+      // Clean up temp directory
+      await fs.rm(tempDir, { recursive: true, force: true });
+    }
+  };
     test('should serve icon without authentication (authMode: none)', async () => {
       const config: ServerConfig = {
         port: serverPort,
@@ -786,9 +1096,115 @@ describe('Fastify UI Backend API - Phase 4 Tests', () => {
 
       expect(response.status).toBe(404);
     });
-  });
+});
 
-  describe('POST /api/publish (hybrid auth based on mode)', () => {
+describe('Fastify UI API - POST /api/publish (hybrid auth based on mode)', () => {
+  let server: FastifyServerInstance | null = null;
+  let testBaseDir: string;
+  let testConfigDir: string;
+  let testPackagesDir: string;
+  let serverPort: number;
+  const logger = createConsoleLogger('fastify-ui-api-publish', testGlobalLogLevel);
+
+  beforeEach(async (fn) => {
+    // Create isolated test directory for each test
+    testBaseDir = await createTestDirectory('fastify-ui-api-publish', fn.task.name);
+    testConfigDir = testBaseDir;
+    testPackagesDir = path.join(testBaseDir, 'packages');
+    
+    // Create test directories and data
+    await fs.mkdir(testPackagesDir, { recursive: true });
+    await createTestUsers();
+    await setupTestPackage();
+    
+    // Generate unique port for this test group
+    serverPort = getTestPort(7500);
+  }, 30000);
+
+  afterEach(async () => {
+    if (server) {
+      await server.close();
+      server = null;
+    }
+  }, 10000);
+
+  // Helper functions (duplicated for independence)
+  const createTestUsers = async () => {
+    const testUsers = [
+      {
+        id: "test-admin-ui",
+        username: "testadminui",
+        passwordHash: "PSRt9HqDyLtH7LC8iUnS7F9ObKU=", // password: "adminpass"
+        salt: "test-salt-admin-ui",
+        apiKeyHash: "fEE9WeQqltjkrNwKP6WZb4lPLJ0=", // apiKey: "admin-api-key-123"  
+        apiKeySalt: "test-api-salt-admin-ui",
+        role: "admin",
+        createdAt: "2024-01-01T00:00:00Z",
+        updatedAt: "2024-01-01T00:00:00Z"
+      },
+      {
+        id: "test-publish-ui",
+        username: "testpublishui",
+        passwordHash: "OxSWKpMyC4Ycbk6AVlacKvtFzp4=", // password: "publishpass"
+        salt: "test-salt-publish-ui",
+        apiKeyHash: "kRHDw5YZn/Ic+ynzwmVQvFdFCJw=", // apiKey: "publish-api-key-123"
+        apiKeySalt: "test-api-salt-publish-ui",
+        role: "publish",
+        createdAt: "2024-01-01T00:00:00Z",
+        updatedAt: "2024-01-01T00:00:00Z"
+      },
+      {
+        id: "test-read-ui",
+        username: "testreadui",
+        passwordHash: "kB94DvNnBYRvYaV/ZGoHQCyK1/k=", // password: "readpass"
+        salt: "test-salt-read-ui",
+        apiKeyHash: "DRkROp0nFzqicoShFhroRDxemVE=", // apiKey: "read-api-key-123"
+        apiKeySalt: "test-api-salt-read-ui",
+        role: "read",
+        createdAt: "2024-01-01T00:00:00Z",
+        updatedAt: "2024-01-01T00:00:00Z"
+      }
+    ];
+
+    await fs.writeFile(
+      path.join(testConfigDir, 'users.json'),
+      JSON.stringify(testUsers, null, 2)
+    );
+  };
+
+  const setupTestPackage = async () => {
+    // Use actual test package from fixtures
+    const sourcePackage = path.join(__dirname, 'fixtures', 'packages', 'FlashCap.1.10.0.nupkg');
+    const packageDir = path.join(testPackagesDir, 'FlashCap', '1.10.0');
+    await fs.mkdir(packageDir, { recursive: true });
+    
+    // Extract necessary files from the nupkg
+    const tempDir = path.join(testBaseDir, 'temp-extract');
+    await fs.mkdir(tempDir, { recursive: true });
+    
+    try {
+      // Extract the nupkg to temp directory
+      execSync(`unzip -q -o "${sourcePackage}" -d "${tempDir}"`);
+      
+      // Copy the nupkg file
+      await fs.copyFile(sourcePackage, path.join(packageDir, 'FlashCap.1.10.0.nupkg'));
+      
+      // Copy the nuspec file
+      const nuspecSource = path.join(tempDir, 'FlashCap.nuspec');
+      if (await fs.access(nuspecSource).then(() => true).catch(() => false)) {
+        await fs.copyFile(nuspecSource, path.join(packageDir, 'FlashCap.nuspec'));
+      }
+      
+      // Copy icon file if exists
+      const iconSource = path.join(tempDir, 'FlashCap.100.png');
+      if (await fs.access(iconSource).then(() => true).catch(() => false)) {
+        await fs.copyFile(iconSource, path.join(packageDir, 'icon.png'));
+      }
+    } finally {
+      // Clean up temp directory
+      await fs.rm(tempDir, { recursive: true, force: true });
+    }
+  };
     test('should allow publish without authentication (authMode: none)', async () => {
       const config: ServerConfig = {
         port: serverPort,
@@ -965,4 +1381,3 @@ describe('Fastify UI Backend API - Phase 4 Tests', () => {
       expect(response.status).toBe(403);
     });
   });
-});
