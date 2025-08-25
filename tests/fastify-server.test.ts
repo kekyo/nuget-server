@@ -1,10 +1,10 @@
 import { describe, test, expect, beforeEach, afterEach } from 'vitest';
-import { startFastifyServer, FastifyServerInstance } from '../src/server.fastify';
+import path from 'path';
+import fs from 'fs/promises';
+import { startFastifyServer, FastifyServerInstance } from '../src/server';
 import { createConsoleLogger } from '../src/logger';
 import { ServerConfig } from '../src/types';
 import { createTestDirectory, getTestPort, testGlobalLogLevel } from './helpers/test-helper.js';
-import path from 'path';
-import fs from 'fs/promises';
 
 /**
  * Fastify Server Basic Tests - Phase 1

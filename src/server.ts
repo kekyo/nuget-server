@@ -24,7 +24,7 @@ import { createUserService } from './services/userService';
 import { createSessionService } from './services/sessionService';
 import { Logger, ServerConfig } from './types';
 import { createUrlResolver } from './utils/urlResolver';
-import { createFastifyLoggerAdapter } from './fastifyLoggerAdapter';
+import { createFastifyLoggerAdapter } from './utils/fastifyLoggerAdapter';
 import { 
   createLocalStrategy, 
   createBasicStrategy,

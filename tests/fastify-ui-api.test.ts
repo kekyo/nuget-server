@@ -1,9 +1,9 @@
 import { describe, test, expect, beforeEach, afterEach } from 'vitest';
-import { startFastifyServer, FastifyServerInstance } from '../src/server.fastify';
-import { createConsoleLogger } from '../src/logger';
-import { ServerConfig } from '../src/types';
 import fs from 'fs/promises';
 import path from 'path';
+import { startFastifyServer, FastifyServerInstance } from '../src/server';
+import { createConsoleLogger } from '../src/logger';
+import { ServerConfig } from '../src/types';
 import { createTestDirectory, getTestPort, testGlobalLogLevel } from './helpers/test-helper.js';
 import { createTestPackage } from './helpers/package.js';
 
@@ -794,7 +794,7 @@ describe('Fastify UI Backend API - Phase 4 Tests', () => {
         headers: {
           'Content-Type': 'application/octet-stream'
         },
-        body: testPackageBuffer
+        body: new Uint8Array(testPackageBuffer)
       });
 
       expect(response.status).toBe(201);
@@ -826,7 +826,7 @@ describe('Fastify UI Backend API - Phase 4 Tests', () => {
         headers: {
           'Content-Type': 'application/octet-stream'
         },
-        body: testPackageBuffer
+        body: new Uint8Array(testPackageBuffer)
       });
 
       expect(response.status).toBe(401);
@@ -870,7 +870,7 @@ describe('Fastify UI Backend API - Phase 4 Tests', () => {
           'Content-Type': 'application/octet-stream',
           'Cookie': `sessionToken=${sessionToken}`
         },
-        body: testPackageBuffer
+        body: new Uint8Array(testPackageBuffer)
       });
 
       expect(response.status).toBe(201);
@@ -904,7 +904,7 @@ describe('Fastify UI Backend API - Phase 4 Tests', () => {
           'Content-Type': 'application/octet-stream',
           'Authorization': `Basic ${credentials}`
         },
-        body: testPackageBuffer
+        body: new Uint8Array(testPackageBuffer)
       });
 
       expect(response.status).toBe(201);
@@ -938,7 +938,7 @@ describe('Fastify UI Backend API - Phase 4 Tests', () => {
           'Content-Type': 'application/octet-stream',
           'Authorization': `Basic ${credentials}`
         },
-        body: testPackageBuffer
+        body: new Uint8Array(testPackageBuffer)
       });
 
       expect(response.status).toBe(403);

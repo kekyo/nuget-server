@@ -3,7 +3,7 @@
 // License under MIT.
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { createFastifyLoggerAdapter } from '../src/fastifyLoggerAdapter';
+import { createFastifyLoggerAdapter } from '../src/utils/fastifyLoggerAdapter';
 import { Logger, LogLevel } from '../src/types';
 
 describe('FastifyLoggerAdapter', () => {

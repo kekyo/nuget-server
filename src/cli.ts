@@ -5,7 +5,7 @@
 // License under MIT.
 
 import { Command } from 'commander';
-import { startFastifyServer } from './server.fastify';
+import { startFastifyServer } from './server';
 import { name as packageName, version, description, git_commit_hash } from './generated/packageMetadata';
 import { createConsoleLogger } from './logger';
 import { ServerConfig, LogLevel, AuthMode } from './types';

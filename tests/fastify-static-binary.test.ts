@@ -1,11 +1,11 @@
 import { describe, test, expect, beforeEach, afterEach } from 'vitest';
-import { startFastifyServer, FastifyServerInstance, createFastifyInstance } from '../src/server.fastify';
+import path from 'path';
+import { promises as fs } from 'fs';
+import { startFastifyServer, FastifyServerInstance, createFastifyInstance } from '../src/server';
 import { createConsoleLogger } from '../src/logger';
 import { ServerConfig } from '../src/types';
 import { createTestDirectory, getTestPort, testGlobalLogLevel } from './helpers/test-helper.js';
 import { isPNGHeader, isICOHeader, hasReplacementCharacters, getFileStats } from './helpers/binary-test-helper';
-import path from 'path';
-import { promises as fs } from 'fs';
 
 /**
  * Fastify Static Binary Files Tests

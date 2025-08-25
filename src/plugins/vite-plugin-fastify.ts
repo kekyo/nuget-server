@@ -6,7 +6,7 @@ import { Plugin, ViteDevServer } from 'vite';
 import { FastifyInstance } from 'fastify';
 import { IncomingMessage, ServerResponse } from 'http';
 import { Readable } from 'stream';
-import { createFastifyInstance } from '../server.fastify';
+import { createFastifyInstance } from '../server';
 import { LogLevel, ServerConfig } from '../types';
 import { createConsoleLogger } from '../logger';
 import { name } from '../generated/packageMetadata';

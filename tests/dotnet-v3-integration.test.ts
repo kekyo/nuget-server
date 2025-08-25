@@ -7,7 +7,7 @@ import path from 'node:path';
 import fs from 'fs-extra';
 import AdmZip from 'adm-zip';
 import { delay } from 'async-primitives';
-import { startFastifyServer, FastifyServerInstance } from '../src/server.fastify.js';
+import { startFastifyServer } from '../src/server.js';
 import { createConsoleLogger } from '../src/logger.js';
 import { Logger, ServerConfig } from '../src/types.js';
 import { createTestDirectory, getTestPort, testGlobalLogLevel } from './helpers/test-helper.js';

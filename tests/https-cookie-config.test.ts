@@ -4,12 +4,12 @@
 
 import { describe, test, expect, beforeAll, afterAll } from 'vitest';
 import path from 'path';
+import fs from 'fs/promises';
 import { createTestDirectory, testGlobalLogLevel } from './helpers/test-helper';
-import { createFastifyInstance } from '../src/server.fastify';
-import { ServerConfig, Logger } from '../src/types';
+import { createFastifyInstance } from '../src/server';
+import { ServerConfig } from '../src/types';
 import { FastifyInstance } from 'fastify';
 import { createConsoleLogger } from '../src/logger';
-import fs from 'fs/promises';
 
 describe('HTTPS Cookie Configuration', () => {
   let testDir: string;

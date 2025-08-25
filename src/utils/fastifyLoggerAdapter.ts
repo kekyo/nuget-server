@@ -2,7 +2,7 @@
 // Copyright (c) Kouji Matsui (@kekyo@mi.kekyo.net)
 // License under MIT.
 
-import { Logger, LogLevel } from './types';
+import { Logger, LogLevel } from '../types';
 
 /**
  * Format log message from various input types

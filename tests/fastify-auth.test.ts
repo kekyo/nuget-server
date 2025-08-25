@@ -1,9 +1,9 @@
 import { describe, test, expect, beforeEach, afterEach } from 'vitest';
-import { startFastifyServer, FastifyServerInstance } from '../src/server.fastify';
-import { createConsoleLogger } from '../src/logger';
-import { ServerConfig } from '../src/types';
 import fs from 'fs/promises';
 import path from 'path';
+import { startFastifyServer, FastifyServerInstance } from '../src/server';
+import { createConsoleLogger } from '../src/logger';
+import { ServerConfig } from '../src/types';
 import { createTestDirectory, getTestPort, testGlobalLogLevel } from './helpers/test-helper.js';
 
 /**

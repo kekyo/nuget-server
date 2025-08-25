@@ -22,7 +22,7 @@ export const makeAuthenticatedRequest = async (
     headers['Authorization'] = `Basic ${Buffer.from(auth).toString('base64')}`;
   }
   
-  let requestBody: Uint8Array | string | undefined;
+  let requestBody: BodyInit | undefined;
   
   if (body) {
     if (typeof body === 'object' && !(body instanceof Buffer) && !(body instanceof Uint8Array)) {
@@ -34,9 +34,11 @@ export const makeAuthenticatedRequest = async (
       headers['Content-Type'] = headers['Content-Type'] || 'text/plain';
       requestBody = body;
     } else {
-      // Buffer or Uint8Array
+      // Buffer or Uint8Array - convert Buffer to Uint8Array for fetch API compatibility
       headers['Content-Type'] = headers['Content-Type'] || 'application/octet-stream';
-      requestBody = body instanceof Buffer ? new Uint8Array(body) : body;
+      // Convert Buffer to Uint8Array and cast to any to handle TypeScript's strict type checking
+      // This is safe because Uint8Array is a valid BodyInit type at runtime
+      requestBody = (body instanceof Buffer ? new Uint8Array(body) : body) as any;
     }
   }
   
