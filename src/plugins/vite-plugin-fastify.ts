@@ -54,7 +54,7 @@ export const fastifyHost = (config: ServerConfig): Plugin => {
 
     configureServer: async (server: ViteDevServer) => {
       const logLevel = server.config.logLevel as LogLevel ?? 'info';
-      //logger = createConsoleLogger(`${name} vite`, logLevel);    // TODO: Restore commented out
+      logger = createConsoleLogger(`${name} vite`, logLevel);
 
       // Initialize Fastify instance
       logger.info('Initializing Fastify instance for development...');
