@@ -6,11 +6,11 @@ import { Plugin, ViteDevServer } from 'vite';
 import { FastifyInstance } from 'fastify';
 import { IncomingMessage, ServerResponse } from 'http';
 import { Readable } from 'stream';
+import { createReaderWriterLock } from 'async-primitives';
 import { createFastifyInstance } from '../server';
 import { LogLevel, ServerConfig } from '../types';
 import { createConsoleLogger } from '../logger';
 import { name } from '../generated/packageMetadata';
-import { createReaderWriterLock } from 'async-primitives';
 
 // Vite plugin for combining both fastify server and UI on development.
 

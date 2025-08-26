@@ -28,6 +28,10 @@ const getAuthModeFromEnv = (): AuthMode | undefined => {
   return undefined;
 };
 
+const getSessionSecretFromEnv = (): string | undefined => {
+  return process.env.NUGET_SERVER_SESSION_SECRET;
+};
+
 /////////////////////////////////////////////////////////////////////////
 
 const program = new Command();
@@ -101,6 +105,8 @@ program.
       logger.info(`Trusted proxies: ${trustedProxies.join(', ')}`);
     }
 
+    const sessionSecret = getSessionSecretFromEnv();
+    
     const config: ServerConfig = {
       port,
       baseUrl,
@@ -110,7 +116,8 @@ program.
       authMode: authMode as AuthMode,
       trustedProxies,
       logLevel: options.log as LogLevel,
-      noUi: !options.ui
+      noUi: !options.ui,
+      sessionSecret
     };
     
     // Handle auth-init mode

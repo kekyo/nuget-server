@@ -83,7 +83,7 @@ export const createFastifyInstance = async (
 
   // Initialize metadata service
   const packagesRoot = config.packageDir || (process.cwd() + '/packages');
-  const initialBaseUrl = config.baseUrl || `http://localhost:${config.port}/api`;
+  const initialBaseUrl = config.baseUrl || `http://localhost:${config.port}/api`;   // TODO: default base url is invalid?
   const isHttps = initialBaseUrl.startsWith('https://');
   const metadataService = createMetadataService(packagesRoot, initialBaseUrl, logger);
   
@@ -128,9 +128,23 @@ export const createFastifyInstance = async (
   // Initialize auth failure tracker
   const authFailureTracker = createAuthFailureTrackerFromEnv(logger);
 
+  // Generate or use provided session secret
+  let sessionKey: Buffer;
+  if (config.sessionSecret) {
+    // Use provided secret (ensure it's 32 bytes)
+    const secret = config.sessionSecret.padEnd(32, '0').substring(0, 32);
+    sessionKey = Buffer.from(secret);
+  } else {
+    // Generate random secret and log info
+    const crypto = await import('crypto');
+    sessionKey = crypto.randomBytes(32);
+    logger.info('Session secret was not provided. Generated a random session secret for this instance.');
+    logger.info('To persist sessions across restarts, set NUGET_SERVER_SESSION_SECRET environment variable.');
+  }
+
   // Configure secure session plugin with session decorator
   await fastify.register(fastifySecureSession, {
-    key: Buffer.from('a'.repeat(32)), // TODO: Use proper secret key from config
+    key: sessionKey,
     cookie: {
       path: '/',
       httpOnly: true,

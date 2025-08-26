@@ -51,4 +51,5 @@ export interface ServerConfig {
   logLevel?: LogLevel;
   noUi?: boolean;
   authMode?: AuthMode;
+  sessionSecret?: string;
 }
