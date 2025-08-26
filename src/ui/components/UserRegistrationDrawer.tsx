@@ -108,10 +108,10 @@ const UserRegistrationDrawer = ({ open, onClose, onRegistrationSuccess }: UserRe
 
       const data = await response.json();
 
-      if (response.ok && data.success) {
+      if (response.ok) {
         setResult({
           success: true,
-          message: data.message,
+          message: data.message || 'User registered successfully',
           apiPassword: data.apiPassword
         });
         onRegistrationSuccess();
@@ -320,11 +320,11 @@ const UserRegistrationDrawer = ({ open, onClose, onRegistrationSuccess }: UserRe
                   <>
                     <Alert severity="warning" sx={{ mb: 2 }}>
                       <Typography variant="body2" sx={{ fontWeight: 'bold', mb: 1 }}>
-                        Important: Save your API password!
+                        Important: Save API password!
                       </Typography>
                       <Typography variant="body2">
                         This API password will only be shown once. Copy it now and store it securely.
-                        You'll need it to authenticate API requests.
+                        They'll need it to authenticate API requests.
                       </Typography>
                     </Alert>
                     
@@ -334,12 +334,12 @@ const UserRegistrationDrawer = ({ open, onClose, onRegistrationSuccess }: UserRe
                     <Paper
                       sx={{
                         p: 2,
-                        bgcolor: 'grey.50',
+                        bgcolor: (theme) => theme.palette.mode === 'dark' ? 'grey.800' : 'grey.100',
                         border: '2px dashed',
                         borderColor: 'primary.main',
                         cursor: 'pointer',
                         '&:hover': {
-                          bgcolor: 'grey.100'
+                          bgcolor: (theme) => theme.palette.mode === 'dark' ? 'grey.700' : 'grey.200'
                         }
                       }}
                       onClick={() => copyToClipboard(result.apiPassword!)}
@@ -348,7 +348,7 @@ const UserRegistrationDrawer = ({ open, onClose, onRegistrationSuccess }: UserRe
                         variant="body2"
                         sx={{
                           fontFamily: 'monospace',
-                          fontSize: '0.85rem',
+                          fontSize: '0.9rem',
                           wordBreak: 'break-all',
                           mb: 1
                         }}
@@ -398,13 +398,6 @@ const UserRegistrationDrawer = ({ open, onClose, onRegistrationSuccess }: UserRe
                 sx={{ flex: 1 }}
               >
                 Register Another
-              </Button>
-              <Button
-                variant="contained"
-                onClick={handleClose}
-                sx={{ flex: 1 }}
-              >
-                Done
               </Button>
             </Box>
           </Box>
