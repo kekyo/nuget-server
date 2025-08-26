@@ -5,7 +5,7 @@
 import { constants } from 'fs';
 import { readFile, writeFile, access } from 'fs/promises';
 import { join } from 'path';
-import { createAsyncLock } from 'async-primitives';
+import { createReaderWriterLock } from 'async-primitives';
 import { Logger } from '../types';
 import { generateSalt, hashPassword, verifyPassword, generateApiKey, generateUserId } from '../utils/crypto';
 
@@ -84,13 +84,13 @@ export const createUserService = (config: UserServiceConfig): UserService => {
   const usersFilePath = join(configDir, 'users.json');
   let users: Map<string, User> = new Map();
   let isInitialized = false;
-  const fileLock = createAsyncLock();
+  const fileLock = createReaderWriterLock();
 
   /**
    * Loads users from the JSON file with exclusive lock
    */
   const loadUsers = async (): Promise<void> => {
-    const handle = await fileLock.lock();
+    const handle = await fileLock.readLock();
     try {
       // Check if file exists
       await access(usersFilePath, constants.R_OK);
@@ -138,7 +138,7 @@ export const createUserService = (config: UserServiceConfig): UserService => {
    * Saves users to the JSON file with exclusive lock
    */
   const saveUsers = async (): Promise<void> => {
-    const handle = await fileLock.lock();
+    const handle = await fileLock.writeLock();
     try {
       await saveUsersInternal();
     } finally {
@@ -222,7 +222,7 @@ export const createUserService = (config: UserServiceConfig): UserService => {
      * @returns User creation response with API key
      */
     createUser: async (request: CreateUserRequest): Promise<CreateUserResponse> => {
-      const handle = await fileLock.lock();
+      const handle = await fileLock.writeLock();
       try {
         validateUsername(request.username);
         validatePassword(request.password);
@@ -287,7 +287,7 @@ export const createUserService = (config: UserServiceConfig): UserService => {
      * @returns Updated user or null if not found
      */
     updateUser: async (username: string, updates: Partial<Pick<User, 'role'>> | { password: string }): Promise<User | null> => {
-      const handle = await fileLock.lock();
+      const handle = await fileLock.writeLock();
       try {
         const user = users.get(username);
         if (!user) {
@@ -323,7 +323,7 @@ export const createUserService = (config: UserServiceConfig): UserService => {
      * @returns True if user was deleted, false if not found
      */
     deleteUser: async (username: string): Promise<boolean> => {
-      const handle = await fileLock.lock();
+      const handle = await fileLock.writeLock();
       try {
         const deleted = users.delete(username);
         if (deleted) {
@@ -342,7 +342,7 @@ export const createUserService = (config: UserServiceConfig): UserService => {
      * @returns New API key or null if user not found
      */
     regenerateApiKey: async (username: string): Promise<RegenerateApiKeyResponse | null> => {
-      const handle = await fileLock.lock();
+      const handle = await fileLock.writeLock();
       try {
         const user = users.get(username);
         if (!user) {

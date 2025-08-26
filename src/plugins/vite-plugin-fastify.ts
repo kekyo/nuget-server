@@ -10,6 +10,7 @@ import { createFastifyInstance } from '../server';
 import { LogLevel, ServerConfig } from '../types';
 import { createConsoleLogger } from '../logger';
 import { name } from '../generated/packageMetadata';
+import { createReaderWriterLock } from 'async-primitives';
 
 // Vite plugin for combining both fastify server and UI on development.
 
@@ -46,18 +47,19 @@ const requestToStream = (req: IncomingMessage): Readable => {
 export const fastifyHost = (config: ServerConfig): Plugin => {
   let fastify: FastifyInstance | null = null;
   let logger = createConsoleLogger(`${name} vite`, 'debug');
+  const locker = createReaderWriterLock();
 
   return {
     name: 'vite-plugin-fastify',
 
     configureServer: async (server: ViteDevServer) => {
       const logLevel = server.config.logLevel as LogLevel ?? 'info';
-      //logger = createConsoleLogger(`${name} vite`, logLevel);
+      //logger = createConsoleLogger(`${name} vite`, logLevel);    // TODO: Restore commented out
 
       // Initialize Fastify instance
       logger.info('Initializing Fastify instance for development...');
       try {
-        fastify = await createFastifyInstance(config, logger);
+        fastify = await createFastifyInstance(config, logger, locker);
         logger.info('Fastify instance created successfully');
       } catch (error) {
         logger.error(`Failed to create Fastify instance: ${error}`);
@@ -120,6 +122,7 @@ export const fastifyHost = (config: ServerConfig): Plugin => {
           
           // Close existing Fastify instance
           if (fastify) {
+            const handler = await locker.writeLock();
             try {
               await fastify.close();
               const userService = (fastify as any).userService;
@@ -128,13 +131,15 @@ export const fastifyHost = (config: ServerConfig): Plugin => {
               if (sessionService) sessionService.destroy();
             } catch (error) {
               logger.error(`Error closing Fastify: ${error}`);
+            } finally {
+              handler.release();
             }
           }
           
           // Recreate Fastify instance
           try {
             logger.info('Reloading Fastify instance...');
-            fastify = await createFastifyInstance(config, logger);
+            fastify = await createFastifyInstance(config, logger, locker);
             logger.info('Fastify instance reloaded successfully');
           } catch (error) {
             logger.error(`Failed to reload Fastify instance: ${error}`);
@@ -147,6 +152,7 @@ export const fastifyHost = (config: ServerConfig): Plugin => {
     closeBundle: async () => {
       // Clean up Fastify instance
       if (fastify) {
+        const handler = await locker.writeLock();
         try {
           await fastify.close();
           const userService = (fastify as any).userService;
@@ -156,6 +162,8 @@ export const fastifyHost = (config: ServerConfig): Plugin => {
           logger.info('Fastify instance closed');
         } catch (error) {
           logger.error(`Error closing Fastify: ${error}`);
+        } finally {
+          handler.release();
         }
       }
     }

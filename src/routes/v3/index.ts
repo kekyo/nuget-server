@@ -3,6 +3,7 @@
 // License under MIT.
 
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
+import { ReaderWriterLock } from 'async-primitives';
 import { Logger } from '../../types';
 import { MetadataService, PackageMetadata } from '../../services/metadataService';
 import { AuthService } from '../../services/authService';
@@ -255,7 +256,7 @@ const createCatalogEntry = (baseUrl: string, metadata: PackageMetadata): Catalog
 /**
  * Registers NuGet V3 API routes with Fastify instance
  */
-export const registerV3Routes = async (fastify: FastifyInstance, config: V3RoutesConfig) => {
+export const registerV3Routes = async (fastify: FastifyInstance, config: V3RoutesConfig, locker: ReaderWriterLock) => {
   const { metadataService, authService, authConfig, packagesRoot, logger, urlResolver } = config;
   const packageService = createPackageService(packagesRoot);
 
@@ -425,7 +426,7 @@ export const registerV3Routes = async (fastify: FastifyInstance, config: V3Route
 
         logger.info(`V3: Package served successfully: ${packageId} ${version} as "${downloadFileName}"`);
 
-        await streamFile(logger, packagePath, reply, {
+        await streamFile(logger, locker, packagePath, reply, {
           contentType: 'application/zip',
           contentDisposition: `attachment; filename="${downloadFileName}"`
         });

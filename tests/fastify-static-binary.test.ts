@@ -1,11 +1,12 @@
 import { describe, test, expect, beforeEach, afterEach } from 'vitest';
 import path from 'path';
 import { promises as fs } from 'fs';
-import { startFastifyServer, FastifyServerInstance, createFastifyInstance } from '../src/server';
+import { startFastifyServer, createFastifyInstance } from '../src/server';
 import { createConsoleLogger } from '../src/logger';
 import { ServerConfig } from '../src/types';
 import { createTestDirectory, getTestPort, testGlobalLogLevel } from './helpers/test-helper.js';
 import { isPNGHeader, isICOHeader, hasReplacementCharacters, getFileStats } from './helpers/binary-test-helper';
+import { createReaderWriterLock } from 'async-primitives';
 
 /**
  * Fastify Static Binary Files Tests
@@ -17,12 +18,10 @@ import { isPNGHeader, isICOHeader, hasReplacementCharacters, getFileStats } from
  * - Verification that response.rawPayload is used correctly
  */
 describe('Fastify Static Binary Files', () => {
-  let server: FastifyServerInstance | null = null;
   let testBaseDir: string;
   let testPackagesDir: string;
   let testConfigDir: string;
   let testPublicDir: string;
-  let serverPort: number;
 
   beforeEach(async (fn) => {
     // Create isolated test directory for each test
@@ -44,34 +43,27 @@ describe('Fastify Static Binary Files', () => {
     const srcFaviconPath = path.join(process.cwd(), 'src', 'ui', 'public', 'favicon.ico');
     const testFaviconPath = path.join(testPublicDir, 'favicon.ico');
     await fs.copyFile(srcFaviconPath, testFaviconPath);
-    
-    // Generate unique port for each test
-    serverPort = getTestPort(7001);
   });
 
-  afterEach(async () => {
-    if (server) {
-      await server.close();
-      server = null;
-    }
-  });
+  //////////////////////////////////////////
+  // Production Mode
 
-  describe('Production Mode', () => {
-    test('should serve /icon.png with correct binary data', async () => {
-      const logger = createConsoleLogger('fastify-static-binary', testGlobalLogLevel);
-      const testConfig: ServerConfig = {
-        port: serverPort,
-        packageDir: testPackagesDir,
-        configDir: testConfigDir,
-        realm: 'Test Binary Server',
-        logLevel: testGlobalLogLevel,
-        noUi: false,
-        authMode: 'none',
-        trustedProxies: []
-      };
+  test('should serve /icon.png with correct binary data', async () => {
+    const serverPort = 7001; // Fixed port for this test
+    const logger = createConsoleLogger('fastify-static-binary', testGlobalLogLevel);
+    const testConfig: ServerConfig = {
+      port: serverPort,
+      packageDir: testPackagesDir,
+      configDir: testConfigDir,
+      realm: 'Test Binary Server',
+      logLevel: testGlobalLogLevel,
+      noUi: false,
+      authMode: 'none',
+      trustedProxies: []
+    };
 
-      server = await startFastifyServer(testConfig, logger);
-
+    const server = await startFastifyServer(testConfig, logger);
+    try {
       const response = await fetch(`http://localhost:${serverPort}/icon.png`);
       
       expect(response.status).toBe(200);
@@ -91,23 +83,27 @@ describe('Fastify Static Binary Files', () => {
       
       expect(buffer.length).toBe(originalStats.size);
       expect(buffer.slice(0, 16).toString('hex')).toBe(originalStats.firstBytes);
-    });
+    } finally {
+      await server.close();
+    }
+  }, 30000);
 
-    test('should serve /favicon.ico with correct binary data', async () => {
-      const logger = createConsoleLogger('fastify-static-binary', testGlobalLogLevel);
-      const testConfig: ServerConfig = {
-        port: serverPort,
-        packageDir: testPackagesDir,
-        configDir: testConfigDir,
-        realm: 'Test Binary Server',
-        logLevel: testGlobalLogLevel,
-        noUi: false,
-        authMode: 'none',
-        trustedProxies: []
-      };
+  test('should serve /favicon.ico with correct binary data', async () => {
+    const serverPort = 7002; // Fixed port for this test
+    const logger = createConsoleLogger('fastify-static-binary', testGlobalLogLevel);
+    const testConfig: ServerConfig = {
+      port: serverPort,
+      packageDir: testPackagesDir,
+      configDir: testConfigDir,
+      realm: 'Test Binary Server',
+      logLevel: testGlobalLogLevel,
+      noUi: false,
+      authMode: 'none',
+      trustedProxies: []
+    };
 
-      server = await startFastifyServer(testConfig, logger);
-
+    const server = await startFastifyServer(testConfig, logger);
+    try {
       const response = await fetch(`http://localhost:${serverPort}/favicon.ico`);
       
       expect(response.status).toBe(200);
@@ -126,25 +122,31 @@ describe('Fastify Static Binary Files', () => {
       const originalStats = await getFileStats(originalFaviconPath);
       
       expect(buffer.length).toBe(originalStats.size);
-    });
-  });
+    } finally {
+      await server.close();
+    }
+  }, 30000);
 
-  describe('Development Mode (inject)', () => {
-    test('should handle binary data through fastify.inject', async () => {
-      const logger = createConsoleLogger('fastify-static-binary', testGlobalLogLevel);
-      const testConfig: ServerConfig = {
-        port: serverPort,
-        packageDir: testPackagesDir,
-        configDir: testConfigDir,
-        realm: 'Test Inject Server',
-        logLevel: testGlobalLogLevel,
-        noUi: false,
-        authMode: 'none',
-        trustedProxies: []
-      };
+  //////////////////////////////////////////
+  // Development Mode (inject)
 
-      const fastifyInstance = await createFastifyInstance(testConfig, logger);
+  test('should handle binary data through fastify.inject', async () => {
+    const serverPort = 7003; // Fixed port for this test
+    const logger = createConsoleLogger('fastify-static-binary', testGlobalLogLevel);
+    const testConfig: ServerConfig = {
+      port: serverPort,
+      packageDir: testPackagesDir,
+      configDir: testConfigDir,
+      realm: 'Test Inject Server',
+      logLevel: testGlobalLogLevel,
+      noUi: false,
+      authMode: 'none',
+      trustedProxies: []
+    };
 
+    const locker = createReaderWriterLock();
+    const fastifyInstance = await createFastifyInstance(testConfig, logger, locker);
+    try {
       // Test fastify.inject for /icon.png
       const response = await fastifyInstance.inject({
         method: 'GET',
@@ -166,28 +168,35 @@ describe('Fastify Static Binary Files', () => {
       // Verify payload vs rawPayload types
       expect(typeof response.payload).toBe('string');
       expect(Buffer.isBuffer(response.rawPayload)).toBe(true);
-      
       // For Fastify, the payload string should match rawPayload when converted properly
       // This indicates that the server is handling binary data correctly
+    } finally {
+      const handler = await locker.writeLock();
+      try {
+        await fastifyInstance.close();
+      } finally {
+        handler.release();
+      }
+    }
+  }, 30000);
 
-      await fastifyInstance.close();
-    });
+  test('should detect corruption in payload vs rawPayload', async () => {
+    const serverPort = 7004; // Fixed port for this test
+    const logger = createConsoleLogger('fastify-static-binary', testGlobalLogLevel);
+    const testConfig: ServerConfig = {
+      port: serverPort,
+      packageDir: testPackagesDir,
+      configDir: testConfigDir,
+      realm: 'Test Corruption Server',
+      logLevel: testGlobalLogLevel,
+      noUi: false,
+      authMode: 'none',
+      trustedProxies: []
+    };
 
-    test('should detect corruption in payload vs rawPayload', async () => {
-      const logger = createConsoleLogger('fastify-static-binary', testGlobalLogLevel);
-      const testConfig: ServerConfig = {
-        port: serverPort,
-        packageDir: testPackagesDir,
-        configDir: testConfigDir,
-        realm: 'Test Corruption Server',
-        logLevel: testGlobalLogLevel,
-        noUi: false,
-        authMode: 'none',
-        trustedProxies: []
-      };
-
-      const fastifyInstance = await createFastifyInstance(testConfig, logger);
-
+    const locker = createReaderWriterLock();
+    const fastifyInstance = await createFastifyInstance(testConfig, logger, locker);
+    try {
       const response = await fastifyInstance.inject({
         method: 'GET',
         url: '/icon.png'
@@ -207,8 +216,13 @@ describe('Fastify Static Binary Files', () => {
       
       // payload converted to buffer should NOT have valid PNG header (corrupted)
       expect(isPNGHeader(payloadAsBuffer)).toBe(false);
-
-      await fastifyInstance.close();
-    });
-  });
+    } finally {
+      const handler = await locker.writeLock();
+      try {
+        await fastifyInstance.close();
+      } finally {
+        await handler.release();
+      }
+    }
+  }, 30000);
 });

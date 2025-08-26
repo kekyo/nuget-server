@@ -5,6 +5,7 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { promises as fs } from 'fs';
 import { join } from 'path';
+import { ReaderWriterLock } from 'async-primitives';
 import { Logger } from '../../../types';
 import { UserService } from '../../../services/userService';
 import { SessionService } from '../../../services/sessionService';
@@ -174,9 +175,9 @@ const requireRole = (request: AuthenticatedFastifyRequest, reply: FastifyReply, 
 /**
  * Registers UI Backend API routes with Fastify instance
  */
-export const registerUiRoutes = async (fastify: FastifyInstance, config: UiRoutesConfig) => {
+export const registerUiRoutes = async (fastify: FastifyInstance, config: UiRoutesConfig, locker: ReaderWriterLock) => {
   const { userService, sessionService, authService, packagesRoot, logger, realm, addSourceCommand, metadataService } = config;
-  const packageService = createPackageService(packagesRoot);
+  const packageService = createPackageService(packagesRoot);   // TODO: Why dont use?
   
   // Create session-only auth middleware
   const sessionOnlyAuth = createSessionOnlyAuthMiddleware(sessionService, logger);
@@ -462,7 +463,7 @@ export const registerUiRoutes = async (fastify: FastifyInstance, config: UiRoute
           const contentType = ext === 'svg' ? 'image/svg+xml' : `image/${ext}`;
           logger.info(`Icon served successfully: ${packageId} ${version}`);
           
-          await streamFile(logger, iconPath, reply, {
+          await streamFile(logger, locker, iconPath, reply, {
             contentType,
             cacheControl: 'public, max-age=3600'
           });
@@ -490,7 +491,7 @@ export const registerUiRoutes = async (fastify: FastifyInstance, config: UiRoute
             const contentType = ext === 'svg' ? 'image/svg+xml' : `image/${ext}`;
             logger.info(`Icon served from latest version: ${packageId} ${latestEntry.metadata.version} (requested: ${version})`);
             
-            await streamFile(logger, iconPath, reply, {
+            await streamFile(logger, locker, iconPath, reply, {
               contentType,
               cacheControl: 'public, max-age=3600'
             });

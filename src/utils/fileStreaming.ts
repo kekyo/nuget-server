@@ -7,7 +7,7 @@ import { stat } from 'fs/promises';
 import { FastifyReply } from 'fastify';
 import { extname } from 'path';
 import { Logger } from '../types';
-import { createDeferred } from 'async-primitives';
+import { createDeferred, ReaderWriterLock } from 'async-primitives';
 
 /**
  * Options for file streaming
@@ -34,6 +34,8 @@ export interface StreamFileOptions {
  * - Proper error handling for missing files
  * - Support for optional headers (cache control, content disposition)
  * 
+ * @param logger - Logger instance
+ * @param locker - Reader lock for file streaming
  * @param filePath - Absolute path to the file to stream
  * @param reply - Fastify reply object
  * @param options - Optional headers and configuration
@@ -41,10 +43,13 @@ export interface StreamFileOptions {
  */
 export const streamFile = async (
   logger: Logger,
+  locker: ReaderWriterLock,
   filePath: string,
   reply: FastifyReply,
   options: StreamFileOptions = {}
 ): Promise<void> => {
+  // Acquire reader lock
+  const handler = await locker.readLock();   // TODO: signal
   try {
     // Check if file exists and get its stats
     const stats = await stat(filePath);
@@ -81,6 +86,15 @@ export const streamFile = async (
     const deferred = createDeferred<void>();
     const stream = createReadStream(filePath);
 
+    // Prevent multiple resolutions
+    let resolved = false;
+    const resolveOnce = () => {
+      if (!resolved) {
+        resolved = true;
+        deferred.resolve();
+      }
+    };
+
     stream.on('open', () => {
       logger.debug(`[${streamId}] Event: open at ${Date.now()}`);
     });
@@ -89,17 +103,20 @@ export const streamFile = async (
       logger.debug(`[${streamId}] Event: data (${chunk.length} bytes) at ${Date.now()}`);
     });
 
+    // Resolve on 'end' event (stream read complete)
     stream.on('end', () => {
       logger.debug(`[${streamId}] Event: end (read complete) at ${Date.now()}`);
+      //resolveOnce(); // Resolve here to avoid waiting for close event
     });
 
     stream.on('finish', () => {
       logger.debug(`[${streamId}] Event: finish at ${Date.now()}`);
     });
 
+    // Also resolve on 'close' event as a fallback
     stream.on('close', () => {
       logger.debug(`[${streamId}] Event: close at ${Date.now()}`);
-      deferred.resolve();
+      resolveOnce();
     });
 
     // Handle stream errors
@@ -112,7 +129,7 @@ export const streamFile = async (
       await reply.send(stream);
       await deferred.promise;
     } finally {
-      stream.close();
+      stream.destroy(); // Use destroy instead of close for more reliable cleanup
     }
   } catch (error: any) {
     // Handle file not found error
@@ -127,6 +144,9 @@ export const streamFile = async (
     
     // Handle other errors
     throw error;
+  } finally {
+    // Release reader lock
+    handler.release();
   }
 };
 

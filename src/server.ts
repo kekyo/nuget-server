@@ -35,7 +35,7 @@ import {
 import { registerV3Routes } from './routes/v3/index';
 import { registerUiRoutes } from './routes/api/ui/index';
 import { registerPublishRoutes, type PublishRoutesConfig } from './routes/api/publish/index';
-import { delay } from 'async-primitives';
+import { createReaderWriterLock, ReaderWriterLock } from 'async-primitives';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -53,9 +53,12 @@ export interface FastifyServerInstance {
  * Creates and configures a Fastify instance without starting the server
  * @param config - Server configuration including port, baseUrl, and trusted proxies
  * @param logger - Logger instance for logging server events
+ * @param locker - WriterLock for safe shutdown
  * @returns Promise that resolves to configured Fastify instance
+ * @remarks When shutting down Fastify using close(), conflicts may occur with stream completion if file transfers are in progress via the stream. To safely avoid this, it uses a ReaderWriterLock. When shutting down Fastify, you must first acquire the WriterLock. This enables exclusive handling with stream transfers, preventing the above issue.
  */
-export const createFastifyInstance = async (config: ServerConfig, logger: Logger): Promise<FastifyInstance> => {
+export const createFastifyInstance = async (
+  config: ServerConfig, logger: Logger, locker: ReaderWriterLock): Promise<FastifyInstance> => {
 
   // Create Fastify logger adapter to integrate with project Logger
   const fastifyLoggerAdapter = createFastifyLoggerAdapter(logger, config.logLevel || 'info');
@@ -341,7 +344,8 @@ export const createFastifyInstance = async (config: ServerConfig, logger: Logger
         packagesRoot,
         logger,
         urlResolver
-      });
+      },
+      locker);
     } catch (error) {
       logger.error(`Failed to register V3 routes: ${error}`);
       throw error;
@@ -359,7 +363,8 @@ export const createFastifyInstance = async (config: ServerConfig, logger: Logger
           realm: config.realm || `${packageName} ${version}`,
           addSourceCommand,
           metadataService
-        });
+        },
+        locker);
       }, { prefix: '/api/ui' });
     } catch (error) {
       logger.error(`Failed to register UI routes: ${error}`);
@@ -404,7 +409,7 @@ export const createFastifyInstance = async (config: ServerConfig, logger: Logger
     // Helper function to serve static files using streaming
     const serveStaticFile = (filePath: string, reply: GetReply) => {
       // Use the unified file streaming helper
-      return streamFile(logger, filePath, reply);
+      return streamFile(logger, locker, filePath, reply);
     };
 
     // Serve UI at root path
@@ -471,7 +476,8 @@ export const createFastifyInstance = async (config: ServerConfig, logger: Logger
  * @returns Promise that resolves to server instance when server is started
  */
 export const startFastifyServer = async (config: ServerConfig, logger: Logger): Promise<FastifyServerInstance> => {
-  const fastify = await createFastifyInstance(config, logger);
+  const locker = createReaderWriterLock();
+  const fastify = await createFastifyInstance(config, logger, locker);
   
   // Get decorated services
   const userService = (fastify as any).userService;
@@ -514,9 +520,17 @@ export const startFastifyServer = async (config: ServerConfig, logger: Logger): 
       close: async () => {
         try {
           logger.debug('Starting server close process...');
-          
+
           logger.debug('Closing Fastify instance...');
-          await fastify.close();
+
+          // Acquire writer lock, makes safer shutdown race condition between file streaming.
+          const handle = await locker.writeLock();
+          try {
+            await fastify.close();
+          } finally {
+            handle.release();
+          }
+
           logger.debug('Fastify instance closed successfully');
         } catch (error) {
           logger.error(`Error closing Fastify server: ${error}`);
