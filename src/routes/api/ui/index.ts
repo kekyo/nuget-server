@@ -25,7 +25,11 @@ export interface UiRoutesConfig {
   packagesRoot: string;
   logger: Logger;
   realm: string;
-  addSourceCommand: string;
+  serverUrl: {
+    baseUrl?: string;
+    port: number;
+    isHttps: boolean;
+  };
   metadataService: MetadataService;
 }
 
@@ -44,7 +48,11 @@ export interface ConfigResponse {
   name: string;
   version: string;
   git_commit_hash: string;
-  addSourceCommand: string;
+  serverUrl: {
+    baseUrl?: string;
+    port: number;
+    isHttps: boolean;
+  };
   authMode: string;
   authEnabled: {
     general: boolean;
@@ -175,7 +183,7 @@ const requireRole = (request: AuthenticatedFastifyRequest, reply: FastifyReply, 
  * Registers UI Backend API routes with Fastify instance
  */
 export const registerUiRoutes = async (fastify: FastifyInstance, config: UiRoutesConfig, locker: ReaderWriterLock) => {
-  const { userService, sessionService, authService, packagesRoot, logger, realm, addSourceCommand, metadataService } = config;
+  const { userService, sessionService, authService, packagesRoot, logger, realm, serverUrl, metadataService } = config;
   
   // Create session-only auth middleware
   const sessionOnlyAuth = createSessionOnlyAuthMiddleware(sessionService, logger);
@@ -231,7 +239,7 @@ export const registerUiRoutes = async (fastify: FastifyInstance, config: UiRoute
         name: packageName,
         version: version,
         git_commit_hash: git_commit_hash,
-        addSourceCommand: addSourceCommand,
+        serverUrl: serverUrl,
         authMode: authService.getAuthMode(),
         authEnabled: {
           general: authService.isAuthRequired('general'),

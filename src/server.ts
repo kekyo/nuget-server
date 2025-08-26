@@ -211,13 +211,12 @@ export const createFastifyInstance = async (
     return { status: 'ok', version };
   });
 
-  // Generate the add source command example
-  let addSourceCommand: string;
-  if (config.baseUrl) {
-    addSourceCommand = `dotnet nuget add source "${config.baseUrl}/v3/index.json" -n "ref1"${config.baseUrl.startsWith('https:') ? '' : ' --allow-insecure-connections'}`;
-  } else {
-    addSourceCommand = `dotnet nuget add source "http://localhost:${config.port}/v3/index.json" -n "ref1" --allow-insecure-connections`;
-  }
+  // Generate server URL info for UI
+  const serverUrl = {
+    baseUrl: config.baseUrl,
+    port: config.port,
+    isHttps: config.baseUrl ? config.baseUrl.startsWith('https:') : false
+  };
 
   if (!config.noUi) {
     // Authentication endpoints (must be accessible without authentication for login)
@@ -356,7 +355,7 @@ export const createFastifyInstance = async (
         name: packageName,
         version: version,
         git_commit_hash: git_commit_hash,
-        addSourceCommand: addSourceCommand,
+        serverUrl: serverUrl,
         authMode: authService.getAuthMode(),
         authEnabled: {
           general: authService.isAuthRequired('general'),
@@ -393,7 +392,7 @@ export const createFastifyInstance = async (
           packagesRoot,
           logger,
           realm: config.realm || `${packageName} ${version}`,
-          addSourceCommand,
+          serverUrl,
           metadataService
         },
         locker);
@@ -496,7 +495,7 @@ export const createFastifyInstance = async (
   fastify.decorate('sessionService', sessionService);
   fastify.decorate('authService', authService);
   fastify.decorate('serverConfig', config);
-  fastify.decorate('addSourceCommand', addSourceCommand);
+  fastify.decorate('serverUrl', serverUrl);
 
   return fastify;
 };
@@ -515,7 +514,7 @@ export const startFastifyServer = async (config: ServerConfig, logger: Logger): 
   const userService = (fastify as any).userService;
   const sessionService = (fastify as any).sessionService;
   const authService = (fastify as any).authService;
-  const addSourceCommand = (fastify as any).addSourceCommand;
+  const serverUrlInfo = (fastify as any).serverUrl;
 
   // Start listening
   try {
@@ -525,7 +524,11 @@ export const startFastifyServer = async (config: ServerConfig, logger: Logger): 
     });
 
     logger.info(`Fastify server listening on port ${config.port}`);
-    logger.info(`Example register command: ${addSourceCommand}`);
+    // Build example command for logging
+    const exampleCommand = serverUrlInfo.baseUrl
+      ? `dotnet nuget add source "${serverUrlInfo.baseUrl}/v3/index.json" -n "ref1"${!serverUrlInfo.isHttps ? ' --allow-insecure-connections' : ''}`
+      : `dotnet nuget add source "http://localhost:${serverUrlInfo.port}/v3/index.json" -n "ref1" --allow-insecure-connections`;
+    logger.info(`Example register command: ${exampleCommand}`);
     logger.info(`Authentication mode: ${authService.getAuthMode()}`);
 
     const userCount = await userService.getUserCount();

@@ -64,7 +64,11 @@ interface ServerConfig {
   name: string;
   version: string;
   git_commit_hash: string;
-  addSourceCommand: string;
+  serverUrl: {
+    baseUrl?: string;
+    port: number;
+    isHttps: boolean;
+  };
   authMode: 'none' | 'publish' | 'full';
   authEnabled: {
     general: boolean;

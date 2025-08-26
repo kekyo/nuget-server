@@ -11,13 +11,18 @@ import UploadDrawer from './components/UploadDrawer';
 import UserRegistrationDrawer from './components/UserRegistrationDrawer';
 import LoginDialog from './components/LoginDialog';
 import { name, repository_url, version } from '../generated/packageMetadata';
+import { buildAddSourceCommand } from './utils/commandBuilder';
 
 interface ServerConfig {
   realm: string;
   name: string;
   version: string;
   git_commit_hash: string;
-  addSourceCommand: string;
+  serverUrl: {
+    baseUrl?: string;
+    port: number;
+    isHttps: boolean;
+  };
   authMode: 'none' | 'publish' | 'full';
   authEnabled: {
     general: boolean;
@@ -253,7 +258,7 @@ const App = () => {
     if (shouldHideAppBarButtons()) return false;
     const authMode = serverConfig.authMode;
     if (authMode === 'full') return false;
-    return !!serverConfig.addSourceCommand;
+    return !!serverConfig.serverUrl;
   };
 
   const showUploadButton = () => {
@@ -296,8 +301,9 @@ const App = () => {
   };
 
   const handleCopyCommand = () => {
-    if (serverConfig?.addSourceCommand) {
-      navigator.clipboard.writeText(serverConfig.addSourceCommand);
+    if (serverConfig?.serverUrl) {
+      const command = buildAddSourceCommand({ serverUrl: serverConfig.serverUrl });
+      navigator.clipboard.writeText(command);
     }
   };
 
@@ -403,7 +409,7 @@ const App = () => {
                     fontSize: '1rem',
                     wordBreak: 'break-all'
                   }}>
-                  {serverConfig!.addSourceCommand}
+                  {buildAddSourceCommand({ serverUrl: serverConfig!.serverUrl })}
                 </Typography>
               </Box>
               <IconButton 
