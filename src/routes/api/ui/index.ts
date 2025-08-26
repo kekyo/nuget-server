@@ -464,7 +464,7 @@ export const registerUiRoutes = async (fastify: FastifyInstance, config: UiRoute
           await streamFile(logger, locker, iconPath, reply, {
             contentType,
             cacheControl: 'public, max-age=3600'
-          });
+          }, request.abortSignal);
           return;
         } catch (error) {
           // Continue to next extension
@@ -492,7 +492,7 @@ export const registerUiRoutes = async (fastify: FastifyInstance, config: UiRoute
             await streamFile(logger, locker, iconPath, reply, {
               contentType,
               cacheControl: 'public, max-age=3600'
-            });
+            }, request.abortSignal);
             return;
           } catch (error) {
             // Continue to next extension

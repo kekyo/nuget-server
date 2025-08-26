@@ -39,6 +39,7 @@ export interface StreamFileOptions {
  * @param filePath - Absolute path to the file to stream
  * @param reply - Fastify reply object
  * @param options - Optional headers and configuration
+ * @param signal - Optional AbortSignal for cancellation support
  * @returns Promise that resolves to the FastifyReply
  */
 export const streamFile = async (
@@ -46,10 +47,11 @@ export const streamFile = async (
   locker: ReaderWriterLock,
   filePath: string,
   reply: FastifyReply,
-  options: StreamFileOptions = {}
+  options: StreamFileOptions = {},
+  signal?: AbortSignal
 ): Promise<void> => {
-  // Acquire reader lock
-  const handler = await locker.readLock();   // TODO: signal
+  // Acquire reader lock with signal support
+  const handler = await locker.readLock(signal);
   try {
     // Check if file exists and get its stats
     const stats = await stat(filePath);
@@ -94,6 +96,24 @@ export const streamFile = async (
         deferred.resolve();
       }
     };
+
+    // Handle abort signal if provided
+    if (signal) {
+      const abortHandler = () => {
+        logger.info(`[${streamId}] Stream aborted by client disconnect for ${shortPath}`);
+        stream.destroy();
+        resolveOnce();
+      };
+      
+      // Check if already aborted
+      if (signal.aborted) {
+        abortHandler();
+        return;
+      }
+      
+      // Listen for abort event
+      signal.addEventListener('abort', abortHandler);
+    }
 
     stream.on('open', () => {
       logger.debug(`[${streamId}] Event: open at ${Date.now()}`);

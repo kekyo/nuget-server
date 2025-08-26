@@ -164,6 +164,24 @@ export const createFastifyInstance = async (
     serve: false // Disable automatic serving, use sendFile manually
   });
 
+  // Add AbortSignal to every request for handling client disconnections
+  fastify.decorateRequest('abortSignal', null);
+  fastify.addHook('onRequest', async (request, reply) => {
+    const controller = new AbortController();
+    
+    // Listen for client disconnect
+    request.raw.once('close', () => {
+      // Check if connection was aborted (deprecated but still the most reliable method)
+      // @ts-ignore - aborted is deprecated but still works
+      if (request.raw.aborted) {
+        controller.abort();
+        logger.debug(`Request aborted: ${request.url}`);
+      }
+    });
+    
+    request.abortSignal = controller.signal;
+  });
+
   // Create authentication configuration
   const authConfig: FastifyAuthConfig = {
     realm: config.realm || `${packageName} ${version}`,
@@ -421,47 +439,47 @@ export const createFastifyInstance = async (
     const imagesPath = path.join(__dirname, '..', 'images');
 
     // Helper function to serve static files using streaming
-    const serveStaticFile = (filePath: string, reply: GetReply) => {
+    const serveStaticFile = (filePath: string, reply: GetReply, signal?: AbortSignal) => {
       // Use the unified file streaming helper
-      return streamFile(logger, locker, filePath, reply);
+      return streamFile(logger, locker, filePath, reply, {}, signal);
     };
 
     // Serve UI at root path
-    fastify.get('/', (_request, reply: GetReply) => {
+    fastify.get('/', (request, reply: GetReply) => {
       const indexPath = path.join(uiPath, 'index.html');
-      return serveStaticFile(indexPath, reply);
+      return serveStaticFile(indexPath, reply, request.abortSignal);
     });
 
     // Serve login page
-    fastify.get('/login', (_request, reply: GetReply) => {
+    fastify.get('/login', (request, reply: GetReply) => {
       const loginPath = path.join(uiPath, 'login.html');
-      return serveStaticFile(loginPath, reply);
+      return serveStaticFile(loginPath, reply, request.abortSignal);
     });
 
     // Serve other UI assets
     fastify.get('/assets/*', (request, reply: GetReply) => {
       const assetPath = (request.params as any)['*'];
       const fullPath = path.join(uiPath, 'assets', assetPath);
-      return serveStaticFile(fullPath, reply);
+      return serveStaticFile(fullPath, reply, request.abortSignal);
     });
 
     // Serve images
     fastify.get('/images/*', (request, reply: GetReply) => {
       const imagePath = (request.params as any)['*'];
       const fullPath = path.join(imagesPath, imagePath);
-      return serveStaticFile(fullPath, reply);
+      return serveStaticFile(fullPath, reply, request.abortSignal);
     });
 
     // Serve favicon
-    fastify.get('/favicon.ico', (_request, reply: GetReply) => {
+    fastify.get('/favicon.ico', (request, reply: GetReply) => {
       const faviconPath = path.join(publicPath, 'favicon.ico');
-      return serveStaticFile(faviconPath, reply);
+      return serveStaticFile(faviconPath, reply, request.abortSignal);
     });
     
     // Serve icon
-    fastify.get('/icon.png', (_request, reply: GetReply) => {
+    fastify.get('/icon.png', (request, reply: GetReply) => {
       const iconPath = path.join(publicPath, 'icon.png');
-      return serveStaticFile(iconPath, reply);
+      return serveStaticFile(iconPath, reply, request.abortSignal);
     });
   } else {
     // When UI is disabled, return JSON at root path

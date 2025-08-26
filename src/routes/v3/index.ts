@@ -429,7 +429,7 @@ export const registerV3Routes = async (fastify: FastifyInstance, config: V3Route
         await streamFile(logger, locker, packagePath, reply, {
           contentType: 'application/zip',
           contentDisposition: `attachment; filename="${downloadFileName}"`
-        });
+        }, request.abortSignal);
         return;
       } else {
         logger.warn(`V3: File not found: ${filename} for ${packageId} ${version}`);

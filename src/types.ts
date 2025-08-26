@@ -53,3 +53,12 @@ export interface ServerConfig {
   authMode?: AuthMode;
   sessionSecret?: string;
 }
+
+/**
+ * Extend Fastify types for AbortSignal support
+ */
+declare module 'fastify' {
+  interface FastifyRequest {
+    abortSignal: AbortSignal;
+  }
+}
