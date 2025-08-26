@@ -20,7 +20,7 @@ export default defineConfig(({ mode, command }) => {
     configDir: './dev',
     realm: 'nuget-server dev',
     noUi: false,
-    authMode: 'publish',
+    authMode: 'full',
     trustedProxies: []
   };
   
