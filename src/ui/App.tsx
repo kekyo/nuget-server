@@ -3,14 +3,14 @@
 // License under MIT.
 
 import { useRef, useState, useEffect, useCallback } from 'react';
-import { CssBaseline, ThemeProvider, createTheme, useMediaQuery } from '@mui/material';
+import { CssBaseline, ThemeProvider, Tooltip, createTheme, useMediaQuery } from '@mui/material';
 import { AppBar, Toolbar, Typography, Container, Box, Button, Divider } from '@mui/material';
 import { CloudUpload as UploadIcon, GitHub as GitHubIcon, PersonAdd as PersonAddIcon, Login as LoginIcon, Logout as LogoutIcon } from '@mui/icons-material';
 import PackageList, { PackageListRef } from './PackageList';
 import UploadDrawer from './components/UploadDrawer';
 import UserRegistrationDrawer from './components/UserRegistrationDrawer';
 import LoginDialog from './components/LoginDialog';
-import { repository_url } from '../generated/packageMetadata';
+import { name, repository_url, version } from '../generated/packageMetadata';
 
 interface ServerConfig {
   realm: string;
@@ -303,10 +303,12 @@ const App = () => {
 
             {/* GitHub Link */}
             {!shouldHideAppBarButtons() && (
-              <GitHubIcon
-                color="inherit"
-                onClick={() => window.open(repository_url, '_blank')}
-                sx={{ mx: 1 }} />
+              <Tooltip title={`${name} ${version}`}>
+                <GitHubIcon
+                  color="inherit"
+                  onClick={() => window.open(repository_url, '_blank')}
+                  sx={{ mx: 1 }} />
+              </Tooltip>
             )}
 
             {/* Divider */}
