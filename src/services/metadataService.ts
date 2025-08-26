@@ -192,7 +192,7 @@ export const createMetadataService = (packagesRoot: string = './packages', baseU
         dependencies,
         published: new Date(), // Use current date as we don't have publish info
         listed: true,
-        packageContentUrl: `${currentBaseUrl}/package/${actualPackageId.toLowerCase()}/${version}/${actualPackageId.toLowerCase()}.${version}.nupkg`
+        packageContentUrl: `${currentBaseUrl}/v3/package/${actualPackageId.toLowerCase()}/${version}/${actualPackageId.toLowerCase()}.${version}.nupkg`
       };
 
       // Read actual file names from directory

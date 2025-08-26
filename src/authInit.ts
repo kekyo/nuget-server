@@ -231,9 +231,9 @@ export const runAuthInit = async (config: ServerConfig, logger: Logger): Promise
       console.log('Use this API user/password combination for NuGet client authentication.');
 
       if (config.baseUrl) {
-        console.log(`Example register: dotnet nuget add source "${config.baseUrl}/api/index.json" -n ref1 -u ${result.user.username} -p ${result.apiKey} --store-password-in-clear-text${config.baseUrl.startsWith('https:') ? '' : ' --allow-insecure-connections'}`);
+        console.log(`Example register: dotnet nuget add source "${config.baseUrl}/v3/index.json" -n ref1 -u ${result.user.username} -p ${result.apiKey} --store-password-in-clear-text${config.baseUrl.startsWith('https:') ? '' : ' --allow-insecure-connections'}`);
       } else {
-        console.log(`Example register: dotnet nuget add source "http://localhost:${config.port}/api/index.json" -n ref1 -u ${result.user.username} -p ${result.apiKey} --store-password-in-clear-text --allow-insecure-connections`);
+        console.log(`Example register: dotnet nuget add source "http://localhost:${config.port}/v3/index.json" -n ref1 -u ${result.user.username} -p ${result.apiKey} --store-password-in-clear-text --allow-insecure-connections`);
       }
 
       console.log('='.repeat(60) + '\n');

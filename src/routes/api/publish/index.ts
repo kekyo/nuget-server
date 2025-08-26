@@ -164,7 +164,7 @@ export const registerPublishRoutes = async (fastify: FastifyInstance, config: Pu
         // Update package content URL using urlResolver
         const baseUrl = urlResolver.resolveUrl(request).baseUrl;
         
-        packageMetadata.packageContentUrl = `${baseUrl}/api/package/${packageId.toLowerCase()}/${version}/${packageId.toLowerCase()}.${version}.nupkg`;
+        packageMetadata.packageContentUrl = `${baseUrl}/v3/package/${packageId.toLowerCase()}/${version}/${packageId.toLowerCase()}.${version}.nupkg`;
 
         // Add to memory cache
         packageUploadService.addPackage(packageMetadata);

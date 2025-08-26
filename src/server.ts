@@ -83,7 +83,7 @@ export const createFastifyInstance = async (
 
   // Initialize metadata service
   const packagesRoot = config.packageDir || (process.cwd() + '/packages');
-  const initialBaseUrl = config.baseUrl || `http://localhost:${config.port}/api`;   // TODO: default base url is invalid?
+  const initialBaseUrl = config.baseUrl || `http://localhost:${config.port}`;
   const isHttps = initialBaseUrl.startsWith('https://');
   const metadataService = createMetadataService(packagesRoot, initialBaseUrl, logger);
   
@@ -196,9 +196,9 @@ export const createFastifyInstance = async (
   // Generate the add source command example
   let addSourceCommand: string;
   if (config.baseUrl) {
-    addSourceCommand = `dotnet nuget add source "${config.baseUrl}/api/index.json" -n "ref1"${config.baseUrl.startsWith('https:') ? '' : ' --allow-insecure-connections'}`;
+    addSourceCommand = `dotnet nuget add source "${config.baseUrl}/v3/index.json" -n "ref1"${config.baseUrl.startsWith('https:') ? '' : ' --allow-insecure-connections'}`;
   } else {
-    addSourceCommand = `dotnet nuget add source "http://localhost:${config.port}/api/index.json" -n "ref1" --allow-insecure-connections`;
+    addSourceCommand = `dotnet nuget add source "http://localhost:${config.port}/v3/index.json" -n "ref1" --allow-insecure-connections`;
   }
 
   if (!config.noUi) {
