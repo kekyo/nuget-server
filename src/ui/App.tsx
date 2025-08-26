@@ -5,10 +5,11 @@
 import { useRef, useState, useEffect, useCallback } from 'react';
 import { CssBaseline, ThemeProvider, Tooltip, createTheme, useMediaQuery } from '@mui/material';
 import { AppBar, Toolbar, Typography, Container, Box, Button, Divider, IconButton, Stack } from '@mui/material';
-import { CloudUpload as UploadIcon, GitHub as GitHubIcon, PersonAdd as PersonAddIcon, Login as LoginIcon, Logout as LogoutIcon, ContentCopy as ContentCopyIcon, EditNote } from '@mui/icons-material';
+import { CloudUpload as UploadIcon, GitHub as GitHubIcon, PersonAdd as PersonAddIcon, Login as LoginIcon, Logout as LogoutIcon, ContentCopy as ContentCopyIcon, EditNote, VpnKey as VpnKeyIcon } from '@mui/icons-material';
 import PackageList, { PackageListRef } from './PackageList';
 import UploadDrawer from './components/UploadDrawer';
 import UserRegistrationDrawer from './components/UserRegistrationDrawer';
+import ApiPasswordDrawer from './components/ApiPasswordDrawer';
 import LoginDialog from './components/LoginDialog';
 import { name, repository_url, version } from '../generated/packageMetadata';
 import { buildAddSourceCommand } from './utils/commandBuilder';
@@ -40,6 +41,7 @@ const App = () => {
   const prefersDarkMode = useMediaQuery('(prefers-color-scheme: dark)');
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [userRegDrawerOpen, setUserRegDrawerOpen] = useState(false);
+  const [apiPasswordDrawerOpen, setApiPasswordDrawerOpen] = useState(false);
   const [loginDialogOpen, setLoginDialogOpen] = useState(false);
   const [serverConfig, setServerConfig] = useState<ServerConfig | null>(null);
   const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
@@ -147,6 +149,10 @@ const App = () => {
     setUserRegDrawerOpen(false);
   };
 
+  const handleCloseApiPasswordDrawer = () => {
+    setApiPasswordDrawerOpen(false);
+  };
+
   const handleLoginSuccess = () => {
     setLoginDialogOpen(false);
     // Refresh server config to get updated authentication state
@@ -251,6 +257,13 @@ const App = () => {
     if (authMode === 'none') return false;
     // Use currentUser.role from serverConfig
     return serverConfig.currentUser?.role === 'admin';
+  };
+
+  const showApiPasswordButton = () => {
+    if (!serverConfig) return false;
+    if (shouldHideAppBarButtons()) return false;
+    const authMode = serverConfig.authMode;
+    return (authMode === 'publish' || authMode === 'full') && isAuthenticated();
   };
 
   const showRepositoryInfo = () => {
@@ -376,6 +389,20 @@ const App = () => {
               </>
             )}
 
+            {/* API Password Button */}
+            {showApiPasswordButton() && (
+              <>
+                <Divider orientation="vertical" flexItem sx={{ mx: 1, borderColor: 'rgba(255, 255, 255, 0.3)' }} />
+                <Button
+                  color="inherit"
+                  startIcon={<VpnKeyIcon />}
+                  onClick={() => setApiPasswordDrawerOpen(true)}
+                  sx={{ mr: 1 }}>
+                  API Password
+                </Button>
+              </>
+            )}
+
             {/* Logout Button */}
             {showLogoutButton() && (
               <>
@@ -428,7 +455,7 @@ const App = () => {
           sx={{ 
             mt: showRepositoryInfo() ? 1 : 13,
             mb: 4,
-            pr: (drawerOpen || userRegDrawerOpen) ? '400px' : undefined
+            pr: (drawerOpen || userRegDrawerOpen || apiPasswordDrawerOpen) ? '500px' : undefined
           }}>
           <PackageList ref={packageListRef} serverConfig={serverConfig} />
         </Container>
@@ -442,6 +469,12 @@ const App = () => {
           open={userRegDrawerOpen}
           onClose={handleCloseUserRegDrawer}
           onRegistrationSuccess={handleUserRegSuccess}
+          />
+
+        <ApiPasswordDrawer
+          open={apiPasswordDrawerOpen}
+          onClose={handleCloseApiPasswordDrawer}
+          serverConfig={serverConfig}
           />
 
         <LoginDialog

@@ -44,3 +44,27 @@ export const buildAddSourceCommand = (options: CommandOptions): string => {
   
   return command;
 };
+
+/**
+ * Build a curl command for publishing packages
+ */
+export const buildPublishCommand = (options: CommandOptions): string => {
+  const { serverUrl, username, apiPassword } = options;
+  
+  // Build the URL
+  const url = serverUrl.baseUrl 
+    ? `${serverUrl.baseUrl}/api/publish`
+    : `http://localhost:${serverUrl.port}/api/publish`;
+  
+  // Build curl command
+  let command = `curl -X POST ${url}`;
+  
+  // Add authentication if provided
+  if (username && apiPassword) {
+    command += ` \\\n  -u ${username}:${apiPassword}`;
+  }
+  
+  command += ` \\\n  --data-binary @MyPackage.1.0.0.nupkg \\\n  -H "Content-Type: application/octet-stream"`;
+  
+  return command;
+};
