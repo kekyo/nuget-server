@@ -12,14 +12,14 @@ export interface CommandOptions {
   serverUrl: ServerUrlInfo;
   sourceName?: string;
   username?: string;
-  apiKey?: string;
+  apiPassword?: string;
 }
 
 /**
  * Build a dotnet nuget add source command with the given options
  */
 export const buildAddSourceCommand = (options: CommandOptions): string => {
-  const { serverUrl, sourceName = 'ref1', username, apiKey } = options;
+  const { serverUrl, sourceName = 'ref1', username, apiPassword } = options;
   
   // Build the URL
   const url = serverUrl.baseUrl 
@@ -30,8 +30,8 @@ export const buildAddSourceCommand = (options: CommandOptions): string => {
   let command = `dotnet nuget add source "${url}" -n "${sourceName}"`;
   
   // Add authentication if provided
-  if (username && apiKey) {
-    command += ` -u ${username} -p ${apiKey} --store-password-in-clear-text`;
+  if (username && apiPassword) {
+    command += ` -u ${username} -p ${apiPassword} --store-password-in-clear-text`;
   }
   
   // Add insecure connection flag if needed

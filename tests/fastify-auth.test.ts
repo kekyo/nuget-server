@@ -31,8 +31,8 @@ describe('Fastify Authentication - Phase 2 Tests', () => {
         username: "testadmin",
         passwordHash: "HXb3ahg4ZcOzYpB6I5F5zOmeUJA=", // password: "adminpass"
         salt: "test-salt-admin",
-        apiKeyHash: "CCE/w9fqWM1KXYdMbMcQOlyb4m8=", // apiKey: "admin-api-key-123"  
-        apiKeySalt: "test-api-salt-admin",
+        apiPasswordHash: "CCE/w9fqWM1KXYdMbMcQOlyb4m8=", // apiPassword: "admin-api-key-123"  
+        apiPasswordSalt: "test-api-salt-admin",
         role: "admin",
         createdAt: "2024-01-01T00:00:00Z",
         updatedAt: "2024-01-01T00:00:00Z"
@@ -42,8 +42,8 @@ describe('Fastify Authentication - Phase 2 Tests', () => {
         username: "testpublish",
         passwordHash: "qRAGX3EekTSqmKrDlV3l2HEsT0k=", // password: "publishpass"
         salt: "test-salt-publish",
-        apiKeyHash: "xOZh5CYrXQ46cvz17vGeRy/C8l4=", // apiKey: "publish-api-key-456"
-        apiKeySalt: "test-api-salt-publish", 
+        apiPasswordHash: "xOZh5CYrXQ46cvz17vGeRy/C8l4=", // apiPassword: "publish-api-key-456"
+        apiPasswordSalt: "test-api-salt-publish", 
         role: "publish",
         createdAt: "2024-01-01T00:00:00Z",
         updatedAt: "2024-01-01T00:00:00Z"
@@ -53,8 +53,8 @@ describe('Fastify Authentication - Phase 2 Tests', () => {
         username: "testread", 
         passwordHash: "66RhaCra7jwCfKpPInu6wUIbJCw=", // password: "readpass"
         salt: "test-salt-read",
-        apiKeyHash: "6oG6EbmHpqC9yJWT3laWx29u+hI=", // apiKey: "read-api-key-789"
-        apiKeySalt: "test-api-salt-read",
+        apiPasswordHash: "6oG6EbmHpqC9yJWT3laWx29u+hI=", // apiPassword: "read-api-key-789"
+        apiPasswordSalt: "test-api-salt-read",
         role: "read",
         createdAt: "2024-01-01T00:00:00Z",
         updatedAt: "2024-01-01T00:00:00Z"
@@ -207,8 +207,8 @@ describe('Fastify Authentication - Phase 2 Tests', () => {
 
   describe('Basic Authentication', () => {
     test('should authenticate API requests with valid Basic auth', async () => {
-      // Test config endpoint with Basic auth - need to use actual API key that matches the hash
-      // For testing, we'll use a known API key that would generate the test hash
+      // Test config endpoint with Basic auth - need to use actual API password that matches the hash
+      // For testing, we'll use a known API password that would generate the test hash
       const credentials = Buffer.from('testadmin:admin-api-key-123').toString('base64');
       const response = await fetch(`http://localhost:${serverPort}/api/config`, {
         headers: {
@@ -217,7 +217,7 @@ describe('Fastify Authentication - Phase 2 Tests', () => {
       });
 
       // Note: This test may fail initially since we're using mock hashes
-      // The actual implementation needs proper password/API key hashing
+      // The actual implementation needs proper password/API password hashing
       expect([200, 401]).toContain(response.status);
       
       if (response.status === 200) {

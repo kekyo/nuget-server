@@ -80,8 +80,8 @@ describe('dotnet restore V3 API Integration Tests', () => {
         username: "testadmindotnet",
         passwordHash: "pq1IBF6VQHli4o6e3rSbU1S8gDw=", // password: adminpass (SHA1)
         salt: "test-salt-admin-dotnet",
-        apiKeyHash: "ilM/nZT2xLm3TDFrC60Lm3yuYhQ=", // api key: admin-api-key-123 (SHA1)
-        apiKeySalt: "test-api-salt-admin-dotnet",
+        apiPasswordHash: "ilM/nZT2xLm3TDFrC60Lm3yuYhQ=", // api password: admin-api-key-123 (SHA1)
+        apiPasswordSalt: "test-api-salt-admin-dotnet",
         role: "admin",
         createdAt: "2024-01-01T00:00:00Z",
         updatedAt: "2024-01-01T00:00:00Z"
@@ -441,7 +441,7 @@ describe('dotnet restore V3 API Integration Tests', () => {
       
       await createTestProject(dotnetDir, packageId, packageVersion);
       
-      // Use API key authentication
+      // Use API password authentication
       await addNuGetSourceWithAuth(
         dotnetDir, 
         `http://localhost:${serverPort}`, 

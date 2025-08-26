@@ -38,11 +38,11 @@ export const verifyPassword = (password: string, hash: string, salt: string): bo
 };
 
 /**
- * Generates a secure random API key
- * @param length - Length of the API key in bytes (default: 24)
- * @returns Base64 encoded API key
+ * Generates a secure random API password
+ * @param length - Length of the API password in bytes (default: 24)
+ * @returns Base64 encoded API password
  */
-export const generateApiKey = (length: number = 24): string => {
+export const generateApiPassword = (length: number = 24): string => {
   return randomBytes(length).toString('base64');
 };
 

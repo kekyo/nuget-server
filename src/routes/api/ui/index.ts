@@ -100,7 +100,7 @@ export interface UserCreateResponse {
     createdAt: string;
     updatedAt: string;
   };
-  apiKey: string;
+  apiPassword: string;
 }
 
 /**
@@ -112,17 +112,17 @@ export interface UserDeleteResponse {
 }
 
 /**
- * API key regeneration request (empty for current user)
+ * API password regeneration request (empty for current user)
  */
-export interface ApiKeyRegenerateRequest {
-  // Empty object - regenerates API key for current user
+export interface ApiPasswordRegenerateRequest {
+  // Empty object - regenerates API password for current user
 }
 
 /**
- * API key regeneration response
+ * API password regeneration response
  */
-export interface ApiKeyRegenerateResponse {
-  apiKey: string;
+export interface ApiPasswordRegenerateResponse {
+  apiPassword: string;
   username: string;
 }
 
@@ -219,7 +219,7 @@ export const registerUiRoutes = async (fastify: FastifyInstance, config: UiRoute
               const username = decodedCredentials.substring(0, colonIndex);
               const password = decodedCredentials.substring(colonIndex + 1);
               
-              const user = await userService.validateApiKey(username, password);
+              const user = await userService.validateApiPassword(username, password);
               if (user) {
                 currentUser = {
                   username: user.username,
@@ -307,7 +307,7 @@ export const registerUiRoutes = async (fastify: FastifyInstance, config: UiRoute
               createdAt: result.user.createdAt,
               updatedAt: result.user.updatedAt
             },
-            apiKey: result.apiKey
+            apiPassword: result.apiPassword
           };
           
           return reply.status(201).send(response);
@@ -347,22 +347,22 @@ export const registerUiRoutes = async (fastify: FastifyInstance, config: UiRoute
     }
   });
 
-  // POST /api/ui/apikey - Regenerate API key for current user (session auth required)
-  fastify.post('/apikey', {
+  // POST /api/ui/apipassword - Regenerate API password for current user (session auth required)
+  fastify.post('/apipassword', {
     preHandler: [sessionOnlyAuth]
   }, async (request: AuthenticatedFastifyRequest, reply: FastifyReply) => {
     try {
-      logger.info(`Regenerating API key for user: ${request.user.username}`);
+      logger.info(`Regenerating API password for user: ${request.user.username}`);
       
-      const result = await userService.regenerateApiKey(request.user.username);
+      const result = await userService.regenerateApiPassword(request.user.username);
       if (!result) {
         return reply.status(404).send({ error: 'User not found' });
       }
       
-      logger.info(`API key regenerated successfully for user: ${request.user.username}`);
+      logger.info(`API password regenerated successfully for user: ${request.user.username}`);
       
-      const response: ApiKeyRegenerateResponse = {
-        apiKey: result.apiKey,
+      const response: ApiPasswordRegenerateResponse = {
+        apiPassword: result.apiPassword,
         username: request.user.username
       };
       
@@ -371,7 +371,7 @@ export const registerUiRoutes = async (fastify: FastifyInstance, config: UiRoute
       if (error.statusCode) {
         throw error; // Re-throw HTTP errors
       }
-      logger.error(`Error in /api/ui/apikey: ${error}`);
+      logger.error(`Error in /api/ui/apipassword: ${error}`);
       return reply.status(500).send({ error: 'Internal server error' });
     }
   });

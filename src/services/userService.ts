@@ -7,7 +7,7 @@ import { readFile, writeFile, access } from 'fs/promises';
 import { join } from 'path';
 import { createReaderWriterLock } from 'async-primitives';
 import { Logger } from '../types';
-import { generateSalt, hashPassword, verifyPassword, generateApiKey, generateUserId } from '../utils/crypto';
+import { generateSalt, hashPassword, verifyPassword, generateApiPassword, generateUserId } from '../utils/crypto';
 
 /**
  * User data structure
@@ -17,8 +17,8 @@ export interface User {
   username: string;
   passwordHash: string;
   salt: string;
-  apiKeyHash: string;
-  apiKeySalt: string;
+  apiPasswordHash: string;
+  apiPasswordSalt: string;
   role: 'read' | 'publish' | 'admin';
   createdAt: string;
   updatedAt: string;
@@ -34,18 +34,18 @@ export interface CreateUserRequest {
 }
 
 /**
- * User creation response (includes generated API key)
+ * User creation response (includes generated API password)
  */
 export interface CreateUserResponse {
   user: User;
-  apiKey: string; // Only provided once during creation
+  apiPassword: string; // Only provided once during creation
 }
 
 /**
- * API key regeneration response
+ * API password regeneration response
  */
-export interface RegenerateApiKeyResponse {
-  apiKey: string;
+export interface RegenerateApiPasswordResponse {
+  apiPassword: string;
 }
 
 /**
@@ -67,9 +67,9 @@ export interface UserService {
   readonly getAllUsers: () => Promise<User[]>;
   readonly updateUser: (username: string, updates: Partial<Pick<User, 'role'>> | { password: string }) => Promise<User | null>;
   readonly deleteUser: (username: string) => Promise<boolean>;
-  readonly regenerateApiKey: (username: string) => Promise<RegenerateApiKeyResponse | null>;
+  readonly regenerateApiPassword: (username: string) => Promise<RegenerateApiPasswordResponse | null>;
   readonly validateCredentials: (username: string, password: string) => Promise<User | null>;
-  readonly validateApiKey: (username: string, apiKey: string) => Promise<User | null>;
+  readonly validateApiPassword: (username: string, apiPassword: string) => Promise<User | null>;
   readonly getUserCount: () => Promise<number>;
   readonly isReady: () => boolean;
 }
@@ -131,18 +131,6 @@ export const createUserService = (config: UserServiceConfig): UserService => {
     } catch (error: any) {
       logger.error(`Failed to save users.json: ${error.message}`);
       throw error;
-    }
-  };
-
-  /**
-   * Saves users to the JSON file with exclusive lock
-   */
-  const saveUsers = async (): Promise<void> => {
-    const handle = await fileLock.writeLock();
-    try {
-      await saveUsersInternal();
-    } finally {
-      handle.release();
     }
   };
 
@@ -217,9 +205,9 @@ export const createUserService = (config: UserServiceConfig): UserService => {
     },
 
     /**
-     * Creates a new user with generated API key
+     * Creates a new user with generated API password
      * @param request - User creation request
-     * @returns User creation response with API key
+     * @returns User creation response with API password
      */
     createUser: async (request: CreateUserRequest): Promise<CreateUserResponse> => {
       const handle = await fileLock.writeLock();
@@ -232,9 +220,9 @@ export const createUserService = (config: UserServiceConfig): UserService => {
         const passwordSalt = generateSalt();
         const passwordHash = hashPassword(request.password, passwordSalt);
         
-        const apiKey = generateApiKey();
-        const apiKeySalt = generateSalt();
-        const apiKeyHash = hashPassword(apiKey, apiKeySalt);
+        const apiPassword = generateApiPassword();
+        const apiPasswordSalt = generateSalt();
+        const apiPasswordHash = hashPassword(apiPassword, apiPasswordSalt);
 
         const now = new Date().toISOString();
         const user: User = {
@@ -242,8 +230,8 @@ export const createUserService = (config: UserServiceConfig): UserService => {
           username: request.username,
           passwordHash,
           salt: passwordSalt,
-          apiKeyHash,
-          apiKeySalt,
+          apiPasswordHash,
+          apiPasswordSalt,
           role: request.role,
           createdAt: now,
           updatedAt: now
@@ -256,7 +244,7 @@ export const createUserService = (config: UserServiceConfig): UserService => {
 
         return {
           user,
-          apiKey // Only provided once during creation
+          apiPassword // Only provided once during creation
         };
       } finally {
         handle.release();
@@ -337,11 +325,11 @@ export const createUserService = (config: UserServiceConfig): UserService => {
     },
 
     /**
-     * Regenerates API key for a user
-     * @param username - Username to regenerate API key for
-     * @returns New API key or null if user not found
+     * Regenerates API password for a user
+     * @param username - Username to regenerate API password for
+     * @returns New API password or null if user not found
      */
-    regenerateApiKey: async (username: string): Promise<RegenerateApiKeyResponse | null> => {
+    regenerateApiPassword: async (username: string): Promise<RegenerateApiPasswordResponse | null> => {
       const handle = await fileLock.writeLock();
       try {
         const user = users.get(username);
@@ -349,19 +337,19 @@ export const createUserService = (config: UserServiceConfig): UserService => {
           return null;
         }
 
-        const newApiKey = generateApiKey();
-        const newApiKeySalt = generateSalt();
-        const newApiKeyHash = hashPassword(newApiKey, newApiKeySalt);
+        const newApiPassword = generateApiPassword();
+        const newApiPasswordSalt = generateSalt();
+        const newApiPasswordHash = hashPassword(newApiPassword, newApiPasswordSalt);
 
-        user.apiKeyHash = newApiKeyHash;
-        user.apiKeySalt = newApiKeySalt;
+        user.apiPasswordHash = newApiPasswordHash;
+        user.apiPasswordSalt = newApiPasswordSalt;
         user.updatedAt = new Date().toISOString();
 
         await saveUsersInternal();
-        logger.info(`Regenerated API key for user: ${username}`);
+        logger.info(`Regenerated API password for user: ${username}`);
 
         return {
-          apiKey: newApiKey
+          apiPassword: newApiPassword
         };
       } finally {
         handle.release();
@@ -385,18 +373,18 @@ export const createUserService = (config: UserServiceConfig): UserService => {
     },
 
     /**
-     * Validates API key for API access
+     * Validates API password for API access
      * @param username - Username
-     * @param apiKey - API key
+     * @param apiPassword - API password
      * @returns User data if valid, null otherwise
      */
-    validateApiKey: async (username: string, apiKey: string): Promise<User | null> => {
+    validateApiPassword: async (username: string, apiPassword: string): Promise<User | null> => {
       const user = users.get(username);
       if (!user) {
         return null;
       }
 
-      const isValid = verifyPassword(apiKey, user.apiKeyHash, user.apiKeySalt);
+      const isValid = verifyPassword(apiPassword, user.apiPasswordHash, user.apiPasswordSalt);
       return isValid ? user : null;
     },
 

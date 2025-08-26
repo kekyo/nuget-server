@@ -32,8 +32,8 @@ describe('Fastify NuGet V3 API - Phase 3 Tests', () => {
         username: "testadminv3",
         passwordHash: "eG4Xc4KveivmllFbTQDOnxEi1tc=", // password: "adminpass"
         salt: "test-salt-admin-v3",
-        apiKeyHash: "nXSuXLSSM+qifoV1U6tjCYK7b9c=", // apiKey: "admin-api-key-123"  
-        apiKeySalt: "test-api-salt-admin-v3",
+        apiPasswordHash: "nXSuXLSSM+qifoV1U6tjCYK7b9c=", // apiPassword: "admin-api-key-123"  
+        apiPasswordSalt: "test-api-salt-admin-v3",
         role: "admin",
         createdAt: "2024-01-01T00:00:00Z",
         updatedAt: "2024-01-01T00:00:00Z"

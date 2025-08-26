@@ -1,6 +1,6 @@
 import { promises as fs } from 'fs';
 import path from 'path';
-import { generateSalt, hashPassword, generateApiKey, generateUserId } from '../../src/utils/crypto';
+import { generateSalt, hashPassword, generateApiPassword, generateUserId } from '../../src/utils/crypto';
 
 export interface JsonUser {
   username: string;
@@ -21,9 +21,9 @@ export const createUsersJsonFile = async (
     const passwordSalt = generateSalt();
     const passwordHash = hashPassword(user.password, passwordSalt);
     
-    const apiKey = generateApiKey();
-    const apiKeySalt = generateSalt();
-    const apiKeyHash = hashPassword(apiKey, apiKeySalt);
+    const apiPassword = generateApiPassword();
+    const apiPasswordSalt = generateSalt();
+    const apiPasswordHash = hashPassword(apiPassword, apiPasswordSalt);
 
     const now = new Date().toISOString();
     
@@ -32,8 +32,8 @@ export const createUsersJsonFile = async (
       username: user.username,
       passwordHash,
       salt: passwordSalt,
-      apiKeyHash,
-      apiKeySalt,
+      apiPasswordHash,
+      apiPasswordSalt,
       role: user.role,
       createdAt: now,
       updatedAt: now
@@ -88,11 +88,11 @@ export const usersJsonFileExists = async (configDir: string): Promise<boolean> =
 };
 
 /**
- * Creates a user via the API and returns the API key
+ * Creates a user via the API and returns the API password
  * @param serverUrl - Base server URL
  * @param adminAuth - Admin authentication credentials
  * @param userRequest - User creation request
- * @returns API key for the created user
+ * @returns API password for the created user
  */
 export const createUserViaApi = async (
   serverUrl: string,
@@ -113,29 +113,29 @@ export const createUserViaApi = async (
   }
   
   const result = await response.json();
-  return result.apiKey;
+  return result.apiPassword;
 };
 
 /**
- * Makes an HTTP request with Basic authentication using API key
+ * Makes an HTTP request with Basic authentication using API password
  * @param url - Request URL
  * @param options - Request options
  * @returns Response object
  */
-export const makeApiKeyAuthenticatedRequest = async (
+export const makeApiPasswordAuthenticatedRequest = async (
   url: string,
   options: {
     method?: string;
     username?: string;
-    apiKey?: string;
+    apiPassword?: string;
     body?: Buffer | Uint8Array | string | object;
     headers?: Record<string, string>;
   } = {}
 ): Promise<Response> => {
-  const { method = 'GET', username, apiKey, body, headers = {} } = options;
+  const { method = 'GET', username, apiPassword, body, headers = {} } = options;
   
-  if (username && apiKey) {
-    headers['Authorization'] = `Basic ${Buffer.from(`${username}:${apiKey}`).toString('base64')}`;
+  if (username && apiPassword) {
+    headers['Authorization'] = `Basic ${Buffer.from(`${username}:${apiPassword}`).toString('base64')}`;
   }
   
   let requestBody: Uint8Array | string | undefined;

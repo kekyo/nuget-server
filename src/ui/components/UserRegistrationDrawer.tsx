@@ -35,7 +35,7 @@ interface UserRegistrationDrawerProps {
 interface RegistrationResult {
   success: boolean;
   message: string;
-  apiKey?: string;
+  apiPassword?: string;
 }
 
 type UserRole = 'read' | 'publish' | 'admin';
@@ -112,7 +112,7 @@ const UserRegistrationDrawer = ({ open, onClose, onRegistrationSuccess }: UserRe
         setResult({
           success: true,
           message: data.message,
-          apiKey: data.apiKey
+          apiPassword: data.apiPassword
         });
         onRegistrationSuccess();
       } else if (response.status === 401) {
@@ -316,20 +316,20 @@ const UserRegistrationDrawer = ({ open, onClose, onRegistrationSuccess }: UserRe
                   Role: {getRoleDisplayName(role)}
                 </Typography>
                 
-                {result.apiKey && (
+                {result.apiPassword && (
                   <>
                     <Alert severity="warning" sx={{ mb: 2 }}>
                       <Typography variant="body2" sx={{ fontWeight: 'bold', mb: 1 }}>
-                        Important: Save your API key!
+                        Important: Save your API password!
                       </Typography>
                       <Typography variant="body2">
-                        This API key will only be shown once. Copy it now and store it securely.
+                        This API password will only be shown once. Copy it now and store it securely.
                         You'll need it to authenticate API requests.
                       </Typography>
                     </Alert>
                     
                     <Typography variant="body2" color="text.secondary" gutterBottom>
-                      API Key:
+                      API Password:
                     </Typography>
                     <Paper
                       sx={{
@@ -342,7 +342,7 @@ const UserRegistrationDrawer = ({ open, onClose, onRegistrationSuccess }: UserRe
                           bgcolor: 'grey.100'
                         }
                       }}
-                      onClick={() => copyToClipboard(result.apiKey!)}
+                      onClick={() => copyToClipboard(result.apiPassword!)}
                     >
                       <Typography
                         variant="body2"
@@ -353,7 +353,7 @@ const UserRegistrationDrawer = ({ open, onClose, onRegistrationSuccess }: UserRe
                           mb: 1
                         }}
                       >
-                        {result.apiKey}
+                        {result.apiPassword}
                       </Typography>
                       <Typography variant="caption" color="text.secondary">
                         Click to copy to clipboard

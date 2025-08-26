@@ -13,7 +13,7 @@ import { createTestDirectory, getTestPort, testGlobalLogLevel, waitForServerRead
  * Tests Fastify server UI Backend API implementation including:
  * - POST /api/ui/config (public endpoint)
  * - POST /api/ui/users (admin session required)
- * - POST /api/ui/apikey (session required)
+ * - POST /api/ui/apipassword (session required)
  * - POST /api/ui/password (session required)
  * - GET /api/ui/icon/{id}/{version} (auth based on mode)
  * - POST /api/publish (hybrid auth based on mode)
@@ -69,8 +69,8 @@ describe('Fastify UI Backend API - Phase 4 Tests', () => {
         username: "testadminui",
         passwordHash: "PSRt9HqDyLtH7LC8iUnS7F9ObKU=", // password: "adminpass"
         salt: "test-salt-admin-ui",
-        apiKeyHash: "fEE9WeQqltjkrNwKP6WZb4lPLJ0=", // apiKey: "admin-api-key-123"  
-        apiKeySalt: "test-api-salt-admin-ui",
+        apiPasswordHash: "fEE9WeQqltjkrNwKP6WZb4lPLJ0=", // apiPassword: "admin-api-key-123"  
+        apiPasswordSalt: "test-api-salt-admin-ui",
         role: "admin",
         createdAt: "2024-01-01T00:00:00Z",
         updatedAt: "2024-01-01T00:00:00Z"
@@ -80,8 +80,8 @@ describe('Fastify UI Backend API - Phase 4 Tests', () => {
         username: "testpublishui",
         passwordHash: "OxSWKpMyC4Ycbk6AVlacKvtFzp4=", // password: "publishpass"
         salt: "test-salt-publish-ui",
-        apiKeyHash: "kRHDw5YZn/Ic+ynzwmVQvFdFCJw=", // apiKey: "publish-api-key-123"
-        apiKeySalt: "test-api-salt-publish-ui",
+        apiPasswordHash: "kRHDw5YZn/Ic+ynzwmVQvFdFCJw=", // apiPassword: "publish-api-key-123"
+        apiPasswordSalt: "test-api-salt-publish-ui",
         role: "publish",
         createdAt: "2024-01-01T00:00:00Z",
         updatedAt: "2024-01-01T00:00:00Z"
@@ -91,8 +91,8 @@ describe('Fastify UI Backend API - Phase 4 Tests', () => {
         username: "testreadui",
         passwordHash: "kB94DvNnBYRvYaV/ZGoHQCyK1/k=", // password: "readpass"
         salt: "test-salt-read-ui",
-        apiKeyHash: "DRkROp0nFzqicoShFhroRDxemVE=", // apiKey: "read-api-key-123"
-        apiKeySalt: "test-api-salt-read-ui",
+        apiPasswordHash: "DRkROp0nFzqicoShFhroRDxemVE=", // apiPassword: "read-api-key-123"
+        apiPasswordSalt: "test-api-salt-read-ui",
         role: "read",
         createdAt: "2024-01-01T00:00:00Z",
         updatedAt: "2024-01-01T00:00:00Z"
@@ -412,11 +412,11 @@ describe('Fastify UI Backend API - Phase 4 Tests', () => {
       expect(response.status).toBe(201);
       const data = await response.json();
       expect(data).toHaveProperty('user');
-      expect(data).toHaveProperty('apiKey');
+      expect(data).toHaveProperty('apiPassword');
       expect(data.user.username).toBe('newuser');
       expect(data.user.role).toBe('read');
-      expect(typeof data.apiKey).toBe('string');
-      expect(data.apiKey.length).toBeGreaterThan(0);
+      expect(typeof data.apiPassword).toBe('string');
+      expect(data.apiPassword.length).toBeGreaterThan(0);
     } finally {
       await server.close();
     }
@@ -488,7 +488,7 @@ describe('Fastify UI Backend API - Phase 4 Tests', () => {
   }, 30000);
 });
 
-describe('Fastify UI API - POST /api/ui/apikey (session required)', () => {
+describe('Fastify UI API - POST /api/ui/apipassword (session required)', () => {
   let testBaseDir: string;
   let testConfigDir: string;
   let testPackagesDir: string;
@@ -556,8 +556,8 @@ describe('Fastify UI API - POST /api/ui/apikey (session required)', () => {
         username: "testadminui",
         passwordHash: "PSRt9HqDyLtH7LC8iUnS7F9ObKU=", // password: "adminpass"
         salt: "test-salt-admin-ui",
-        apiKeyHash: "fEE9WeQqltjkrNwKP6WZb4lPLJ0=", // apiKey: "admin-api-key-123"  
-        apiKeySalt: "test-api-salt-admin-ui",
+        apiPasswordHash: "fEE9WeQqltjkrNwKP6WZb4lPLJ0=", // apiPassword: "admin-api-key-123"  
+        apiPasswordSalt: "test-api-salt-admin-ui",
         role: "admin",
         createdAt: "2024-01-01T00:00:00Z",
         updatedAt: "2024-01-01T00:00:00Z"
@@ -567,8 +567,8 @@ describe('Fastify UI API - POST /api/ui/apikey (session required)', () => {
         username: "testpublishui",
         passwordHash: "OxSWKpMyC4Ycbk6AVlacKvtFzp4=", // password: "publishpass"
         salt: "test-salt-publish-ui",
-        apiKeyHash: "kRHDw5YZn/Ic+ynzwmVQvFdFCJw=", // apiKey: "publish-api-key-123"
-        apiKeySalt: "test-api-salt-publish-ui",
+        apiPasswordHash: "kRHDw5YZn/Ic+ynzwmVQvFdFCJw=", // apiPassword: "publish-api-key-123"
+        apiPasswordSalt: "test-api-salt-publish-ui",
         role: "publish",
         createdAt: "2024-01-01T00:00:00Z",
         updatedAt: "2024-01-01T00:00:00Z"
@@ -578,8 +578,8 @@ describe('Fastify UI API - POST /api/ui/apikey (session required)', () => {
         username: "testreadui",
         passwordHash: "kB94DvNnBYRvYaV/ZGoHQCyK1/k=", // password: "readpass"
         salt: "test-salt-read-ui",
-        apiKeyHash: "DRkROp0nFzqicoShFhroRDxemVE=", // apiKey: "read-api-key-123"
-        apiKeySalt: "test-api-salt-read-ui",
+        apiPasswordHash: "DRkROp0nFzqicoShFhroRDxemVE=", // apiPassword: "read-api-key-123"
+        apiPasswordSalt: "test-api-salt-read-ui",
         role: "read",
         createdAt: "2024-01-01T00:00:00Z",
         updatedAt: "2024-01-01T00:00:00Z"
@@ -624,10 +624,10 @@ describe('Fastify UI API - POST /api/ui/apikey (session required)', () => {
     }
   };
 
-  test('should require session authentication for API key regeneration', async () => {
+  test('should require session authentication for API password regeneration', async () => {
     const server = await createServerAndEnvironment();
     try {
-      const response = await fetch(`http://localhost:${serverPort}/api/ui/apikey`, {
+      const response = await fetch(`http://localhost:${serverPort}/api/ui/apipassword`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -641,10 +641,10 @@ describe('Fastify UI API - POST /api/ui/apikey (session required)', () => {
     }
   }, 30000);
 
-  test('should regenerate API key with session authentication', async () => {
+  test('should regenerate API password with session authentication', async () => {
     const server = await createServerAndEnvironment();
     try {
-      const response = await fetch(`http://localhost:${serverPort}/api/ui/apikey`, {
+      const response = await fetch(`http://localhost:${serverPort}/api/ui/apipassword`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -655,10 +655,10 @@ describe('Fastify UI API - POST /api/ui/apikey (session required)', () => {
 
       expect(response.status).toBe(200);
       const data = await response.json();
-      expect(data).toHaveProperty('apiKey');
+      expect(data).toHaveProperty('apiPassword');
       expect(data).toHaveProperty('username', 'testpublishui');
-      expect(typeof data.apiKey).toBe('string');
-      expect(data.apiKey.length).toBeGreaterThan(0);
+      expect(typeof data.apiPassword).toBe('string');
+      expect(data.apiPassword.length).toBeGreaterThan(0);
     } finally {
       await server.close();
     }
@@ -751,8 +751,8 @@ describe('Fastify UI API - POST /api/ui/password (session required)', () => {
         username: "testadminui",
         passwordHash: "PSRt9HqDyLtH7LC8iUnS7F9ObKU=", // password: "adminpass"
         salt: "test-salt-admin-ui",
-        apiKeyHash: "fEE9WeQqltjkrNwKP6WZb4lPLJ0=", // apiKey: "admin-api-key-123"  
-        apiKeySalt: "test-api-salt-admin-ui",
+        apiPasswordHash: "fEE9WeQqltjkrNwKP6WZb4lPLJ0=", // apiPassword: "admin-api-key-123"  
+        apiPasswordSalt: "test-api-salt-admin-ui",
         role: "admin",
         createdAt: "2024-01-01T00:00:00Z",
         updatedAt: "2024-01-01T00:00:00Z"
@@ -762,8 +762,8 @@ describe('Fastify UI API - POST /api/ui/password (session required)', () => {
         username: "testpublishui",
         passwordHash: "OxSWKpMyC4Ycbk6AVlacKvtFzp4=", // password: "publishpass"
         salt: "test-salt-publish-ui",
-        apiKeyHash: "kRHDw5YZn/Ic+ynzwmVQvFdFCJw=", // apiKey: "publish-api-key-123"
-        apiKeySalt: "test-api-salt-publish-ui",
+        apiPasswordHash: "kRHDw5YZn/Ic+ynzwmVQvFdFCJw=", // apiPassword: "publish-api-key-123"
+        apiPasswordSalt: "test-api-salt-publish-ui",
         role: "publish",
         createdAt: "2024-01-01T00:00:00Z",
         updatedAt: "2024-01-01T00:00:00Z"
@@ -773,8 +773,8 @@ describe('Fastify UI API - POST /api/ui/password (session required)', () => {
         username: "testreadui",
         passwordHash: "kB94DvNnBYRvYaV/ZGoHQCyK1/k=", // password: "readpass"
         salt: "test-salt-read-ui",
-        apiKeyHash: "DRkROp0nFzqicoShFhroRDxemVE=", // apiKey: "read-api-key-123"
-        apiKeySalt: "test-api-salt-read-ui",
+        apiPasswordHash: "DRkROp0nFzqicoShFhroRDxemVE=", // apiPassword: "read-api-key-123"
+        apiPasswordSalt: "test-api-salt-read-ui",
         role: "read",
         createdAt: "2024-01-01T00:00:00Z",
         updatedAt: "2024-01-01T00:00:00Z"
@@ -962,8 +962,8 @@ describe('Fastify UI API - GET /api/ui/icon/{id}/{version} (auth based on mode)'
         username: "testadminui",
         passwordHash: "PSRt9HqDyLtH7LC8iUnS7F9ObKU=", // password: "adminpass"
         salt: "test-salt-admin-ui",
-        apiKeyHash: "fEE9WeQqltjkrNwKP6WZb4lPLJ0=", // apiKey: "admin-api-key-123"  
-        apiKeySalt: "test-api-salt-admin-ui",
+        apiPasswordHash: "fEE9WeQqltjkrNwKP6WZb4lPLJ0=", // apiPassword: "admin-api-key-123"  
+        apiPasswordSalt: "test-api-salt-admin-ui",
         role: "admin",
         createdAt: "2024-01-01T00:00:00Z",
         updatedAt: "2024-01-01T00:00:00Z"
@@ -973,8 +973,8 @@ describe('Fastify UI API - GET /api/ui/icon/{id}/{version} (auth based on mode)'
         username: "testpublishui",
         passwordHash: "OxSWKpMyC4Ycbk6AVlacKvtFzp4=", // password: "publishpass"
         salt: "test-salt-publish-ui",
-        apiKeyHash: "kRHDw5YZn/Ic+ynzwmVQvFdFCJw=", // apiKey: "publish-api-key-123"
-        apiKeySalt: "test-api-salt-publish-ui",
+        apiPasswordHash: "kRHDw5YZn/Ic+ynzwmVQvFdFCJw=", // apiPassword: "publish-api-key-123"
+        apiPasswordSalt: "test-api-salt-publish-ui",
         role: "publish",
         createdAt: "2024-01-01T00:00:00Z",
         updatedAt: "2024-01-01T00:00:00Z"
@@ -984,8 +984,8 @@ describe('Fastify UI API - GET /api/ui/icon/{id}/{version} (auth based on mode)'
         username: "testreadui",
         passwordHash: "kB94DvNnBYRvYaV/ZGoHQCyK1/k=", // password: "readpass"
         salt: "test-salt-read-ui",
-        apiKeyHash: "DRkROp0nFzqicoShFhroRDxemVE=", // apiKey: "read-api-key-123"
-        apiKeySalt: "test-api-salt-read-ui",
+        apiPasswordHash: "DRkROp0nFzqicoShFhroRDxemVE=", // apiPassword: "read-api-key-123"
+        apiPasswordSalt: "test-api-salt-read-ui",
         role: "read",
         createdAt: "2024-01-01T00:00:00Z",
         updatedAt: "2024-01-01T00:00:00Z"
@@ -1188,8 +1188,8 @@ describe('Fastify UI API - POST /api/publish (hybrid auth based on mode)', () =>
         username: "testadminui",
         passwordHash: "PSRt9HqDyLtH7LC8iUnS7F9ObKU=", // password: "adminpass"
         salt: "test-salt-admin-ui",
-        apiKeyHash: "fEE9WeQqltjkrNwKP6WZb4lPLJ0=", // apiKey: "admin-api-key-123"  
-        apiKeySalt: "test-api-salt-admin-ui",
+        apiPasswordHash: "fEE9WeQqltjkrNwKP6WZb4lPLJ0=", // apiPassword: "admin-api-key-123"  
+        apiPasswordSalt: "test-api-salt-admin-ui",
         role: "admin",
         createdAt: "2024-01-01T00:00:00Z",
         updatedAt: "2024-01-01T00:00:00Z"
@@ -1199,8 +1199,8 @@ describe('Fastify UI API - POST /api/publish (hybrid auth based on mode)', () =>
         username: "testpublishui",
         passwordHash: "OxSWKpMyC4Ycbk6AVlacKvtFzp4=", // password: "publishpass"
         salt: "test-salt-publish-ui",
-        apiKeyHash: "kRHDw5YZn/Ic+ynzwmVQvFdFCJw=", // apiKey: "publish-api-key-123"
-        apiKeySalt: "test-api-salt-publish-ui",
+        apiPasswordHash: "kRHDw5YZn/Ic+ynzwmVQvFdFCJw=", // apiPassword: "publish-api-key-123"
+        apiPasswordSalt: "test-api-salt-publish-ui",
         role: "publish",
         createdAt: "2024-01-01T00:00:00Z",
         updatedAt: "2024-01-01T00:00:00Z"
@@ -1210,8 +1210,8 @@ describe('Fastify UI API - POST /api/publish (hybrid auth based on mode)', () =>
         username: "testreadui",
         passwordHash: "kB94DvNnBYRvYaV/ZGoHQCyK1/k=", // password: "readpass"
         salt: "test-salt-read-ui",
-        apiKeyHash: "DRkROp0nFzqicoShFhroRDxemVE=", // apiKey: "read-api-key-123"
-        apiKeySalt: "test-api-salt-read-ui",
+        apiPasswordHash: "DRkROp0nFzqicoShFhroRDxemVE=", // apiPassword: "read-api-key-123"
+        apiPasswordSalt: "test-api-salt-read-ui",
         role: "read",
         createdAt: "2024-01-01T00:00:00Z",
         updatedAt: "2024-01-01T00:00:00Z"

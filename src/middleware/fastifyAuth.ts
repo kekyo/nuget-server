@@ -135,7 +135,7 @@ export const createBasicStrategy = (config: FastifyAuthConfig): BasicStrategy =>
     try {
       logger.debug(`Basic strategy authenticating user: ${username}`);
       
-      const user = await userService.validateApiKey(username, password);
+      const user = await userService.validateApiPassword(username, password);
       if (!user) {
         logger.warn(`Basic authentication failed for user: ${username}`);
         return done(null, false);
@@ -202,7 +202,7 @@ export const createHybridAuthMiddleware = (config: FastifyAuthConfig) => {
           if (!credentials.username && !credentials.password) {
             logger.info('Empty Basic auth credentials received - returning 401 Unauthorized');
           } else {
-            const user = await userService.validateApiKey(credentials.username, credentials.password);
+            const user = await userService.validateApiPassword(credentials.username, credentials.password);
             if (user) {
               logger.debug(`Basic auth successful for user: ${user.username}`);
               
