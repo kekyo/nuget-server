@@ -10,7 +10,6 @@ import { Logger } from '../../../types';
 import { UserService } from '../../../services/userService';
 import { SessionService } from '../../../services/sessionService';
 import { AuthService } from '../../../services/authService';
-import { createPackageService } from '../../../services/packageService';
 import { MetadataService } from '../../../services/metadataService';
 import { AuthenticatedFastifyRequest } from '../../../middleware/fastifyAuth';
 import { name as packageName, version, git_commit_hash } from '../../../generated/packageMetadata';
@@ -177,7 +176,6 @@ const requireRole = (request: AuthenticatedFastifyRequest, reply: FastifyReply, 
  */
 export const registerUiRoutes = async (fastify: FastifyInstance, config: UiRoutesConfig, locker: ReaderWriterLock) => {
   const { userService, sessionService, authService, packagesRoot, logger, realm, addSourceCommand, metadataService } = config;
-  const packageService = createPackageService(packagesRoot);   // TODO: Why dont use?
   
   // Create session-only auth middleware
   const sessionOnlyAuth = createSessionOnlyAuthMiddleware(sessionService, logger);
