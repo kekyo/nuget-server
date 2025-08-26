@@ -4,8 +4,8 @@
 
 import { useRef, useState, useEffect, useCallback } from 'react';
 import { CssBaseline, ThemeProvider, Tooltip, createTheme, useMediaQuery } from '@mui/material';
-import { AppBar, Toolbar, Typography, Container, Box, Button, Divider } from '@mui/material';
-import { CloudUpload as UploadIcon, GitHub as GitHubIcon, PersonAdd as PersonAddIcon, Login as LoginIcon, Logout as LogoutIcon } from '@mui/icons-material';
+import { AppBar, Toolbar, Typography, Container, Box, Button, Divider, Paper, IconButton, Stack } from '@mui/material';
+import { CloudUpload as UploadIcon, GitHub as GitHubIcon, PersonAdd as PersonAddIcon, Login as LoginIcon, Logout as LogoutIcon, ContentCopy as ContentCopyIcon, EditNote } from '@mui/icons-material';
 import PackageList, { PackageListRef } from './PackageList';
 import UploadDrawer from './components/UploadDrawer';
 import UserRegistrationDrawer from './components/UserRegistrationDrawer';
@@ -287,6 +287,12 @@ const App = () => {
     }
   };
 
+  const handleCopyCommand = () => {
+    if (serverConfig?.addSourceCommand) {
+      navigator.clipboard.writeText(serverConfig.addSourceCommand);
+    }
+  };
+
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
@@ -372,10 +378,59 @@ const App = () => {
           </Toolbar>
         </AppBar>
 
+        {serverConfig?.addSourceCommand && (
+          <Paper 
+            sx={{ 
+              position: 'fixed',
+              top: '64px', // Height of AppBar
+              left: 0,
+              right: 0,
+              p: 2,
+              zIndex: 1100,
+              backgroundColor: (theme) => theme.palette.mode === 'dark' ? 'grey.900' : 'grey.100',
+              border: 1,
+              borderColor: 'divider',
+              borderRadius: 0
+            }}
+            elevation={0}
+          >
+            <Container maxWidth="lg">
+              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Box sx={{ flexGrow: 1 }}>
+                  <Stack direction="row">
+                    <EditNote fontSize="small" />
+                    <Typography variant="body2" color="text.secondary" gutterBottom marginLeft="0.3rem">
+                      Add this server as a NuGet source:
+                    </Typography>
+                  </Stack>
+                  <Typography 
+                    variant="body2" marginLeft="0.5rem"
+                    sx={{ 
+                      fontFamily: 'monospace',
+                      fontSize: '0.875rem',
+                      wordBreak: 'break-all'
+                    }}
+                  >
+                    `{serverConfig.addSourceCommand}`
+                  </Typography>
+                </Box>
+                <IconButton 
+                  size="small" 
+                  onClick={handleCopyCommand}
+                  aria-label="copy command"
+                  sx={{ ml: 1 }}
+                >
+                  <ContentCopyIcon fontSize="small" />
+                </IconButton>
+              </Box>
+            </Container>
+          </Paper>
+        )}
+
         <Container 
           maxWidth="lg" 
           sx={{ 
-            mt: 12, 
+            mt: serverConfig?.addSourceCommand ? 18 : 12, 
             mb: 4, 
             pr: (drawerOpen || userRegDrawerOpen) ? '400px' : undefined
           }}>

@@ -13,16 +13,11 @@ import {
   Chip,
   Box,
   Button,
-  Paper,
-  IconButton,
-  Stack,
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import PackageIcon from '@mui/icons-material/Inventory';
 import PackageSourceIcon from '@mui/icons-material/Source';
 import DownloadIcon from '@mui/icons-material/Download';
-import ContentCopyIcon from '@mui/icons-material/ContentCopy';
-import { EditNote } from '@mui/icons-material';
 import { sortVersions } from '../utils/semver';
 
 interface SearchResultVersion {
@@ -239,56 +234,8 @@ const PackageList = forwardRef<PackageListRef, PackageListProps>(({ serverConfig
     );
   }
 
-  const handleCopyCommand = () => {
-    if (serverConfig?.addSourceCommand) {
-      navigator.clipboard.writeText(serverConfig.addSourceCommand);
-    }
-  };
-
   return (
     <Box>
-      {serverConfig?.addSourceCommand && (
-        <Paper 
-          sx={{ 
-            p: 2, 
-            mb: 3, 
-            backgroundColor: (theme) => theme.palette.mode === 'dark' ? 'grey.900' : 'grey.100',
-            border: 1,
-            borderColor: 'divider'
-          }}
-          elevation={0}
-        >
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <Box sx={{ flexGrow: 1 }}>
-              <Stack direction="row">
-                <EditNote fontSize="small" />
-                <Typography variant="body2" color="text.secondary" gutterBottom marginLeft="0.3rem">
-                  Add this server as a NuGet source:
-                </Typography>
-              </Stack>
-              <Typography 
-                variant="body2" marginLeft="0.5rem"
-                sx={{ 
-                  fontFamily: 'monospace',
-                  fontSize: '0.875rem',
-                  wordBreak: 'break-all'
-                }}
-              >
-                `{serverConfig.addSourceCommand}`
-              </Typography>
-            </Box>
-            <IconButton 
-              size="small" 
-              onClick={handleCopyCommand}
-              aria-label="copy command"
-              sx={{ ml: 1 }}
-            >
-              <ContentCopyIcon fontSize="small" />
-            </IconButton>
-          </Box>
-        </Paper>
-      )}
-
       <Typography variant="h4" component="h1" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
         <PackageIcon />
         Packages ({packages.length})
