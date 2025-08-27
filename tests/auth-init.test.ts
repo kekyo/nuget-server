@@ -42,7 +42,8 @@ describe('Auth Init', () => {
         realm: 'Test Fastify UI Server - Publish',
         logLevel: testGlobalLogLevel,
         noUi: false,
-        authMode: 'publish'
+        authMode: 'publish',
+        passwordStrengthCheck: false
       };
 
       // Expect the function to exit with error

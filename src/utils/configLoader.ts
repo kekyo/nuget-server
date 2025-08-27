@@ -19,6 +19,8 @@ export interface ConfigFile {
   trustedProxies?: string[];
   authMode?: AuthMode;
   sessionSecret?: string;
+  passwordMinScore?: number;
+  passwordStrengthCheck?: boolean;
 }
 
 /**
@@ -91,6 +93,18 @@ const validateConfig = (config: any, logger?: Logger): ConfigFile => {
     if (logger) {
       logger.warn('Session secret found in config.json. Consider using environment variable NUGET_SERVER_SESSION_SECRET instead for better security.');
     }
+  }
+
+  // Validate passwordMinScore
+  if (typeof config.passwordMinScore === 'number' && config.passwordMinScore >= 0 && config.passwordMinScore <= 4) {
+    validated.passwordMinScore = config.passwordMinScore;
+  } else if (config.passwordMinScore !== undefined) {
+    logger?.warn(`Invalid passwordMinScore in config.json: ${config.passwordMinScore}. Must be 0-4.`);
+  }
+
+  // Validate passwordStrengthCheck
+  if (typeof config.passwordStrengthCheck === 'boolean') {
+    validated.passwordStrengthCheck = config.passwordStrengthCheck;
   }
 
   return validated;

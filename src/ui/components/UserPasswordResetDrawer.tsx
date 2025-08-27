@@ -26,6 +26,7 @@ import {
   CheckCircle as SuccessIcon,
   Error as ErrorIcon,
 } from '@mui/icons-material';
+import { PasswordStrengthIndicator } from './PasswordStrengthIndicator';
 
 interface UserPasswordResetDrawerProps {
   open: boolean;
@@ -262,9 +263,10 @@ const UserPasswordResetDrawer = ({
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   disabled={resetting}
-                  sx={{ mb: 2 }}
+                  sx={{ mb: 1 }}
                   helperText="Minimum 4 characters"
                 />
+                <PasswordStrengthIndicator password={password} username={selectedUsername || undefined} />
 
                 <TextField
                   fullWidth
@@ -274,7 +276,7 @@ const UserPasswordResetDrawer = ({
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   disabled={resetting}
-                  sx={{ mb: 3 }}
+                  sx={{ mb: 3, mt: 2 }}
                 />
 
                 <Alert severity="warning" sx={{ mb: 3 }}>

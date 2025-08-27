@@ -29,7 +29,8 @@ describe('HTTPS Cookie Configuration', () => {
       baseUrl: 'https://example.com/api',
       packageDir: path.join(testDir, 'packages'),
       configDir: testDir,
-      authMode: 'none'
+      authMode: 'none',
+      passwordStrengthCheck: false
     };
     
     const logger = createConsoleLogger('https-cookie-config', testGlobalLogLevel);
@@ -57,7 +58,8 @@ describe('HTTPS Cookie Configuration', () => {
       baseUrl: 'http://example.com/api',
       packageDir: path.join(testDir, 'packages'),
       configDir: testDir,
-      authMode: 'none'
+      authMode: 'none',
+      passwordStrengthCheck: false
     };
     
     const logger = createConsoleLogger('https-cookie-config', testGlobalLogLevel);
@@ -82,7 +84,8 @@ describe('HTTPS Cookie Configuration', () => {
       // baseUrl not specified - defaults to http://localhost:3000/api
       packageDir: path.join(testDir, 'packages'),
       configDir: testDir,
-      authMode: 'none'
+      authMode: 'none',
+      passwordStrengthCheck: false
     };
     
     const logger = createConsoleLogger('https-cookie-config', testGlobalLogLevel);
@@ -160,7 +163,8 @@ describe('HTTPS Cookie Configuration', () => {
       packageDir: path.join(testDir, 'packages'),
       configDir: testDir,
       authMode: 'none',
-      trustedProxies: ['127.0.0.1']
+      trustedProxies: ['127.0.0.1'],
+      passwordStrengthCheck: false
     };
     
     const logger = createConsoleLogger('https-cookie-config', testGlobalLogLevel);

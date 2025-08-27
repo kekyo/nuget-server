@@ -59,7 +59,8 @@ describe('Fastify Static Binary Files', () => {
       logLevel: testGlobalLogLevel,
       noUi: false,
       authMode: 'none',
-      trustedProxies: []
+      trustedProxies: [],
+      passwordStrengthCheck: false
     };
 
     const server = await startFastifyServer(testConfig, logger);
@@ -99,7 +100,8 @@ describe('Fastify Static Binary Files', () => {
       logLevel: testGlobalLogLevel,
       noUi: false,
       authMode: 'none',
-      trustedProxies: []
+      trustedProxies: [],
+      passwordStrengthCheck: false
     };
 
     const server = await startFastifyServer(testConfig, logger);
@@ -141,7 +143,8 @@ describe('Fastify Static Binary Files', () => {
       logLevel: testGlobalLogLevel,
       noUi: false,
       authMode: 'none',
-      trustedProxies: []
+      trustedProxies: [],
+      passwordStrengthCheck: false
     };
 
     const locker = createReaderWriterLock();
@@ -191,7 +194,8 @@ describe('Fastify Static Binary Files', () => {
       logLevel: testGlobalLogLevel,
       noUi: false,
       authMode: 'none',
-      trustedProxies: []
+      trustedProxies: [],
+      passwordStrengthCheck: false
     };
 
     const locker = createReaderWriterLock();

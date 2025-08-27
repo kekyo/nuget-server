@@ -36,7 +36,8 @@ describe('Fastify UI Backend API - Phase 4 Tests', () => {
       realm: `Test Fastify UI Server - ${authMode}`,
       logLevel: testGlobalLogLevel,
       noUi: false,
-      authMode
+      authMode,
+      passwordStrengthCheck: false // Disable password strength check for testing
     };
     return startFastifyServer(config, logger);
   }
@@ -161,7 +162,8 @@ describe('Fastify UI Backend API - Phase 4 Tests', () => {
       realm: 'Test Fastify UI Server - None',
       logLevel: testGlobalLogLevel,
       noUi: false,
-      authMode: 'none'
+      authMode: 'none',
+      passwordStrengthCheck: false
     };
 
     const server = await startFastifyServer(config, logger);
@@ -199,7 +201,8 @@ describe('Fastify UI Backend API - Phase 4 Tests', () => {
       realm: 'Test Fastify UI Server - Full',
       logLevel: testGlobalLogLevel,
       noUi: false,
-      authMode: 'full'
+      authMode: 'full',
+      passwordStrengthCheck: false
     };
 
     const server = await startFastifyServer(config, logger);
@@ -249,7 +252,8 @@ describe('Fastify UI Backend API - Phase 4 Tests', () => {
       realm: 'Test Fastify UI Server - Full',
       logLevel: testGlobalLogLevel,
       noUi: false,
-      authMode: 'full'
+      authMode: 'full',
+      passwordStrengthCheck: false
     };
 
     const server = await startFastifyServer(config, logger);
@@ -284,7 +288,8 @@ describe('Fastify UI Backend API - Phase 4 Tests', () => {
       realm: 'Test Fastify UI Server - Full Auth',
       logLevel: testGlobalLogLevel,
       noUi: false,
-      authMode: 'full'
+      authMode: 'full',
+      passwordStrengthCheck: false
     };
 
     const server = await startFastifyServer(config, logger);
@@ -317,7 +322,8 @@ describe('Fastify UI Backend API - Phase 4 Tests', () => {
       realm: 'Test Fastify UI Server - Full Auth',
       logLevel: testGlobalLogLevel,
       noUi: false,
-      authMode: 'full'
+      authMode: 'full',
+      passwordStrengthCheck: false
     };
 
     const server = await startFastifyServer(config, logger);
@@ -519,7 +525,8 @@ describe('Fastify UI API - POST /api/ui/apipassword (session required)', () => {
       realm: 'Test Fastify UI Server - Full',
       logLevel: testGlobalLogLevel,
       noUi: false,
-      authMode: 'full'
+      authMode: 'full',
+      passwordStrengthCheck: false
     };
     
     const server = await startFastifyServer(config, logger);
@@ -697,7 +704,8 @@ describe('Fastify UI API - POST /api/ui/password (session required)', () => {
       realm: 'Test Fastify UI Server - Full',
       logLevel: testGlobalLogLevel,
       noUi: false,
-      authMode: 'full'
+      authMode: 'full',
+      passwordStrengthCheck: false
     };
     
     const server = await startFastifyServer(config, logger);
@@ -1038,7 +1046,8 @@ describe('Fastify UI API - GET /api/ui/icon/{id}/{version} (auth based on mode)'
       realm: 'Test Fastify UI Server - None',
       logLevel: testGlobalLogLevel,
       noUi: false,
-      authMode: 'none'
+      authMode: 'none',
+      passwordStrengthCheck: false
     };
 
     const server = await startFastifyServer(config, logger);
@@ -1064,7 +1073,8 @@ describe('Fastify UI API - GET /api/ui/icon/{id}/{version} (auth based on mode)'
       realm: 'Test Fastify UI Server - Publish',
       logLevel: testGlobalLogLevel,
       noUi: false,
-      authMode: 'publish'
+      authMode: 'publish',
+      passwordStrengthCheck: false
     };
 
     const server = await startFastifyServer(config, logger);
@@ -1091,7 +1101,8 @@ describe('Fastify UI API - GET /api/ui/icon/{id}/{version} (auth based on mode)'
       realm: 'Test Fastify UI Server - Full',
       logLevel: testGlobalLogLevel,
       noUi: false,
-      authMode: 'full'
+      authMode: 'full',
+      passwordStrengthCheck: false
     };
     
     const server = await startFastifyServer(config, logger);
@@ -1142,7 +1153,8 @@ describe('Fastify UI API - GET /api/ui/icon/{id}/{version} (auth based on mode)'
       realm: 'Test Fastify UI Server - None',
       logLevel: testGlobalLogLevel,
       noUi: false,
-      authMode: 'none'
+      authMode: 'none',
+      passwordStrengthCheck: false
     };
     
     const server = await startFastifyServer(config, logger);
@@ -1264,7 +1276,8 @@ describe('Fastify UI API - POST /api/publish (hybrid auth based on mode)', () =>
       realm: 'Test Fastify UI Server - None',
       logLevel: testGlobalLogLevel,
       noUi: false,
-      authMode: 'none'
+      authMode: 'none',
+      passwordStrengthCheck: false
     };
     
     const server = await startFastifyServer(config, logger);
@@ -1299,7 +1312,8 @@ describe('Fastify UI API - POST /api/publish (hybrid auth based on mode)', () =>
       realm: 'Test Fastify UI Server - Publish',
       logLevel: testGlobalLogLevel,
       noUi: false,
-      authMode: 'publish'
+      authMode: 'publish',
+      passwordStrengthCheck: false
     };
     
     const server = await startFastifyServer(config, logger);
@@ -1331,7 +1345,8 @@ describe('Fastify UI API - POST /api/publish (hybrid auth based on mode)', () =>
       realm: 'Test Fastify UI Server - Publish',
       logLevel: testGlobalLogLevel,
       noUi: false,
-      authMode: 'publish'
+      authMode: 'publish',
+      passwordStrengthCheck: false
     };
     
     const server = await startFastifyServer(config, logger);
@@ -1383,7 +1398,8 @@ describe('Fastify UI API - POST /api/publish (hybrid auth based on mode)', () =>
       realm: 'Test Fastify UI Server - Publish',
       logLevel: testGlobalLogLevel,
       noUi: false,
-      authMode: 'publish'
+      authMode: 'publish',
+      passwordStrengthCheck: false
     };
     
     const server = await startFastifyServer(config, logger);
@@ -1421,7 +1437,8 @@ describe('Fastify UI API - POST /api/publish (hybrid auth based on mode)', () =>
       realm: 'Test Fastify UI Server - Publish',
       logLevel: testGlobalLogLevel,
       noUi: false,
-      authMode: 'publish'
+      authMode: 'publish',
+      passwordStrengthCheck: false
     };
     
     const server = await startFastifyServer(config, logger);

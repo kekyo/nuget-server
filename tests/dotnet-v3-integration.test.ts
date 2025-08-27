@@ -50,7 +50,8 @@ describe('dotnet restore V3 API Integration Tests', () => {
       realm: `Test Dotnet V3 Server - ${authMode}`,
       logLevel: testGlobalLogLevel,
       noUi: false,
-      authMode
+      authMode,
+      passwordStrengthCheck: false
     };
 
     logger.info(`Starting server with authMode=${authMode} on port ${serverPort}`);

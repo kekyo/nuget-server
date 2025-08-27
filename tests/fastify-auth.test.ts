@@ -90,7 +90,8 @@ describe('Fastify Authentication - Phase 2 Tests', () => {
       realm: 'Test Fastify Auth Server',
       logLevel: testGlobalLogLevel,
       noUi: false,
-      authMode: 'full'
+      authMode: 'full',
+      passwordStrengthCheck: false
     };
 
     const logger = createConsoleLogger('fastify-auth-phase2', testGlobalLogLevel);

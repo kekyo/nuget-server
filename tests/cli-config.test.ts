@@ -12,8 +12,8 @@ describe('CLI configuration priority', () => {
   let testPort: number;
   const cliPath = join(process.cwd(), 'dist', 'cli.js');
   
-  beforeEach(async ({ task }) => {
-    testDir = await createTestDirectory('cli-config', task.name);
+  beforeEach(async fn => {
+    testDir = await createTestDirectory('cli-config', fn.task.name);
     testPort = getTestPort();
   });
 

@@ -25,6 +25,7 @@ import {
   CheckCircle as SuccessIcon,
   Error as ErrorIcon,
 } from '@mui/icons-material';
+import { PasswordStrengthIndicator } from './PasswordStrengthIndicator';
 
 interface UserRegistrationDrawerProps {
   open: boolean;
@@ -245,9 +246,10 @@ const UserRegistrationDrawer = ({ open, onClose, onRegistrationSuccess }: UserRe
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               disabled={registering}
-              sx={{ mb: 2 }}
+              sx={{ mb: 1 }}
               helperText="Minimum 4 characters"
             />
+            <PasswordStrengthIndicator password={password} username={username} />
 
             <TextField
               fullWidth
@@ -257,7 +259,7 @@ const UserRegistrationDrawer = ({ open, onClose, onRegistrationSuccess }: UserRe
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               disabled={registering}
-              sx={{ mb: 3 }}
+              sx={{ mb: 2, mt: 2 }}
             />
 
             <FormControl fullWidth sx={{ mb: 2 }}>

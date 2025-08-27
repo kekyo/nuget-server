@@ -53,6 +53,25 @@ const getSessionSecretFromEnv = (): string | undefined => {
   return process.env.NUGET_SERVER_SESSION_SECRET;
 };
 
+const getPasswordMinScoreFromEnv = (): number | undefined => {
+  const value = process.env.NUGET_SERVER_PASSWORD_MIN_SCORE;
+  if (value) {
+    const score = parseInt(value, 10);
+    if (!isNaN(score) && score >= 0 && score <= 4) {
+      return score;
+    }
+  }
+  return undefined;
+};
+
+const getPasswordStrengthCheckFromEnv = (): boolean | undefined => {
+  const value = process.env.NUGET_SERVER_PASSWORD_STRENGTH_CHECK;
+  if (value) {
+    return value.toLowerCase() !== 'false';
+  }
+  return undefined;
+};
+
 /////////////////////////////////////////////////////////////////////////
 
 const program = new Command();
@@ -96,6 +115,8 @@ program.
       : getTrustedProxiesFromEnv() || configFile.trustedProxies;
     const authMode = options.authMode || getAuthModeFromEnv() || configFile.authMode || 'none';
     const sessionSecret = getSessionSecretFromEnv() || configFile.sessionSecret;
+    const passwordMinScore = getPasswordMinScoreFromEnv() ?? configFile.passwordMinScore ?? 2;
+    const passwordStrengthCheck = getPasswordStrengthCheckFromEnv() ?? configFile.passwordStrengthCheck ?? true;
     
     // Validate log level
     const validLogLevels: LogLevel[] = ['debug', 'info', 'warn', 'error', 'ignore'];
@@ -155,7 +176,9 @@ program.
       trustedProxies,
       logLevel: logLevel as LogLevel,
       noUi,
-      sessionSecret
+      sessionSecret,
+      passwordMinScore,
+      passwordStrengthCheck
     };
     
     // Handle auth-init mode

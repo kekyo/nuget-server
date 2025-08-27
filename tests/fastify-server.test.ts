@@ -44,7 +44,8 @@ describe('Fastify Server - Phase 1 Basic Tests', () => {
       realm: 'Test Fastify Server',
       logLevel: testGlobalLogLevel,
       noUi: false,
-      authMode: 'none'
+      authMode: 'none',
+      passwordStrengthCheck: false
     };
     
     const server = await startFastifyServer(testConfig, logger);
@@ -65,7 +66,8 @@ describe('Fastify Server - Phase 1 Basic Tests', () => {
       realm: 'Test Fastify Server',
       logLevel: testGlobalLogLevel,
       noUi: false,
-      authMode: 'none'
+      authMode: 'none',
+      passwordStrengthCheck: false
     };
     
     const server = await startFastifyServer(testConfig, logger);
@@ -92,7 +94,8 @@ describe('Fastify Server - Phase 1 Basic Tests', () => {
       realm: 'Test Fastify Server',
       logLevel: testGlobalLogLevel,
       noUi: false,
-      authMode: 'none'
+      authMode: 'none',
+      passwordStrengthCheck: false
     };
     
     const server = await startFastifyServer(testConfig, logger);
@@ -118,7 +121,8 @@ describe('Fastify Server - Phase 1 Basic Tests', () => {
       realm: 'Test Fastify Server',
       logLevel: testGlobalLogLevel,
       noUi: true,
-      authMode: 'none'
+      authMode: 'none',
+      passwordStrengthCheck: false
     };
     
     const server = await startFastifyServer(testConfig, logger);
@@ -143,7 +147,8 @@ describe('Fastify Server - Phase 1 Basic Tests', () => {
       realm: 'Test Fastify Server',
       logLevel: testGlobalLogLevel,
       noUi: false,
-      authMode: 'none'
+      authMode: 'none',
+      passwordStrengthCheck: false
     };
     
     const server = await startFastifyServer(testConfig, logger);
@@ -170,7 +175,8 @@ describe('Fastify Server - Phase 1 Basic Tests', () => {
       realm: 'Test Fastify Server',
       logLevel: testGlobalLogLevel,
       noUi: false,
-      authMode: 'none'
+      authMode: 'none',
+      passwordStrengthCheck: false
     };
     
     const server = await startFastifyServer(testConfig, logger);

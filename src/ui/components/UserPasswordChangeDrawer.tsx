@@ -20,6 +20,7 @@ import {
   VisibilityOff,
   LockReset as LockResetIcon,
 } from '@mui/icons-material';
+import { PasswordStrengthIndicator } from './PasswordStrengthIndicator';
 
 interface UserPasswordChangeDrawerProps {
   open: boolean;
@@ -213,7 +214,7 @@ const UserPasswordChangeDrawer = ({ open, onClose }: UserPasswordChangeDrawerPro
               disabled={loading}
               required
               fullWidth
-              helperText="Minimum 4 characters"
+              helperText={newPassword ? undefined : "Minimum 4 characters"}
               InputProps={{
                 endAdornment: (
                   <InputAdornment position="end">
@@ -227,6 +228,7 @@ const UserPasswordChangeDrawer = ({ open, onClose }: UserPasswordChangeDrawerPro
                 ),
               }}
             />
+            {newPassword && <PasswordStrengthIndicator password={newPassword} />}
 
             <TextField
               label="Confirm New Password"

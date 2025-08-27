@@ -6,8 +6,9 @@ import { constants } from 'fs';
 import { readFile, writeFile, access } from 'fs/promises';
 import { join } from 'path';
 import { createReaderWriterLock } from 'async-primitives';
-import { Logger } from '../types';
+import { Logger, ServerConfig } from '../types';
 import { generateSalt, hashPassword, verifyPassword, generateApiPassword, generateUserId } from '../utils/crypto';
+import { checkPasswordStrength, getMinPasswordScore } from '../utils/passwordStrength';
 
 /**
  * User data structure
@@ -54,6 +55,7 @@ export interface RegenerateApiPasswordResponse {
 export interface UserServiceConfig {
   configDir: string;
   logger: Logger;
+  serverConfig?: ServerConfig;
 }
 
 /**
@@ -80,7 +82,7 @@ export interface UserService {
  * @returns User service instance
  */
 export const createUserService = (config: UserServiceConfig): UserService => {
-  const { configDir, logger } = config;
+  const { configDir, logger, serverConfig } = config;
   const usersFilePath = join(configDir, 'users.json');
   let users: Map<string, User> = new Map();
   let isInitialized = false;
@@ -158,13 +160,29 @@ export const createUserService = (config: UserServiceConfig): UserService => {
   /**
    * Validates password strength
    */
-  const validatePassword = (password: string): void => {
+  const validatePassword = (password: string, username?: string): void => {
     if (!password || password.length === 0) {
       throw new Error('Password cannot be empty');
     }
 
+    // Minimum length check (for backward compatibility)
     if (password.length < 4) {
       throw new Error('Password must be at least 4 characters long');
+    }
+
+    // Strength check (can be disabled via config)
+    if (serverConfig?.passwordStrengthCheck !== false) {
+      const userInputs = username ? [username] : [];
+      const strengthResult = checkPasswordStrength(password, userInputs);
+      const minScore = getMinPasswordScore(serverConfig);
+      
+      if (strengthResult.score < minScore) {
+        const strengthLabel = ['Weak', 'Fair', 'Good', 'Strong', 'Very Strong'][minScore];
+        throw new Error(
+          `Password strength is too weak. Minimum required: ${strengthLabel}. ` +
+          (strengthResult.feedback.warning || strengthResult.feedback.suggestions[0] || '')
+        );
+      }
     }
   };
 
@@ -213,7 +231,7 @@ export const createUserService = (config: UserServiceConfig): UserService => {
       const handle = await fileLock.writeLock();
       try {
         validateUsername(request.username);
-        validatePassword(request.password);
+        validatePassword(request.password, request.username);
         validateRole(request.role);
 
         // Generate salts and hashes
@@ -288,7 +306,7 @@ export const createUserService = (config: UserServiceConfig): UserService => {
         }
 
         if ('password' in updates && updates.password) {
-          validatePassword(updates.password);
+          validatePassword(updates.password, username);
           const newPasswordSalt = generateSalt();
           const newPasswordHash = hashPassword(updates.password, newPasswordSalt);
           user.passwordHash = newPasswordHash;

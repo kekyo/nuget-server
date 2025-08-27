@@ -77,7 +77,8 @@ describe('Fastify NuGet V3 API - Phase 3 Tests', () => {
         realm: 'Test Fastify V3 Server - None',
         logLevel: testGlobalLogLevel,
         noUi: false,
-        authMode: 'none'
+        authMode: 'none',
+        passwordStrengthCheck: false
       };
 
       const logger = createConsoleLogger('fastify-v3-api', testGlobalLogLevel);
@@ -163,7 +164,8 @@ describe('Fastify NuGet V3 API - Phase 3 Tests', () => {
         realm: 'Test Fastify V3 Server - Publish',
         logLevel: testGlobalLogLevel,
         noUi: false,
-        authMode: 'publish'
+        authMode: 'publish',
+        passwordStrengthCheck: false
       };
 
       const logger = createConsoleLogger('fastify-v3-api', testGlobalLogLevel);
@@ -219,7 +221,8 @@ describe('Fastify NuGet V3 API - Phase 3 Tests', () => {
         realm: 'Test Fastify V3 Server - Full',
         logLevel: testGlobalLogLevel,
         noUi: false,
-        authMode: 'full'
+        authMode: 'full',
+        passwordStrengthCheck: false
       };
 
       const logger = createConsoleLogger('fastify-v3-api', testGlobalLogLevel);

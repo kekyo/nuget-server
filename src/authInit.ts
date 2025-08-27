@@ -8,6 +8,7 @@ import { access, mkdir } from 'fs/promises';
 import { constants } from 'fs';
 import { createUserService } from './services/userService';
 import { Logger, ServerConfig } from './types';
+import { checkPasswordStrength, getMinPasswordScore } from './utils/passwordStrength';
 
 /**
  * Options for auth initialization
@@ -184,6 +185,26 @@ export const runAuthInit = async (config: ServerConfig, logger: Logger): Promise
             continue;
           }
           
+          // Check password strength
+          if (config.passwordStrengthCheck !== false) {
+            const strength = checkPasswordStrength(password, [username]);
+            const minScore = getMinPasswordScore(config);
+            
+            if (strength.score < minScore) {
+              const strengthLabel = ['Weak', 'Fair', 'Good', 'Strong', 'Very Strong'][minScore];
+              logger.error(`Password is too weak (${strength.strength}). Minimum required: ${strengthLabel}.`);
+              if (strength.feedback.warning) {
+                logger.info(`Hint: ${strength.feedback.warning}`);
+              } else if (strength.feedback.suggestions.length > 0) {
+                logger.info(`Hint: ${strength.feedback.suggestions[0]}`);
+              }
+              attempts++;
+              continue;
+            }
+            
+            logger.info(`Password strength: ${strength.strength}`);
+          }
+          
           confirmPassword = await promptPassword('Confirm password');
           
           if (password !== confirmPassword) {
@@ -208,7 +229,7 @@ export const runAuthInit = async (config: ServerConfig, logger: Logger): Promise
       }
       
       // Create user service
-      const userService = createUserService({ configDir, logger });
+      const userService = createUserService({ configDir, logger, serverConfig: config });
       await userService.initialize();
       
       // Create admin user

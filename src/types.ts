@@ -52,6 +52,8 @@ export interface ServerConfig {
   noUi?: boolean;
   authMode?: AuthMode;
   sessionSecret?: string;
+  passwordMinScore?: number;        // 0-4, default: 2 (Good)
+  passwordStrengthCheck?: boolean;  // default: true
 }
 
 /**

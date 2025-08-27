@@ -103,7 +103,8 @@ export const createFastifyInstance = async (
   // Initialize user service (new authentication system)
   const userService = createUserService({
     configDir: config.configDir || './',
-    logger
+    logger,
+    serverConfig: config
   });
   
   try {
