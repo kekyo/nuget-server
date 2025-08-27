@@ -5,7 +5,7 @@
 import { useRef, useState, useEffect, useCallback } from 'react';
 import { CssBaseline, ThemeProvider, Tooltip, createTheme, useMediaQuery } from '@mui/material';
 import { AppBar, Toolbar, Typography, Container, Box, Button, Divider, IconButton, Stack } from '@mui/material';
-import { CloudUpload as UploadIcon, GitHub as GitHubIcon, Login as LoginIcon, Logout as LogoutIcon, ContentCopy as ContentCopyIcon, EditNote, VpnKey as VpnKeyIcon } from '@mui/icons-material';
+import { CloudUpload as UploadIcon, GitHub as GitHubIcon, Login as LoginIcon, Logout as LogoutIcon, ContentCopy as ContentCopyIcon, EditNote } from '@mui/icons-material';
 import PackageList, { PackageListRef } from './PackageList';
 import UploadDrawer from './components/UploadDrawer';
 import UserRegistrationDrawer from './components/UserRegistrationDrawer';
@@ -13,6 +13,8 @@ import UserPasswordResetDrawer from './components/UserPasswordResetDrawer';
 import UserDeleteDrawer from './components/UserDeleteDrawer';
 import UserManagementMenu from './components/UserManagementMenu';
 import ApiPasswordDrawer from './components/ApiPasswordDrawer';
+import PasswordManagementMenu from './components/PasswordManagementMenu';
+import UserPasswordChangeDrawer from './components/UserPasswordChangeDrawer';
 import LoginDialog from './components/LoginDialog';
 import { name, repository_url, version } from '../generated/packageMetadata';
 import { buildAddSourceCommand } from './utils/commandBuilder';
@@ -47,6 +49,7 @@ const App = () => {
   const [passwordResetDrawerOpen, setPasswordResetDrawerOpen] = useState(false);
   const [userDeleteDrawerOpen, setUserDeleteDrawerOpen] = useState(false);
   const [apiPasswordDrawerOpen, setApiPasswordDrawerOpen] = useState(false);
+  const [passwordChangeDrawerOpen, setPasswordChangeDrawerOpen] = useState(false);
   const [loginDialogOpen, setLoginDialogOpen] = useState(false);
   const [serverConfig, setServerConfig] = useState<ServerConfig | null>(null);
   const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
@@ -166,6 +169,10 @@ const App = () => {
     setApiPasswordDrawerOpen(false);
   };
 
+  const handleClosePasswordChangeDrawer = () => {
+    setPasswordChangeDrawerOpen(false);
+  };
+
   const handleLoginSuccess = () => {
     setLoginDialogOpen(false);
     // Refresh server config to get updated authentication state
@@ -272,7 +279,7 @@ const App = () => {
     return serverConfig.currentUser?.role === 'admin';
   };
 
-  const showApiPasswordButton = () => {
+  const showPasswordButton = () => {
     if (!serverConfig) return false;
     if (shouldHideAppBarButtons()) return false;
     const authMode = serverConfig.authMode;
@@ -367,15 +374,12 @@ const App = () => {
               </>
             )}
 
-            {/* API Password Button */}
-            {showApiPasswordButton() && (
-              <Button
-                color="inherit"
-                startIcon={<VpnKeyIcon />}
-                onClick={() => setApiPasswordDrawerOpen(true)}
-                sx={{ mr: 1 }}>
-                API Password
-              </Button>
+            {/* Password Management Menu */}
+            {showPasswordButton() && (
+              <PasswordManagementMenu
+                onChangePassword={() => setPasswordChangeDrawerOpen(true)}
+                onApiPassword={() => setApiPasswordDrawerOpen(true)}
+              />
             )}
 
             {/* Upload Button */}
@@ -454,7 +458,7 @@ const App = () => {
           sx={{ 
             mt: showRepositoryInfo() ? 1 : 13,
             mb: 4,
-            pr: (drawerOpen || userRegDrawerOpen || passwordResetDrawerOpen || userDeleteDrawerOpen || apiPasswordDrawerOpen) ? '500px' : undefined
+            pr: (drawerOpen || userRegDrawerOpen || passwordResetDrawerOpen || userDeleteDrawerOpen || apiPasswordDrawerOpen || passwordChangeDrawerOpen) ? '500px' : undefined
           }}>
           <PackageList ref={packageListRef} serverConfig={serverConfig} />
         </Container>
@@ -485,6 +489,11 @@ const App = () => {
           open={apiPasswordDrawerOpen}
           onClose={handleCloseApiPasswordDrawer}
           serverConfig={serverConfig}
+          />
+
+        <UserPasswordChangeDrawer
+          open={passwordChangeDrawerOpen}
+          onClose={handleClosePasswordChangeDrawer}
           />
 
         <LoginDialog
