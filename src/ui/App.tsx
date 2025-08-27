@@ -277,11 +277,6 @@ const App = () => {
   const showUploadButton = () => {
     if (!serverConfig) return false;
     if (shouldHideAppBarButtons()) return false;
-    return true; // Always show
-  };
-
-  const isUploadEnabled = () => {
-    if (!serverConfig) return false;
     const authMode = serverConfig.authMode;
     if (authMode === 'none') return true;
     if (!isAuthenticated()) return false;
@@ -336,27 +331,39 @@ const App = () => {
 
             {/* GitHub Link */}
             {!shouldHideAppBarButtons() && (
-              <Tooltip title={`${name} ${version}`}>
-                <GitHubIcon
-                  color="inherit"
-                  onClick={() => window.open(repository_url, '_blank')}
-                  sx={{ mx: 1 }} />
-              </Tooltip>
-            )}
-
-            {/* Divider */}
-            {!shouldHideAppBarButtons() && (
-              <Divider orientation="vertical" flexItem sx={{ mx: 1, borderColor: 'rgba(255, 255, 255, 0.3)' }} />
+              <>
+                <Tooltip title={`${name} ${version}`}>
+                  <GitHubIcon
+                    color="inherit"
+                    onClick={() => window.open(repository_url, '_blank')}
+                    sx={{ mx: 1 }} />
+                </Tooltip>
+                <Divider orientation="vertical" flexItem sx={{ mx: 1, borderColor: 'rgba(255, 255, 255, 0.3)' }} />
+              </>
             )}
 
             {/* User Add Button */}
             {showUserAddButton() && (
+              <>
+                <Button
+                  color="inherit"
+                  startIcon={<PersonAddIcon />}
+                  onClick={() => setUserRegDrawerOpen(true)}
+                  sx={{ mr: 1 }}>
+                  Add User
+                </Button>
+                <Divider orientation="vertical" flexItem sx={{ mx: 1, borderColor: 'rgba(255, 255, 255, 0.3)' }} />
+              </>
+            )}
+
+            {/* API Password Button */}
+            {showApiPasswordButton() && (
               <Button
                 color="inherit"
-                startIcon={<PersonAddIcon />}
-                onClick={() => setUserRegDrawerOpen(true)}
+                startIcon={<VpnKeyIcon />}
+                onClick={() => setApiPasswordDrawerOpen(true)}
                 sx={{ mr: 1 }}>
-                Add User
+                API Password
               </Button>
             )}
 
@@ -365,12 +372,7 @@ const App = () => {
               <Button
                 color="inherit"
                 startIcon={<UploadIcon />}
-                onClick={() => setDrawerOpen(true)}
-                disabled={!isUploadEnabled()}
-                sx={{ 
-                  opacity: isUploadEnabled() ? 1 : 0.5,
-                  cursor: isUploadEnabled() ? 'pointer' : 'not-allowed'
-                }}>
+                onClick={() => setDrawerOpen(true)}>
                 Upload
               </Button>
             )}
@@ -385,20 +387,6 @@ const App = () => {
                   onClick={handleLogin}
                   sx={{ mr: 1 }}>
                   Login
-                </Button>
-              </>
-            )}
-
-            {/* API Password Button */}
-            {showApiPasswordButton() && (
-              <>
-                <Divider orientation="vertical" flexItem sx={{ mx: 1, borderColor: 'rgba(255, 255, 255, 0.3)' }} />
-                <Button
-                  color="inherit"
-                  startIcon={<VpnKeyIcon />}
-                  onClick={() => setApiPasswordDrawerOpen(true)}
-                  sx={{ mr: 1 }}>
-                  API Password
                 </Button>
               </>
             )}

@@ -255,7 +255,7 @@ const ApiPasswordDrawer = ({ open, onClose, serverConfig }: ApiPasswordDrawerPro
                   )}
 
                   <Typography variant="body2" color="text.secondary" gutterBottom>
-                    Publish packages using curl:
+                    Example publish packages using curl:
                   </Typography>
                   <Paper
                     sx={{
