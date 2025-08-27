@@ -70,7 +70,7 @@ export interface ConfigResponse {
  * POST /api/ui/users request body for user management
  */
 export interface UserManagementRequest {
-  action: 'list' | 'create' | 'delete';
+  action: 'list' | 'create' | 'delete' | 'update';
   username?: string;
   password?: string;
   role?: 'admin' | 'publish' | 'read';
@@ -330,6 +330,34 @@ export const registerUiRoutes = async (fastify: FastifyInstance, config: UiRoute
           const response: UserDeleteResponse = {
             success: true,
             message: 'User deleted successfully'
+          };
+          
+          return reply.send(response);
+        }
+        
+        case 'update': {
+          if (!body.username || !body.password) {
+            return reply.status(400).send({ error: 'Username and password are required' });
+          }
+          
+          // Prevent users from changing their own password via this endpoint
+          // Users should use the separate password change endpoint
+          if (request.user && request.user.username === body.username) {
+            return reply.status(403).send({ error: 'Cannot change your own password via this endpoint' });
+          }
+          
+          logger.info(`Updating password for user: ${body.username}`);
+          
+          const updatedUser = await userService.updateUser(body.username, { password: body.password });
+          if (!updatedUser) {
+            return reply.status(404).send({ error: 'User not found' });
+          }
+          
+          logger.info(`Password updated for user: ${body.username}`);
+          
+          const response = {
+            success: true,
+            message: 'Password updated successfully'
           };
           
           return reply.send(response);

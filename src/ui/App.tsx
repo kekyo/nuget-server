@@ -5,10 +5,13 @@
 import { useRef, useState, useEffect, useCallback } from 'react';
 import { CssBaseline, ThemeProvider, Tooltip, createTheme, useMediaQuery } from '@mui/material';
 import { AppBar, Toolbar, Typography, Container, Box, Button, Divider, IconButton, Stack } from '@mui/material';
-import { CloudUpload as UploadIcon, GitHub as GitHubIcon, PersonAdd as PersonAddIcon, Login as LoginIcon, Logout as LogoutIcon, ContentCopy as ContentCopyIcon, EditNote, VpnKey as VpnKeyIcon } from '@mui/icons-material';
+import { CloudUpload as UploadIcon, GitHub as GitHubIcon, Login as LoginIcon, Logout as LogoutIcon, ContentCopy as ContentCopyIcon, EditNote, VpnKey as VpnKeyIcon } from '@mui/icons-material';
 import PackageList, { PackageListRef } from './PackageList';
 import UploadDrawer from './components/UploadDrawer';
 import UserRegistrationDrawer from './components/UserRegistrationDrawer';
+import UserPasswordResetDrawer from './components/UserPasswordResetDrawer';
+import UserDeleteDrawer from './components/UserDeleteDrawer';
+import UserManagementMenu from './components/UserManagementMenu';
 import ApiPasswordDrawer from './components/ApiPasswordDrawer';
 import LoginDialog from './components/LoginDialog';
 import { name, repository_url, version } from '../generated/packageMetadata';
@@ -41,6 +44,8 @@ const App = () => {
   const prefersDarkMode = useMediaQuery('(prefers-color-scheme: dark)');
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [userRegDrawerOpen, setUserRegDrawerOpen] = useState(false);
+  const [passwordResetDrawerOpen, setPasswordResetDrawerOpen] = useState(false);
+  const [userDeleteDrawerOpen, setUserDeleteDrawerOpen] = useState(false);
   const [apiPasswordDrawerOpen, setApiPasswordDrawerOpen] = useState(false);
   const [loginDialogOpen, setLoginDialogOpen] = useState(false);
   const [serverConfig, setServerConfig] = useState<ServerConfig | null>(null);
@@ -147,6 +152,14 @@ const App = () => {
 
   const handleCloseUserRegDrawer = () => {
     setUserRegDrawerOpen(false);
+  };
+
+  const handleClosePasswordResetDrawer = () => {
+    setPasswordResetDrawerOpen(false);
+  };
+
+  const handleCloseUserDeleteDrawer = () => {
+    setUserDeleteDrawerOpen(false);
   };
 
   const handleCloseApiPasswordDrawer = () => {
@@ -342,16 +355,14 @@ const App = () => {
               </>
             )}
 
-            {/* User Add Button */}
+            {/* User Management Menu */}
             {showUserAddButton() && (
               <>
-                <Button
-                  color="inherit"
-                  startIcon={<PersonAddIcon />}
-                  onClick={() => setUserRegDrawerOpen(true)}
-                  sx={{ mr: 1 }}>
-                  Add User
-                </Button>
+                <UserManagementMenu
+                  onAddUser={() => setUserRegDrawerOpen(true)}
+                  onResetPassword={() => setPasswordResetDrawerOpen(true)}
+                  onDeleteUser={() => setUserDeleteDrawerOpen(true)}
+                />
                 <Divider orientation="vertical" flexItem sx={{ mx: 1, borderColor: 'rgba(255, 255, 255, 0.3)' }} />
               </>
             )}
@@ -443,7 +454,7 @@ const App = () => {
           sx={{ 
             mt: showRepositoryInfo() ? 1 : 13,
             mb: 4,
-            pr: (drawerOpen || userRegDrawerOpen || apiPasswordDrawerOpen) ? '500px' : undefined
+            pr: (drawerOpen || userRegDrawerOpen || passwordResetDrawerOpen || userDeleteDrawerOpen || apiPasswordDrawerOpen) ? '500px' : undefined
           }}>
           <PackageList ref={packageListRef} serverConfig={serverConfig} />
         </Container>
@@ -457,6 +468,17 @@ const App = () => {
           open={userRegDrawerOpen}
           onClose={handleCloseUserRegDrawer}
           onRegistrationSuccess={handleUserRegSuccess}
+          />
+
+        <UserPasswordResetDrawer
+          open={passwordResetDrawerOpen}
+          onClose={handleClosePasswordResetDrawer}
+          />
+
+        <UserDeleteDrawer
+          open={userDeleteDrawerOpen}
+          onClose={handleCloseUserDeleteDrawer}
+          currentUsername={serverConfig?.currentUser?.username}
           />
 
         <ApiPasswordDrawer
