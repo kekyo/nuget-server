@@ -394,16 +394,13 @@ const App = () => {
 
             {/* Login Button */}
             {showLoginButton() && (
-              <>
-                <Divider orientation="vertical" flexItem sx={{ mx: 1, borderColor: 'rgba(255, 255, 255, 0.3)' }} />
-                <Button
-                  color="inherit"
-                  startIcon={<LoginIcon />}
-                  onClick={handleLogin}
-                  sx={{ mr: 1 }}>
-                  Login
-                </Button>
-              </>
+              <Button
+                color="inherit"
+                startIcon={<LoginIcon />}
+                onClick={handleLogin}
+                sx={{ mr: 1 }}>
+                Login
+              </Button>
             )}
 
             {/* Logout Button */}
