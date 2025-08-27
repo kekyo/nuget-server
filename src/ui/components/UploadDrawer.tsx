@@ -21,7 +21,19 @@ import {
   CheckCircle as SuccessIcon,
   Error as ErrorIcon,
   FileUpload as FileUploadIcon,
+  Clear as ClearIcon,
 } from '@mui/icons-material';
+import {
+  Chip,
+  LinearProgress,
+  List,
+  ListItemIcon,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
+  Stack,
+} from '@mui/material';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 
 interface UploadDrawerProps {
   open: boolean;
@@ -30,79 +42,110 @@ interface UploadDrawerProps {
 }
 
 interface UploadResult {
+  fileName: string;
   success: boolean;
   packageName?: string;
   version?: string;
   message?: string;
+  status: 'pending' | 'uploading' | 'success' | 'error';
 }
 
 const UploadDrawer = ({ open, onClose, onUploadSuccess }: UploadDrawerProps) => {
-  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
-  const [result, setResult] = useState<UploadResult | null>(null);
+  const [uploadResults, setUploadResults] = useState<UploadResult[]>([]);
+  const [currentUploadIndex, setCurrentUploadIndex] = useState<number>(-1);
   const [isDragging, setIsDragging] = useState(false);
   const dragCounter = useRef(0);
+  const hasTriggeredAuthReload = useRef(false);
 
-  const handleFileSelection = (file: File) => {
-    if (file && file.name.endsWith('.nupkg')) {
-      setSelectedFile(file);
-    } else {
-      alert('Please select a .nupkg file');
+  const handleFileSelection = (files: File[]) => {
+    const validFiles = files.filter(file => file.name.endsWith('.nupkg'));
+    const invalidCount = files.length - validFiles.length;
+    
+    if (invalidCount > 0) {
+      alert(`${invalidCount} file(s) were not .nupkg files and were excluded.`);
+    }
+    
+    if (validFiles.length > 0) {
+      setSelectedFiles(validFiles);
+      setUploadResults([]);
+      setCurrentUploadIndex(-1);
     }
   };
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      handleFileSelection(file);
+    const files = event.target.files;
+    if (files && files.length > 0) {
+      handleFileSelection(Array.from(files));
     }
   };
 
   const handleUpload = async () => {
-    if (!selectedFile) return;
+    if (selectedFiles.length === 0) return;
 
     setUploading(true);
-    setResult(null);
+    hasTriggeredAuthReload.current = false;
+    const results: UploadResult[] = [];
 
-    try {
-      // Read file as ArrayBuffer to send as binary data
-      const fileBuffer = await selectedFile.arrayBuffer();
-
-      const response = await fetch('/api/publish', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/octet-stream',
-        },
-        body: fileBuffer,
-        credentials: 'same-origin'
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-        setResult({
-          success: true,
-          packageName: selectedFile.name.replace('.nupkg', ''),
-          message: `${result.message}\nResolved: ${result.id} ${result.version}`,
-        });
-        onUploadSuccess();
-      } else if (response.status === 401) {
-        // Authentication required - reload to trigger browser's Basic auth popup
-        window.location.reload();
-        return;
-      } else {
-        const errorText = await response.text();
-        setResult({
-          success: false,
-          message: `Upload failed: ${response.status} ${response.statusText}\n${errorText}`,
-        });
-      }
-    } catch (error) {
-      setResult({
+    for (let i = 0; i < selectedFiles.length; i++) {
+      const file = selectedFiles[i];
+      setCurrentUploadIndex(i);
+      
+      const result: UploadResult = {
+        fileName: file.name,
         success: false,
-        message: `Upload error: ${error instanceof Error ? error.message : 'Unknown error'}`,
-      });
-    } finally {
-      setUploading(false);
+        status: 'uploading',
+        packageName: file.name.replace('.nupkg', ''),
+      };
+      
+      try {
+        // Update status for current file
+        setUploadResults([...results, result]);
+        
+        // Read file as ArrayBuffer to send as binary data
+        const fileBuffer = await file.arrayBuffer();
+
+        const response = await fetch('/api/publish', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/octet-stream',
+          },
+          body: fileBuffer,
+          credentials: 'same-origin'
+        });
+
+        if (response.ok) {
+          const apiResult = await response.json();
+          result.success = true;
+          result.status = 'success';
+          result.version = apiResult.version;
+          result.message = `${apiResult.message}\nResolved: ${apiResult.id} ${apiResult.version}`;
+        } else if (response.status === 401 && !hasTriggeredAuthReload.current) {
+          // Authentication required - reload to trigger browser's Basic auth popup (only once)
+          hasTriggeredAuthReload.current = true;
+          window.location.reload();
+          return;
+        } else {
+          const errorText = await response.text();
+          result.status = 'error';
+          result.message = `Upload failed: ${response.status} ${response.statusText}\n${errorText}`;
+        }
+      } catch (error) {
+        result.status = 'error';
+        result.message = `Upload error: ${error instanceof Error ? error.message : 'Unknown error'}`;
+      }
+      
+      results.push(result);
+      setUploadResults([...results]);
+    }
+
+    setUploading(false);
+    setCurrentUploadIndex(-1);
+    
+    // Call success callback if at least one upload succeeded
+    if (results.some(r => r.success)) {
+      onUploadSuccess();
     }
   };
 
@@ -136,23 +179,34 @@ const UploadDrawer = ({ open, onClose, onUploadSuccess }: UploadDrawerProps) => 
     dragCounter.current = 0;
     
     const files = e.dataTransfer.files;
-    if (files && files[0]) {
-      handleFileSelection(files[0]);
+    if (files && files.length > 0) {
+      handleFileSelection(Array.from(files));
     }
   };
 
   const handleClose = () => {
-    setSelectedFile(null);
+    setSelectedFiles([]);
     setUploading(false);
-    setResult(null);
+    setUploadResults([]);
+    setCurrentUploadIndex(-1);
     setIsDragging(false);
     dragCounter.current = 0;
+    hasTriggeredAuthReload.current = false;
     onClose();
   };
 
   const resetForm = () => {
-    setSelectedFile(null);
-    setResult(null);
+    setSelectedFiles([]);
+    setUploadResults([]);
+    setCurrentUploadIndex(-1);
+  };
+  
+  const removeFile = (index: number) => {
+    setSelectedFiles(files => files.filter((_, i) => i !== index));
+  };
+  
+  const getTotalSize = () => {
+    return selectedFiles.reduce((total, file) => total + file.size, 0);
   };
 
   return (
@@ -188,10 +242,10 @@ const UploadDrawer = ({ open, onClose, onUploadSuccess }: UploadDrawerProps) => 
 
         <Divider sx={{ mb: 3 }} />
 
-        {!result ? (
+        {uploadResults.length === 0 ? (
           <Box>
             <Typography variant="body1" sx={{ mb: 2 }}>
-              Select a NuGet package (.nupkg) file to upload:
+              Select NuGet package (.nupkg) files to upload:
             </Typography>
 
             <Paper
@@ -225,12 +279,12 @@ const UploadDrawer = ({ open, onClose, onUploadSuccess }: UploadDrawerProps) => 
               
               {isDragging ? (
                 <Typography variant="h6" color="primary" sx={{ mb: 1 }}>
-                  Drop your .nupkg file here
+                  Drop your .nupkg files here
                 </Typography>
               ) : (
                 <>
                   <Typography variant="h6" color="text.primary" sx={{ mb: 1 }}>
-                    Drag & drop your .nupkg file here
+                    Drag & drop your .nupkg files here
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
                     or click to browse files
@@ -246,88 +300,129 @@ const UploadDrawer = ({ open, onClose, onUploadSuccess }: UploadDrawerProps) => 
               variant="outlined"
               inputProps={{
                 accept: '.nupkg',
+                multiple: true,
               }}
               onChange={handleFileChange}
               sx={{ display: 'none' }}
             />
 
-            {selectedFile && (
+            {selectedFiles.length > 0 && (
               <Paper sx={{ p: 2, mb: 3 }} variant="outlined" elevation={0}>
-                <Typography variant="body2" color="text.secondary">
-                  Selected file:
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                  Selected files ({selectedFiles.length} file{selectedFiles.length !== 1 ? 's' : ''}, {(getTotalSize() / 1024 / 1024).toFixed(2)} MB total):
                 </Typography>
-                <Typography variant="body1" sx={{ fontWeight: 'medium' }}>
-                  {selectedFile.name}
-                </Typography>
-                <Typography variant="caption" color="text.secondary">
-                  Size: {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
-                </Typography>
+                <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                  {selectedFiles.map((file, index) => (
+                    <Chip
+                      key={index}
+                      label={file.name}
+                      onDelete={() => removeFile(index)}
+                      deleteIcon={<ClearIcon />}
+                      size="small"
+                      sx={{ mb: 1 }}
+                    />
+                  ))}
+                </Stack>
               </Paper>
             )}
 
+            {uploading && currentUploadIndex >= 0 && (
+              <Box sx={{ mb: 2 }}>
+                <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                  Uploading {currentUploadIndex + 1} of {selectedFiles.length}: {selectedFiles[currentUploadIndex].name}
+                </Typography>
+                <LinearProgress 
+                  variant="determinate" 
+                  value={(currentUploadIndex / selectedFiles.length) * 100}
+                />
+              </Box>
+            )}
+            
             <Button
               variant="contained"
               fullWidth
               startIcon={uploading ? <CircularProgress size={20} /> : <UploadIcon />}
               onClick={handleUpload}
-              disabled={!selectedFile || uploading}
+              disabled={selectedFiles.length === 0 || uploading}
               sx={{ mb: 2 }}
             >
-              {uploading ? 'Uploading...' : 'Upload'}
+              {uploading ? `Uploading (${currentUploadIndex + 1}/${selectedFiles.length})...` : `Upload ${selectedFiles.length} file${selectedFiles.length !== 1 ? 's' : ''}`}
             </Button>
           </Box>
         ) : (
           <Box>
-            <Alert
-              severity={result.success ? 'success' : 'error'}
-              icon={result.success ? <SuccessIcon /> : <ErrorIcon />}
-              sx={{ mb: 3 }}
-            >
-              {result.success ? 'Upload Successful!' : 'Upload Failed'}
-            </Alert>
+            {/* Summary */}
+            <Box sx={{ mb: 3 }}>
+              {uploadResults.filter(r => r.status === 'success').length === uploadResults.length ? (
+                <Alert severity="success" icon={<SuccessIcon />}>
+                  All {uploadResults.length} package{uploadResults.length !== 1 ? 's' : ''} uploaded successfully!
+                </Alert>
+              ) : uploadResults.filter(r => r.status === 'error').length === uploadResults.length ? (
+                <Alert severity="error" icon={<ErrorIcon />}>
+                  All uploads failed
+                </Alert>
+              ) : (
+                <Alert severity="warning">
+                  {uploadResults.filter(r => r.status === 'success').length} of {uploadResults.length} package{uploadResults.length !== 1 ? 's' : ''} uploaded successfully
+                </Alert>
+              )}
+            </Box>
 
-            {result.success && result.packageName && (
-              <Paper sx={{ p: 2, mb: 3 }} variant="outlined" elevation={0}>
-                <Typography variant="body2" color="text.secondary" gutterBottom>
-                  Package Details:
-                </Typography>
-                <Typography variant="body1" sx={{ fontWeight: 'medium' }}>
-                  {result.packageName}
-                </Typography>
-                {result.version && (
-                  <Typography variant="body2" color="text.secondary">
-                    Version: {result.version}
-                  </Typography>
-                )}
-              </Paper>
-            )}
-
-            {result.message && (
-              <Box sx={{ mb: 3 }}>
-                <Typography variant="body2" color="text.secondary" gutterBottom>
-                  Details:
-                </Typography>
-                <Paper
-                  sx={{
-                    p: 1,
-                    borderRadius: 1,
-                  }}
-                  variant="outlined"
-                  elevation={0}
-                >
-                  <Typography
-                    variant="body2"
-                    sx={{
-                      fontFamily: 'monospace',
-                      fontSize: '0.75rem',
-                      whiteSpace: 'pre-wrap',
-                    }}
-                  >
-                    {result.message}
-                  </Typography>
-                </Paper>
-              </Box>
-            )}
+            {/* Results List */}
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+              Upload Results:
+            </Typography>
+            
+            <List sx={{ mb: 3 }}>
+              {uploadResults.map((result, index) => (
+                <Accordion key={index} defaultExpanded={result.status === 'error'}>
+                  <AccordionSummary expandIcon={<ExpandMoreIcon />}>
+                    <ListItemIcon sx={{ minWidth: 40 }}>
+                      {result.status === 'success' ? (
+                        <SuccessIcon color="success" />
+                      ) : result.status === 'error' ? (
+                        <ErrorIcon color="error" />
+                      ) : result.status === 'uploading' ? (
+                        <CircularProgress size={20} />
+                      ) : null}
+                    </ListItemIcon>
+                    <Typography sx={{ flexGrow: 1 }}>
+                      {result.fileName}
+                    </Typography>
+                    {result.version && (
+                      <Typography variant="caption" color="text.secondary">
+                        v{result.version}
+                      </Typography>
+                    )}
+                  </AccordionSummary>
+                  {result.message && (
+                    <AccordionDetails>
+                      <Paper
+                        sx={{
+                          p: 1,
+                          borderRadius: 1,
+                          backgroundColor: (theme) => 
+                            theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.02)',
+                        }}
+                        variant="outlined"
+                        elevation={0}
+                      >
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            fontFamily: 'monospace',
+                            fontSize: '0.75rem',
+                            whiteSpace: 'pre-wrap',
+                          }}
+                        >
+                          {result.message}
+                        </Typography>
+                      </Paper>
+                    </AccordionDetails>
+                  )}
+                </Accordion>
+              ))}
+            </List>
 
             <Box sx={{ display: 'flex', gap: 1 }}>
               <Button
@@ -335,7 +430,7 @@ const UploadDrawer = ({ open, onClose, onUploadSuccess }: UploadDrawerProps) => 
                 onClick={resetForm}
                 sx={{ flex: 1 }}
               >
-                Upload Another
+                Upload More
               </Button>
             </Box>
           </Box>
