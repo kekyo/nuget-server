@@ -241,7 +241,7 @@ const UserDeleteDrawer = ({
                         options={users}
                         getOptionLabel={(option) => `${option.username} (${option.role})`}
                         value={users.find(u => u.username === selectedUsername) || null}
-                        onChange={(event, newValue) => {
+                        onChange={(_event, newValue) => {
                           setSelectedUsername(newValue ? newValue.username : null);
                         }}
                         disabled={deleting}

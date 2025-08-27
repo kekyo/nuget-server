@@ -139,11 +139,11 @@ export const getBaseUrlFromEnv = (): string | undefined => {
 
 /**
  * Gets trusted proxies list from environment variable
- * @returns Array of trusted proxy IPs from NUGET_SERVER_TRUSTED_PROXIES environment variable
+ * @returns Array of trusted proxy IPs from NUGET_SERVER_TRUSTED_PROXIES environment variable, or undefined if not set
  */
-export const getTrustedProxiesFromEnv = (): string[] => {
+export const getTrustedProxiesFromEnv = (): string[] | undefined => {
   const proxies = process.env.NUGET_SERVER_TRUSTED_PROXIES;
-  if (!proxies) return [];
+  if (!proxies) return undefined;
   
   return proxies.split(',').map(ip => ip.trim()).filter(Boolean);
 };

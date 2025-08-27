@@ -11,6 +11,16 @@ import { createConsoleLogger } from './logger';
 import { ServerConfig, LogLevel, AuthMode } from './types';
 import { getBaseUrlFromEnv, getTrustedProxiesFromEnv } from './utils/urlResolver';
 import { runAuthInit } from './authInit';
+import { loadConfigFromFile } from './utils/configLoader';
+
+const getPortFromEnv = (): number | undefined => {
+  const port = process.env.NUGET_SERVER_PORT;
+  return port ? parseInt(port, 10) : undefined;
+};
+
+const getPackageDirFromEnv = (): string | undefined => {
+  return process.env.NUGET_SERVER_PACKAGE_DIR;
+};
 
 const getConfigDirFromEnv = (): string | undefined => {
   return process.env.NUGET_SERVER_CONFIG_DIR;
@@ -20,8 +30,19 @@ const getRealmFromEnv = (): string | undefined => {
   return process.env.NUGET_SERVER_REALM;
 };
 
+const getLogLevelFromEnv = (): LogLevel | undefined => {
+  const level = process.env.NUGET_SERVER_LOG_LEVEL;
+  const validLevels: LogLevel[] = ['debug', 'info', 'warn', 'error', 'ignore'];
+  return validLevels.includes(level as LogLevel) ? level as LogLevel : undefined;
+};
+
+const getNoUiFromEnv = (): boolean | undefined => {
+  const noUi = process.env.NUGET_SERVER_NO_UI;
+  return noUi === 'true' ? true : noUi === 'false' ? false : undefined;
+};
+
 const getAuthModeFromEnv = (): AuthMode | undefined => {
-  const authMode = process.env.NUGET_SERVER_ENABLE_AUTH;
+  const authMode = process.env.NUGET_SERVER_AUTH_MODE;
   if (authMode === 'publish' || authMode === 'full' || authMode === 'none') {
     return authMode;
   }
@@ -37,54 +58,70 @@ const getSessionSecretFromEnv = (): string | undefined => {
 const program = new Command();
 
 program.
-  name(`${packageName} [${version}-${git_commit_hash}]`).
+  name(packageName).
   description(description).
-  version(version).
-  option('-p, --port <port>', 'port number', '5963').
+  version(`${version}-${git_commit_hash}`).
+  option('-p, --port <port>', 'port number').
   option('-b, --base-url <url>', 'fixed base URL for API endpoints (overrides auto-detection)').
-  option('-d, --package-dir <dir>', 'package storage directory', './packages').
-  option('-c, --config-dir <dir>', 'configuration directory', './').
-  option('-r, --realm <realm>', `authentication realm (default: "${packageName} ${version}")`, `${packageName} ${version}`).
-  option('-l, --log <level>', 'log level (debug, info, warn, error, ignore)', 'info').
+  option('-d, --package-dir <dir>', 'package storage directory').
+  option('-c, --config-dir <dir>', 'configuration directory').
+  option('-r, --realm <realm>', `authentication realm`).
+  option('-l, --log-level <level>', 'log level (debug, info, warn, error, ignore)').
   option('--no-ui', 'disable UI serving').
   option('--trusted-proxies <ips>', 'comma-separated list of trusted proxy IPs').
-  option('--enable-auth <mode>', 'authentication mode (none, publish, full)').
+  option('--auth-mode <mode>', 'authentication mode (none, publish, full)').
   option('--auth-init', 'initialize authentication with interactive admin user creation').
   action(async (options) => {
+    // Determine config directory first
+    const configDir = options.configDir || getConfigDirFromEnv() || './';
+    
+    // Create temporary logger for config loading
+    const tempLogger = createConsoleLogger(packageName, 'warn');
+    
+    // Load config.json
+    const configFile = await loadConfigFromFile(configDir, tempLogger);
+    
+    // Determine values with proper priority: CLI > ENV > config.json > default
+    const port = options.port !== undefined
+      ? parseInt(options.port, 10)
+      : getPortFromEnv() || configFile.port || 5963;
+    
+    const baseUrl = options.baseUrl || getBaseUrlFromEnv() || configFile.baseUrl;
+    const packageDir = options.packageDir || getPackageDirFromEnv() || configFile.packageDir || './packages';
+    const realm = options.realm || getRealmFromEnv() || configFile.realm || `${packageName} ${version}`;
+    const logLevel = options.logLevel || getLogLevelFromEnv() || configFile.logLevel || 'info';
+    const noUi = options.ui === false || getNoUiFromEnv() || configFile.noUi || false;
+    const trustedProxies = options.trustedProxies 
+      ? options.trustedProxies.split(',').map((ip: string) => ip.trim())
+      : getTrustedProxiesFromEnv() || configFile.trustedProxies;
+    const authMode = options.authMode || getAuthModeFromEnv() || configFile.authMode || 'none';
+    const sessionSecret = getSessionSecretFromEnv() || configFile.sessionSecret;
+    
     // Validate log level
     const validLogLevels: LogLevel[] = ['debug', 'info', 'warn', 'error', 'ignore'];
-    if (!validLogLevels.includes(options.log as LogLevel)) {
-      console.error(`Invalid log level: ${options.log}. Valid levels are: ${validLogLevels.join(', ')}`);
+    if (!validLogLevels.includes(logLevel as LogLevel)) {
+      console.error(`Invalid log level: ${logLevel}. Valid levels are: ${validLogLevels.join(', ')}`);
       process.exit(1);
     }
 
-    const logger = createConsoleLogger(packageName, options.log as LogLevel);
-    const configDir = options.configDir || getConfigDirFromEnv() || './';
-
-    // Get auth mode from CLI option or environment variable, default to 'none'
-    const authMode = (options.enableAuth || getAuthModeFromEnv() || 'none') as AuthMode;
+    // Create the actual logger with determined log level
+    const logger = createConsoleLogger(packageName, logLevel as LogLevel);
     
     // Validate auth mode
     const validAuthModes: AuthMode[] = ['none', 'publish', 'full'];
-    if (!validAuthModes.includes(authMode)) {
+    if (!validAuthModes.includes(authMode as AuthMode)) {
       console.error(`Invalid auth mode: ${authMode}. Valid modes are: ${validAuthModes.join(', ')}`);
+      process.exit(1);
+    }
+
+    // Validate port
+    if (isNaN(port) || port <= 0 || port > 65535) {
+      console.error('Invalid port number');
       process.exit(1);
     }
 
     // Display banner
     logger.info(`${packageName} [${version}-${git_commit_hash}] Starting...`);
-
-    const port = parseInt(options.port, 10);
-    if (isNaN(port) || port <= 0 || port > 65535) {
-      logger.error('Invalid port number');
-      process.exit(1);
-    }
-
-    const baseUrl = options.baseUrl || getBaseUrlFromEnv();
-    const realm = options.realm || getRealmFromEnv() || `${packageName} ${version}`;
-    const trustedProxies = options.trustedProxies 
-      ? options.trustedProxies.split(',').map((ip: string) => ip.trim())
-      : getTrustedProxiesFromEnv();
 
     // Log configuration settings
     logger.info(`Port: ${port}`);
@@ -95,28 +132,29 @@ program.
       logger.info(`Base URL: http://localhost:${port} (auto-detected)`);
     }
     
-    logger.info(`Package directory: ${options.packageDir}`);
+    logger.info(`Package directory: ${packageDir}`);
     logger.info(`Config directory: ${configDir}`);
     logger.info(`Realm: ${realm}`);
     logger.info(`Authentication mode: ${authMode}`);
-    logger.info(`Log level: ${options.log}`);
-    logger.info(`UI enabled: ${options.ui ? 'yes' : 'no'}`);
+    logger.info(`Log level: ${logLevel}`);
+    logger.info(`UI enabled: ${!noUi ? 'yes' : 'no'}`);
     if (trustedProxies && trustedProxies.length > 0) {
       logger.info(`Trusted proxies: ${trustedProxies.join(', ')}`);
     }
-
-    const sessionSecret = getSessionSecretFromEnv();
+    if (configFile && Object.keys(configFile).length > 0) {
+      logger.info(`Loaded configuration from ${configDir}/config.json`);
+    }
     
     const config: ServerConfig = {
       port,
       baseUrl,
-      packageDir: options.packageDir,
+      packageDir,
       configDir,
       realm,
       authMode: authMode as AuthMode,
       trustedProxies,
-      logLevel: options.log as LogLevel,
-      noUi: !options.ui,
+      logLevel: logLevel as LogLevel,
+      noUi,
       sessionSecret
     };
     
