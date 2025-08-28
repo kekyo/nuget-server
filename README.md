@@ -55,13 +55,13 @@ nuget-server --port 3000
 nuget-server --no-ui
 
 # Custom log level (debug, info, warn, error, ignore - default: info)
-nuget-server --log debug
+nuget-server --log-level debug
 ```
 
-The NuGet V3 API is served on the `/api` path.
+The NuGet V3 API is served on the `/v3` path.
 
 * Default nuget-server served URL (Show UI): `http://localhost:5963`
-* Actual NuGet V3 API endpoint: `http://localhost:5963/api/index.json`
+* Actual NuGet V3 API endpoint: `http://localhost:5963/v3/index.json`
 
 Default nuget-server served URL can change with `--base-url` option, it shows below section.
 
@@ -72,7 +72,7 @@ Default nuget-server served URL can change with `--base-url` option, it shows be
 Add as package source:
 
 ```bash
-dotnet nuget add source http://localhost:5963/api/index.json \
+dotnet nuget add source http://localhost:5963/v3/index.json \
   -n "local" --allow-insecure-connections
 ```
 
@@ -82,7 +82,7 @@ Or specify in `nuget.config`:
 <?xml version="1.0" encoding="utf-8"?>
 <configuration>
   <packageSources>
-    <add key="local" value="http://localhost:5963/api/index.json"
+    <add key="local" value="http://localhost:5963/v3/index.json"
       allowInsecureConnections="true" />
   </packageSources>
 </configuration>
@@ -182,7 +182,7 @@ nuget-server --auth-init --config-dir ./config
 This command will:
 1. Prompt for admin username (default: admin)
 2. Prompt for password (minimum 4 characters, masked input)
-3. Generate an API key for the admin user
+3. Generate an API password for the admin user
 4. Create `users.json` in the config directory
 5. Exit after initialization (server does not start)
 
@@ -200,8 +200,8 @@ Username: admin
 API password: ngs_xxxxxxxxxxxxxxxxxxxxxx
 ============================================================
 
-IMPORTANT: Save this API key securely. It cannot be retrieved again.
-Use this API key for NuGet client authentication:
+IMPORTANT: Save this API password securely. It cannot be retrieved again.
+Use this API password for NuGet client authentication:
   Username: admin
   Password: ngs_xxxxxxxxxxxxxxxxxxxxxx
 ============================================================
@@ -209,25 +209,25 @@ Use this API key for NuGet client authentication:
 
 ### Authentication Modes
 
-When using JSON-based authentication, configure the mode with `--enable-auth`:
+When using JSON-based authentication, configure the mode with `--auth-mode`:
 
 - `none`: No authentication required (default)
 - `publish`: Authentication required only for package publishing
 - `full`: Authentication required for all operations
 
-### Using the API Key
+### Using the API Password
 
-After initialization, use the generated API key with NuGet clients:
+After initialization, use the generated API password with NuGet clients:
 
 ```bash
-# Add source with API key
+# Add source with API password
 dotnet nuget add source http://localhost:5963/v3/index.json \
   -n "local" \
   -u admin \
   -p ngs_xxxxxxxxxxxxxxxxxxxxxx \
   --store-password-in-clear-text
 
-# Publish packages with API key
+# Publish packages with API password
 curl -X POST http://localhost:5963/api/publish \
   -u admin:ngs_xxxxxxxxxxxxxxxxxxxxxx \
   --data-binary @MyPackage.1.0.0.nupkg \
@@ -275,7 +275,7 @@ htpasswd -c htpasswd reader
 Add package source with credentials:
 
 ```bash
-dotnet nuget add source http://localhost:5963/api/index.json \
+dotnet nuget add source http://localhost:5963/v3/index.json \
   -n "local" \
   -u "reader" \
   -p "your-password" \
@@ -289,7 +289,7 @@ Or specify `nuget.config` with credentials:
 <?xml version="1.0" encoding="utf-8"?>
 <configuration>
   <packageSources>
-    <add key="local" value="http://localhost:5963/api/index.json"
+    <add key="local" value="http://localhost:5963/v3/index.json"
       allowInsecureConnections="true" />
   </packageSources>
   <packageSourceCredentials>
@@ -333,7 +333,7 @@ The server resolves URLs using the following priority order:
 For example `--base-url` option:
 
 * nuget-server served public base URL: `https://packages.example.com`
-* Actual NuGet V3 API endpoint: `https://packages.example.com/api/index.json`
+* Actual NuGet V3 API endpoint: `https://packages.example.com/v3/index.json`
 
 ```bash
 # Configure served URL (do not include /api path)
@@ -359,10 +359,10 @@ export NUGET_SERVER_CONFIG_DIR=/path/to/config
 
 The server implements a subset of the NuGet V3 API protocol:
 
-* Service index: `/api/index.json`
-* Package content: `/api/package/{id}/index.json`
-* Package downloads: `/api/package/{id}/{version}/{filename}`
-* Registration index: `/api/registrations/{id}/index.json`
+* Service index: `/v3/index.json`
+* Package content: `/v3/package/{id}/index.json`
+* Package downloads: `/v3/package/{id}/{version}/{filename}`
+* Registration index: `/v3/registrations/{id}/index.json`
 
 ----
 
