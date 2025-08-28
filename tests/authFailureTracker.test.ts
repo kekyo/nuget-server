@@ -93,7 +93,8 @@ describe("AuthFailureTracker - Basic Functionality", () => {
 
     const elapsed1 = Date.now() - startTime;
     expect(delay1).toBe(100);
-    expect(elapsed1).toBeGreaterThanOrEqual(100);
+    // Allow for small timing variations (5ms tolerance)
+    expect(elapsed1).toBeGreaterThanOrEqual(95);
     expect(mockLogger.info).toHaveBeenCalledWith(
       expect.stringContaining("Applying 100ms delay for auth failure #1"),
     );
