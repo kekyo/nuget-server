@@ -67,32 +67,6 @@ export default defineConfig(({ mode, command }) => {
             index: resolve(__dirname, "src/ui/index.html"),
             login: resolve(__dirname, "src/ui/login.html"),
           },
-          output: {
-            manualChunks: (id) => {
-              // Separate zxcvbn into its own chunk
-              if (id.includes("zxcvbn")) {
-                return "password-checker";
-              }
-              // Group React and related FIRST (before MUI)
-              if (id.includes("react") || id.includes("react-dom")) {
-                return "react-vendor";
-              }
-              // Group emotion (MUI's dependency)
-              if (id.includes("@emotion")) {
-                return "emotion-vendor";
-              }
-              // Group MUI components AFTER React and emotion
-              if (
-                id.includes("@mui/material") ||
-                id.includes("@mui/icons-material") ||
-                id.includes("@mui/system") ||
-                id.includes("@mui/base") ||
-                id.includes("@mui/utils")
-              ) {
-                return "mui-vendor";
-              }
-            },
-          },
         },
       },
     };
