@@ -6,7 +6,8 @@
     "nuget",
     "server",
     "typescript",
-    "cli"
+    "cli",
+    "ui"
   ],
   "author": "Kouji Matsui (@kekyo@mi.kekyo.net)",
   "license": "MIT",
@@ -32,7 +33,6 @@
   },
   "files": [
     "dist",
-    "README_pack.md",
     "images/nuget-server-120.png",
     "images/nuget-server-ss-1.png"
   ],
