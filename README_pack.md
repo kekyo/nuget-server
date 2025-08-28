@@ -20,6 +20,7 @@ A modern browser-based UI is also provided:
 * You can refer to registered packages. You can check various package attributes.
 * You can download packages by version.
 * You can also publish (upload) packages.
+* You can manage user accounts.
 
 ![Browse packages](images/nuget-server-ss-1.png)
 

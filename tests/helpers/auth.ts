@@ -1,69 +1,5 @@
-import fs from 'fs-extra';
-import path from 'path';
-import * as bcrypt from 'bcryptjs';
-import { createHash } from 'crypto';
-
-export interface HtpasswdUser {
-  username: string;
-  password: string;
-  hashType: 'plain' | 'sha1' | 'apr1' | 'bcrypt';
-}
-
-/**
- * Creates an htpasswd file with the specified users
- * @param configDir - Directory where the htpasswd file should be created
- * @param filename - Name of the htpasswd file
- * @param users - Array of users to include in the file
- */
-export const createHtpasswdFile = async (
-  configDir: string,
-  filename: string,
-  users: HtpasswdUser[]
-): Promise<void> => {
-  const lines: string[] = [];
-  
-  for (const user of users) {
-    let passwordHash: string;
-    
-    switch (user.hashType) {
-      case 'plain':
-        passwordHash = user.password;
-        break;
-      case 'sha1':
-        passwordHash = '{SHA}' + createHash('sha1').update(user.password).digest('base64');
-        break;
-      case 'apr1':
-        // Simplified APR1 implementation for testing - use a fixed hash for testing
-        passwordHash = `$apr1$testsalt$${createHash('md5').update(user.password).digest('base64').substring(0, 22)}`;
-        break;
-      case 'bcrypt':
-        passwordHash = bcrypt.hashSync(user.password, 10);
-        break;
-    }
-    
-    lines.push(`${user.username}:${passwordHash}`);
-  }
-  
-  const filePath = path.join(configDir, filename);
-  await fs.writeFile(filePath, lines.join('\n'));
-};
-
-/**
- * Deletes an htpasswd file
- * @param configDir - Directory containing the htpasswd file
- * @param filename - Name of the htpasswd file
- */
-export const deleteHtpasswdFile = async (
-  configDir: string, 
-  filename: string
-): Promise<void> => {
-  const filePath = path.join(configDir, filename);
-  try {
-    await fs.unlink(filePath);
-  } catch (error) {
-    // Ignore if file doesn't exist
-  }
-};
+// Authentication test helpers
+// Contains utility functions for testing authentication functionality
 
 /**
  * Makes an HTTP request with Basic authentication
@@ -76,7 +12,7 @@ export const makeAuthenticatedRequest = async (
   options: {
     method?: string;
     auth?: string; // format: "username:password"
-    body?: Buffer | Uint8Array;
+    body?: Buffer | Uint8Array | string | object;
     headers?: Record<string, string>;
   } = {}
 ): Promise<Response> => {
@@ -86,12 +22,25 @@ export const makeAuthenticatedRequest = async (
     headers['Authorization'] = `Basic ${Buffer.from(auth).toString('base64')}`;
   }
   
-  if (body) {
-    headers['Content-Type'] = headers['Content-Type'] || 'application/octet-stream';
-  }
+  let requestBody: BodyInit | undefined;
   
-  // Convert Buffer to Uint8Array if needed for fetch compatibility
-  const requestBody = body instanceof Buffer ? new Uint8Array(body) : body;
+  if (body) {
+    if (typeof body === 'object' && !(body instanceof Buffer) && !(body instanceof Uint8Array)) {
+      // JSON object
+      headers['Content-Type'] = 'application/json';
+      requestBody = JSON.stringify(body);
+    } else if (typeof body === 'string') {
+      // String body
+      headers['Content-Type'] = headers['Content-Type'] || 'text/plain';
+      requestBody = body;
+    } else {
+      // Buffer or Uint8Array - convert Buffer to Uint8Array for fetch API compatibility
+      headers['Content-Type'] = headers['Content-Type'] || 'application/octet-stream';
+      // Convert Buffer to Uint8Array and cast to any to handle TypeScript's strict type checking
+      // This is safe because Uint8Array is a valid BodyInit type at runtime
+      requestBody = (body instanceof Buffer ? new Uint8Array(body) : body) as any;
+    }
+  }
   
   return fetch(url, {
     method,
@@ -168,3 +117,4 @@ export const makeAuthenticatedRequestWithRetry = async (
 export const wait = (ms: number): Promise<void> => {
   return new Promise(resolve => setTimeout(resolve, ms));
 };
+

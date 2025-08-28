@@ -6,6 +6,7 @@ import fs from 'fs/promises';
 import path from 'path';
 import xml2js from 'xml2js';
 import { Logger } from '../types';
+import { compareVersions } from '../utils/semver';
 
 /**
  * Group of package dependencies for a specific target framework
@@ -65,14 +66,15 @@ export interface PackageEntry {
  * Service interface for managing package metadata and caching
  */
 export interface MetadataService {
-  initialize(): Promise<void>;
-  getPackageMetadata(packageId: string): PackageMetadata[];
-  getPackageVersion(packageId: string, version: string): PackageMetadata | null;
-  getPackageEntry(packageId: string, version: string): PackageEntry | null;
-  getAllPackageIds(): string[];
-  updateBaseUrl(baseUrl: string): void;
-  addPackage(metadata: PackageMetadata): void;
-  addPackageEntry(entry: PackageEntry): void;
+  readonly initialize: () => Promise<void>;
+  readonly getPackageMetadata: (packageId: string) => PackageMetadata[];
+  readonly getPackageVersion: (packageId: string, version: string) => PackageMetadata | null;
+  readonly getPackageEntry: (packageId: string, version: string) => PackageEntry | null;
+  readonly getAllPackageIds: () => string[];
+  readonly getLatestPackageEntry: (packageId: string) => PackageEntry | null;
+  readonly updateBaseUrl: (baseUrl: string) => void;
+  readonly addPackage: (metadata: PackageMetadata) => void;
+  readonly addPackageEntry: (entry: PackageEntry) => void;
 }
 
 /**
@@ -171,7 +173,7 @@ export const createMetadataService = (packagesRoot: string = './packages', baseU
       
       // Extract tags
       const tags = metadata.tags ? 
-        (typeof metadata.tags === 'string' ? metadata.tags.split(/[\s,;]+/).filter(t => t) : []) : 
+        (typeof metadata.tags === 'string' ? metadata.tags.split(/[\s,;]+/).filter((t: string) => t) : []) : 
         [];
 
       const actualPackageId = metadata.id || packageId;
@@ -190,7 +192,7 @@ export const createMetadataService = (packagesRoot: string = './packages', baseU
         dependencies,
         published: new Date(), // Use current date as we don't have publish info
         listed: true,
-        packageContentUrl: `${currentBaseUrl}/package/${actualPackageId.toLowerCase()}/${version}/${actualPackageId.toLowerCase()}.${version}.nupkg`
+        packageContentUrl: `${currentBaseUrl}/v3/package/${actualPackageId.toLowerCase()}/${version}/${actualPackageId.toLowerCase()}.${version}.nupkg`
       };
 
       // Read actual file names from directory
@@ -237,7 +239,7 @@ export const createMetadataService = (packagesRoot: string = './packages', baseU
       }
       
       if (entries.length > 0) {
-        entries.sort((a, b) => a.metadata.version.localeCompare(b.metadata.version));
+        entries.sort((a, b) => compareVersions(b.metadata.version, a.metadata.version)); // Descending order (newest first)
         packagesCache.set(packageId.toLowerCase(), entries);
       }
     } catch (error) {
@@ -270,6 +272,7 @@ export const createMetadataService = (packagesRoot: string = './packages', baseU
      * Initializes the metadata service by scanning packages directory
      */
     initialize: async (): Promise<void> => {
+      const startTime = Date.now();
       logger.info('Initializing metadata cache...');
       packagesCache.clear();
       
@@ -277,7 +280,8 @@ export const createMetadataService = (packagesRoot: string = './packages', baseU
         await scanPackages();
         const packageCount = Array.from(packagesCache.values()).reduce((sum, versions) => sum + versions.length, 0);
         const packageIds = packagesCache.size;
-        logger.info(`Metadata cache initialized: ${packageIds} packages, ${packageCount} versions`);
+        const elapsedTime = Date.now() - startTime;
+        logger.info(`Metadata cache initialized: ${packageIds} packages, ${packageCount} versions (took ${elapsedTime}ms)`);
       } catch (error) {
         logger.error(`Failed to initialize metadata cache: ${error}`);
         throw error;
@@ -326,6 +330,17 @@ export const createMetadataService = (packagesRoot: string = './packages', baseU
     },
 
     /**
+     * Gets the latest package entry (metadata + storage info) for a package
+     * @param packageId - Package identifier
+     * @returns Latest package entry or null if package not found
+     */
+    getLatestPackageEntry: (packageId: string): PackageEntry | null => {
+      const entries = packagesCache.get(packageId.toLowerCase()) || [];
+      // Entries are already sorted in descending order (newest first)
+      return entries.length > 0 ? entries[0] : null;
+    },
+
+    /**
      * Updates the base URL and refreshes all package content URLs
      * @param baseUrl - New base URL for package content
      */
@@ -368,7 +383,7 @@ export const createMetadataService = (packagesRoot: string = './packages', baseU
       
       // Add new version
       filteredEntries.push(packageEntry);
-      filteredEntries.sort((a, b) => a.metadata.version.localeCompare(b.metadata.version));
+      filteredEntries.sort((a, b) => compareVersions(b.metadata.version, a.metadata.version)); // Descending order (newest first)
       
       packagesCache.set(packageId, filteredEntries);
       
@@ -388,7 +403,7 @@ export const createMetadataService = (packagesRoot: string = './packages', baseU
       
       // Add new version
       filteredEntries.push(entry);
-      filteredEntries.sort((a, b) => a.metadata.version.localeCompare(b.metadata.version));
+      filteredEntries.sort((a, b) => compareVersions(b.metadata.version, a.metadata.version)); // Descending order (newest first)
       
       packagesCache.set(packageId, filteredEntries);
       

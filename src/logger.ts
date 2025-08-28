@@ -31,14 +31,14 @@ export const createConsoleLogger = (prefix?: string, logLevel: LogLevel = 'info'
   const noop = () => {};
 
   return prefix ? {
-    debug: shouldLog('debug') ? msg => console.debug(`[${prefix}]: [${nowDate()}]: debug: ${msg}`) : noop,
-    info: shouldLog('info') ? msg => console.info(`[${prefix}]: [${nowDate()}]: ${msg}`) : noop,
-    warn: shouldLog('warn') ? msg =>console.warn(`[${prefix}]: [${nowDate()}]: warning: ${msg}`) : noop,
-    error: shouldLog('error') ? msg =>console.error(`[${prefix}]: [${nowDate()}]: error: ${msg}`) : noop
+    debug: shouldLog('debug') ? msg => console.debug(`[${prefix}]: [${nowDate()}]: [debug]: ${msg}`) : noop,
+    info: shouldLog('info') ? msg => console.info(`[${prefix}]: [${nowDate()}]: [info]: ${msg}`) : noop,
+    warn: shouldLog('warn') ? msg =>console.warn(`[${prefix}]: [${nowDate()}]: [warning]: ${msg}`) : noop,
+    error: shouldLog('error') ? msg =>console.error(`[${prefix}]: [${nowDate()}]: [error]: ${msg}`) : noop
   } : {
-    debug: shouldLog('debug') ? msg => console.debug(`[${nowDate()}]: debug: ${msg}`) : noop,
-    info: shouldLog('info') ? msg => console.info(`[${nowDate()}]: ${msg}`) : noop,
-    warn: shouldLog('warn') ? msg => console.warn(`[${nowDate()}]: warning: ${msg}`) : noop,
-    error: shouldLog('error') ? msg => console.error(`[${nowDate()}]: error: ${msg}`) : noop,
+    debug: shouldLog('debug') ? msg => console.debug(`[${nowDate()}]: [debug]: ${msg}`) : noop,
+    info: shouldLog('info') ? msg => console.info(`[${nowDate()}]: [info]: ${msg}`) : noop,
+    warn: shouldLog('warn') ? msg => console.warn(`[${nowDate()}]: [warning]: ${msg}`) : noop,
+    error: shouldLog('error') ? msg => console.error(`[${nowDate()}]: [error]: ${msg}`) : noop,
   };
 };

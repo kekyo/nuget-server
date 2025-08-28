@@ -13,16 +13,12 @@ import {
   Chip,
   Box,
   Button,
-  Paper,
-  IconButton,
-  Stack,
 } from '@mui/material';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import PackageIcon from '@mui/icons-material/Inventory';
 import PackageSourceIcon from '@mui/icons-material/Source';
 import DownloadIcon from '@mui/icons-material/Download';
-import ContentCopyIcon from '@mui/icons-material/ContentCopy';
-import { EditNote } from '@mui/icons-material';
+import { sortVersions } from '../utils/semver';
 
 interface SearchResultVersion {
   version: string;
@@ -68,7 +64,22 @@ interface ServerConfig {
   name: string;
   version: string;
   git_commit_hash: string;
-  addSourceCommand: string;
+  serverUrl: {
+    baseUrl?: string;
+    port: number;
+    isHttps: boolean;
+  };
+  authMode: 'none' | 'publish' | 'full';
+  authEnabled: {
+    general: boolean;
+    publish: boolean;
+    admin: boolean;
+  };
+  currentUser?: {
+    username: string;
+    role: string;
+    authenticated: boolean;
+  } | null;
 }
 
 export interface PackageListRef {
@@ -89,7 +100,7 @@ const PackageIconDisplay: React.FC<PackageIconDisplayProps> = ({ packageId, vers
   const [hasError, setHasError] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   
-  const iconUrl = `/api/package/${packageId.toLowerCase()}/${version}/icon`;
+  const iconUrl = `/api/ui/icon/${packageId}/${version}`;
   
   const handleImageLoad = useCallback(() => {
     setIsLoading(false);
@@ -129,43 +140,45 @@ const PackageList = forwardRef<PackageListRef, PackageListProps>(({ serverConfig
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const sortVersions = (versions: SearchResultVersion[]): SearchResultVersion[] => {
-    return [...versions].sort((a, b) => {
-      const parseVersion = (version: string) => {
-        const [main, prerelease] = version.split('-');
-        const parts = main.split('.').map(Number);
-        return { parts, prerelease };
-      };
-
-      const versionA = parseVersion(a.version);
-      const versionB = parseVersion(b.version);
-
-      // Compare main version parts (major.minor.patch)
-      for (let i = 0; i < Math.max(versionA.parts.length, versionB.parts.length); i++) {
-        const partA = versionA.parts[i] || 0;
-        const partB = versionB.parts[i] || 0;
-        
-        if (partA !== partB) {
-          return partB - partA; // Descending order (latest first)
-        }
-      }
-
-      // If main versions are equal, handle prerelease
-      if (versionA.prerelease && !versionB.prerelease) return 1; // stable comes before prerelease
-      if (!versionA.prerelease && versionB.prerelease) return -1; // stable comes before prerelease
-      if (versionA.prerelease && versionB.prerelease) {
-        return versionA.prerelease.localeCompare(versionB.prerelease); // alphabetical for prerelease
-      }
-
-      return 0;
-    });
+  // Helper function to sort SearchResultVersion arrays using the shared semver logic
+  const sortPackageVersions = (versions: SearchResultVersion[]): SearchResultVersion[] => {
+    const versionStrings = versions.map(v => v.version);
+    const sortedVersions = sortVersions(versionStrings, 'desc'); // Descending order (newest first)
+    
+    // Re-map sorted versions back to SearchResultVersion objects
+    return sortedVersions.map(versionString => 
+      versions.find(v => v.version === versionString)!
+    );
   };
 
   const fetchPackages = async () => {
+    // Early return if serverConfig is not available
+    if (!serverConfig) {
+      setLoading(false);
+      return;
+    }
+    
+    // Skip API request if authMode=full and user is not authenticated
+    if (serverConfig.authMode === 'full' && !serverConfig.currentUser?.authenticated) {
+      // Don't set error when unauthenticated in authMode=full (login dialog will be shown)
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     setError(null);
     try {
-      const response = await fetch('/api/search');
+      // Use Fastify search endpoint
+      const searchEndpoint = '/v3/search';
+      
+      const response = await fetch(searchEndpoint, {
+        credentials: 'same-origin'
+      });
+      if (response.status === 401) {
+        // Authentication required
+        setError('Authentication required');
+        return;
+      }
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -174,7 +187,7 @@ const PackageList = forwardRef<PackageListRef, PackageListProps>(({ serverConfig
       // Sort versions for each package
       const packagesWithSortedVersions = data.data.map(pkg => ({
         ...pkg,
-        versions: sortVersions(pkg.versions)
+        versions: sortPackageVersions(pkg.versions)
       }));
       
       setPackages(packagesWithSortedVersions);
@@ -186,8 +199,11 @@ const PackageList = forwardRef<PackageListRef, PackageListProps>(({ serverConfig
   };
 
   useEffect(() => {
+    // Skip if serverConfig is not set
+    if (!serverConfig) return;
+    
     fetchPackages();
-  }, []);
+  }, [serverConfig]); // Add serverConfig to dependency array
 
   useImperativeHandle(ref, () => ({
     refresh: fetchPackages,
@@ -199,6 +215,11 @@ const PackageList = forwardRef<PackageListRef, PackageListProps>(({ serverConfig
         <CircularProgress />
       </Box>
     );
+  }
+
+  // Don't display anything when unauthenticated in authMode=full (login dialog will be shown)
+  if (serverConfig?.authMode === 'full' && !serverConfig?.currentUser?.authenticated) {
+    return null;
   }
 
   if (error) {
@@ -217,56 +238,8 @@ const PackageList = forwardRef<PackageListRef, PackageListProps>(({ serverConfig
     );
   }
 
-  const handleCopyCommand = () => {
-    if (serverConfig?.addSourceCommand) {
-      navigator.clipboard.writeText(serverConfig.addSourceCommand);
-    }
-  };
-
   return (
     <Box>
-      {serverConfig?.addSourceCommand && (
-        <Paper 
-          sx={{ 
-            p: 2, 
-            mb: 3, 
-            backgroundColor: (theme) => theme.palette.mode === 'dark' ? 'grey.900' : 'grey.100',
-            border: 1,
-            borderColor: 'divider'
-          }}
-          elevation={0}
-        >
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <Box sx={{ flexGrow: 1 }}>
-              <Stack direction="row">
-                <EditNote fontSize="small" />
-                <Typography variant="body2" color="text.secondary" gutterBottom marginLeft="0.3rem">
-                  Add this server as a NuGet source:
-                </Typography>
-              </Stack>
-              <Typography 
-                variant="body2" marginLeft="0.5rem"
-                sx={{ 
-                  fontFamily: 'monospace',
-                  fontSize: '0.875rem',
-                  wordBreak: 'break-all'
-                }}
-              >
-                `{serverConfig.addSourceCommand}`
-              </Typography>
-            </Box>
-            <IconButton 
-              size="small" 
-              onClick={handleCopyCommand}
-              aria-label="copy command"
-              sx={{ ml: 1 }}
-            >
-              <ContentCopyIcon fontSize="small" />
-            </IconButton>
-          </Box>
-        </Paper>
-      )}
-
       <Typography variant="h4" component="h1" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
         <PackageIcon />
         Packages ({packages.length})
@@ -373,7 +346,7 @@ const PackageList = forwardRef<PackageListRef, PackageListProps>(({ serverConfig
                     size="small"
                     startIcon={<DownloadIcon />}
                     onClick={() => {
-                      const downloadUrl = `/api/package/${pkg.id.toLowerCase()}/${version.version}/${pkg.id.toLowerCase()}.${version.version}.nupkg`;
+                      const downloadUrl = `/v3/package/${pkg.id.toLowerCase()}/${version.version}/${pkg.id.toLowerCase()}.${version.version}.nupkg`;
                       window.open(downloadUrl, '_blank');
                     }}
                   >

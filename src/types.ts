@@ -34,6 +34,11 @@ export interface Logger {
 export type LogLevel = 'debug' | 'info' | 'warn' | 'error' | 'ignore';
 
 /**
+ * Authentication modes
+ */
+export type AuthMode = 'none' | 'publish' | 'full';
+
+/**
  * Server configuration
  */
 export interface ServerConfig {
@@ -45,4 +50,17 @@ export interface ServerConfig {
   realm?: string;
   logLevel?: LogLevel;
   noUi?: boolean;
+  authMode?: AuthMode;
+  sessionSecret?: string;
+  passwordMinScore?: number;        // 0-4, default: 2 (Good)
+  passwordStrengthCheck?: boolean;  // default: true
+}
+
+/**
+ * Extend Fastify types for AbortSignal support
+ */
+declare module 'fastify' {
+  interface FastifyRequest {
+    abortSignal: AbortSignal;
+  }
 }
