@@ -1,4 +1,4 @@
-import { defineConfig } from "vite";
+import { defineConfig, Plugin } from "vite";
 import { resolve } from "path";
 import { fileURLToPath } from "url";
 import react from "@vitejs/plugin-react";
@@ -9,6 +9,26 @@ import { fastifyHost } from "./src/plugins/vite-plugin-fastify";
 import { ServerConfig } from "./src/types";
 
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
+
+// Custom plugin to move HTML files from src/ui/ to ui/
+const adjustContents = (): Plugin => ({
+  name: "adjust-contents",
+  writeBundle(_options, bundle) {
+    // Move HTML files from src/ui/ to ui/
+    for (const fileName in bundle) {
+      if (fileName.startsWith("src/ui/") && fileName.endsWith(".html")) {
+        const asset = bundle[fileName];
+        const newFileName = fileName.replace("src/ui/", "ui/");
+
+        // Add the file with new path
+        bundle[newFileName] = asset;
+
+        // Remove the old path
+        delete bundle[fileName];
+      }
+    }
+  },
+});
 
 export default defineConfig(({ mode, command }) => {
   const isDev = mode === "development";
@@ -64,6 +84,7 @@ export default defineConfig(({ mode, command }) => {
         outputMetadataFile: true,
       }),
       prettierMax(),
+      adjustContents(), // Add the custom plugin to adjust content files
     ],
     build: {
       emptyOutDir: true,
@@ -80,6 +101,7 @@ export default defineConfig(({ mode, command }) => {
       },
       rollupOptions: {
         input: {
+          // Back to simple names since plugin will handle the move
           main: resolve(__dirname, "src/ui/index.html"),
           login: resolve(__dirname, "src/ui/login.html"),
         },

@@ -37,7 +37,8 @@
     "images/nuget-server-ss-1.png"
   ],
   "scripts": {
-    "build": "./gen-packageMetadata.sh && vite build",
+    "build": "./gen-packageMetadata.sh && vite build && npm run build:move-ui",
+    "build:move-ui": "mkdir -p dist/ui && mv dist/src/ui/*.html dist/ui/ 2>/dev/null && rm -rf dist/src || true",
     "dev": "./gen-packageMetadata.sh && vite dev",
     "test": "npm run build && vitest run",
     "init": "npm run build && node dist/cli.js -c ./dev --auth-init",
