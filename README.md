@@ -21,25 +21,34 @@ A modern browser-based UI is also provided:
 * You can refer to registered packages. You can check various package attributes.
 * You can download packages by version.
 * You can also publish (upload) packages.
+* You can manage user accounts.
 
-![Browse packages](images/nuget-server-ss-1.png)
+**Browse package list:**
 
-![Publising a package](images/nuget-server-ss-2.png)
+![Browse package list](images/nuget-server-ss-1.png)
+
+**Publishing packages:**
+
+![Publishing packages](images/nuget-server-ss-2.png)
+
+**User account managements:**
+
+![User account managements](images/nuget-server-ss-3.png)
 
 ### Key Features
 
-* Easy setup, run NuGet server in 10 seconds!
+* **Easy setup, run NuGet server in 10 seconds!**
 * NuGet V3 API compatibility: Support for modern NuGet client operations
 * No need database management: Store package file and nuspecs into filesystem directly, feel free any database managements
 * Package publish: Flexible client to upload `.nupkg` files via `HTTP POST` using cURL and others
-* Basic authentication: htpasswd-based authentication for publish and general access
-* Proxy support: Configurable trusted proxy handling for proper URL resolution
-* Docker image available
+* Basic authentication: Setup authentication for publish and general access when you want it
+* Reverse proxy support: Configurable trusted reverse proxy handling for proper URL resolution
 * Modern Web UI with enhanced features:
   - Multiple package upload: Drag & drop multiple .nupkg files at once
-  - User management: Add/delete users, reset passwords (admin only)
+  - User account management: Add/delete users, reset passwords (admin only)
   - API password regeneration: Self-service API password updates
   - Password change: Users can change their own passwords
+* Docker image available
 
 ## Installation
 
@@ -55,9 +64,6 @@ nuget-server
 
 # Custom port
 nuget-server --port 3000
-
-# Disable UI (V3 API only mode)
-nuget-server --no-ui
 
 # Custom log level (debug, info, warn, error, ignore - default: info)
 nuget-server --log-level debug
@@ -98,14 +104,13 @@ Or specify in `nuget.config`:
 Upload packages by `HTTP POST` method, using cURL or any HTTP client with `/api/publish` endpoint:
 
 ```bash
-# Upload a .nupkg file
+# Upload "MyPackage.1.0.0.nupkg" file
 curl -X POST http://localhost:5963/api/publish \
   --data-binary @MyPackage.1.0.0.nupkg \
   -H "Content-Type: application/octet-stream"
 ```
 
-This methodology uses simply HTTP POST with binary (octet-stream) instead of the standard NuGet V3 publish protocol,
-because it is gateway,reverse-proxy,load-balancer friendy access.
+This methodology uses simply HTTP POST with binary (octet-stream) instead of the standard NuGet V3 publish protocol (`dotnet nuget push` command), because it is gateway,reverse-proxy,load-balancer friendy access.
 
 ## Package storage configuration
 
@@ -144,9 +149,9 @@ packages/
         └── icon.png            # Package icon (if present)
 ```
 
-### Backup and Restore
+### Backup and restore
 
-You can backup the package directory using simply `tar`:
+You can backup the package directory using simply `tar` or other achiver:
 
 ```bash
 cd /your/server/base/dir
@@ -170,21 +175,22 @@ export NUGET_SERVER_CONFIG_DIR=/path/to/config
 nuget-server
 ```
 
-The configuration directory is used for the following basic authentication and configuration files.
+The configuration directory is used for the following configuration file (`config.json`) and basic authentication file (`users.json`).
 
-## Configuration File (config.json)
+## Configuration file (config.json)
 
 nuget-server supports configuration through a `config.json` file located in the configuration directory. This provides an alternative to command-line options and environment variables.
 
-### Configuration Priority
+### Configuration priority
 
 Settings are applied in the following order (highest to lowest priority):
+
 1. Command-line options
 2. Environment variables
 3. config.json
 4. Default values
 
-### config.json Structure
+### config.json structure
 
 Create a `config.json` file in your configuration directory:
 
@@ -193,12 +199,12 @@ Create a `config.json` file in your configuration directory:
   "port": 5963,
   "baseUrl": "http://localhost:5963",
   "packageDir": "./packages",
-  "realm": "nuget-server 0.1.0",
+  "realm": "Awsome nuget-server",
   "logLevel": "info",
   "noUi": false,
   "trustedProxies": ["127.0.0.1", "::1"],
   "authMode": "none",
-  "sessionSecret": "your-secret-here",
+  "sessionSecret": "<your-secret-here>",
   "passwordMinScore": 2,
   "passwordStrengthCheck": true
 }
@@ -206,7 +212,7 @@ Create a `config.json` file in your configuration directory:
 
 All fields are optional. Only include the settings you want to override.
 
-## JSON-based Authentication with --auth-init
+## JSON-based authentication with --auth-init
 
 In addition to htpasswd authentication, nuget-server also supports JSON-based authentication with role management.
 
@@ -225,7 +231,7 @@ This command will:
 4. Create `users.json` in the config directory
 5. Exit after initialization (server does not start)
 
-#### Non-interactive Mode (CI/CD)
+#### Non-interactive mode (CI/CD)
 
 For automated deployments, you can provide credentials via environment variables:
 
@@ -238,6 +244,7 @@ nuget-server --auth-init --config-dir ./config
 This allows initialization in CI/CD pipelines without user interaction.
 
 Example session:
+
 ```
 Initializing authentication...
 Enter admin username [admin]: 
@@ -248,17 +255,19 @@ Confirm password: ****
 Admin user created successfully!
 ============================================================
 Username: admin
+Password: *********************
 API password: ngs_xxxxxxxxxxxxxxxxxxxxxx
 ============================================================
 
 IMPORTANT: Save this API password securely. It cannot be retrieved again.
 Use this API password for NuGet client authentication:
-  Username: admin
-  Password: ngs_xxxxxxxxxxxxxxxxxxxxxx
+Example register: dotnet nuget add source "http://localhost:5963/v3/index.json"
+  -n ref1 -u admin -p ngs_xxxxxxxxxxxxxxxxxxxxxx
+  --store-password-in-clear-text --allow-insecure-connections
 ============================================================
 ```
 
-### Authentication Modes
+### Authentication modes
 
 When using JSON-based authentication, configure the mode with `--auth-mode`:
 
@@ -266,7 +275,7 @@ When using JSON-based authentication, configure the mode with `--auth-mode`:
 - `publish`: Authentication required only for package publishing
 - `full`: Authentication required for all operations
 
-### Using the API Password
+### Using the API password
 
 After initialization, use the generated API password with NuGet clients:
 
@@ -276,79 +285,7 @@ dotnet nuget add source http://localhost:5963/v3/index.json \
   -n "local" \
   -u admin \
   -p ngs_xxxxxxxxxxxxxxxxxxxxxx \
-  --store-password-in-clear-text
-
-# Publish packages with API password
-curl -X POST http://localhost:5963/api/publish \
-  -u admin:ngs_xxxxxxxxxxxxxxxxxxxxxx \
-  --data-binary @MyPackage.1.0.0.nupkg \
-  -H "Content-Type: application/octet-stream"
-```
-
-Note: The `users.json` file should be protected with appropriate file permissions and never committed to version control.
-
-### Password Strength Requirements
-
-nuget-server uses the zxcvbn library to enforce strong password requirements:
-
-- Evaluates password strength on a scale of 0-4 (Weak to Very Strong)
-- Default minimum score: 2 (Good)
-- Checks against common passwords, dictionary words, and patterns
-- Provides real-time feedback during password creation
-
-Configure password requirements in `config.json`:
-```json
-{
-  "passwordMinScore": 2,        // 0-4, default: 2 (Good)
-  "passwordStrengthCheck": true // default: true
-}
-```
-
-## Basic authentication
-
-The nuget-server supports Basic authentication using `htpasswd` files for securing package access and publishing.
-
-### Authentication configuration
-
-Authentication files are loaded from the configuration directory (default: current directory):
-
-- `htpasswd-publish`: Controls access to package publishing (`/api/publish`)
-- `htpasswd`: Controls access to package downloads and queries
-
-If authentication files don't exist, the corresponding operations are allowed without authentication.
-
-### Creating htpasswd Files
-
-Use the `htpasswd` utility (from Apache HTTP Server):
-
-```bash
-sudo apt install apache2-utils
-```
-
-To create user credential files:
-
-```bash
-# Create htpasswd file for publish authentication
-htpasswd -c htpasswd-publish publisher
-
-# Add more users to existing file
-htpasswd htpasswd-publish another-publisher
-
-# Create htpasswd file for general access
-htpasswd -c htpasswd reader
-```
-
-### Authentication access examples
-
-Add package source with credentials:
-
-```bash
-dotnet nuget add source http://localhost:5963/v3/index.json \
-  -n "local" \
-  -u "reader" \
-  -p "your-password" \
-  --store-password-in-clear-text \
-  --allow-insecure-connections
+  --store-password-in-clear-text --allow-insecure-connections
 ```
 
 Or specify `nuget.config` with credentials:
@@ -369,22 +306,35 @@ Or specify `nuget.config` with credentials:
 </configuration>
 ```
 
-For publising:
+For package publishing:
 
 ```bash
-# Publish with authentication
+# Publish packages with API password
 curl -X POST http://localhost:5963/api/publish \
-  -u publisher:password \
+  -u admin:ngs_xxxxxxxxxxxxxxxxxxxxxx \
   --data-binary @MyPackage.1.0.0.nupkg \
   -H "Content-Type: application/octet-stream"
 ```
 
-### Supported hash formats
+Note: The `users.json` file should be protected with appropriate file permissions and never committed to version control.
 
-- MD5 (APR1): `$apr1$salt$hash` - Default htpasswd format
-- SHA1: `{SHA}base64hash` - Generated with `htpasswd -s`
-- bcrypt: `$2a$`, `$2b$`, `$2y$` - Generated with `htpasswd -B`
-- Plain text: Not recommended for production
+### Password strength requirements
+
+nuget-server uses the `zxcvbn` library to enforce strong password requirements:
+
+- Evaluates password strength on a scale of 0-4 (Weak to Very Strong)
+- Default minimum score: 2 (Good)
+- Checks against common passwords, dictionary words, and patterns
+- Provides real-time feedback during password creation
+
+Configure password requirements in `config.json`:
+
+```json
+{
+  "passwordMinScore": 2,        // 0-4, default: 2 (Good)
+  "passwordStrengthCheck": true // default: true
+}
+```
 
 ## Reverse proxy interoperability
 
@@ -427,12 +377,15 @@ export NUGET_SERVER_SESSION_SECRET=your-secret-key-here
 ### Security Configuration
 
 #### Session Security
+
 For production deployments, always set a secure session secret:
 
 ```bash
 export NUGET_SERVER_SESSION_SECRET=$(openssl rand -base64 32)
 nuget-server
 ```
+
+(Or use `config.json`.)
 
 If not set, a random secret is generated (warning will be logged). The session secret is crucial for securing web UI sessions.
 
@@ -467,9 +420,11 @@ docker build -t nuget-server:latest .
 docker tag nuget-server:latest yourusername/nuget-server:latest
 ```
 
-### Running with Docker
+### Running with Docker (WIP)
 
-#### Basic Usage
+TODO: Docker setup is constructing.
+
+#### Basic usage
 
 ```bash
 # Run with default settings (port 5963, packages stored in mounted volume)
@@ -482,7 +437,7 @@ docker run -p 5963:5963 \
   nuget-server:latest
 ```
 
-#### Custom Configuration
+#### Custom configuration
 
 ```bash
 # Custom port (using Docker port forwarding)
@@ -499,7 +454,7 @@ docker run -p 3000:5963 -v $(pwd)/packages:/packages \
   --trusted-proxies "10.0.0.1,192.168.1.100"
 ```
 
-#### Using Environment Variables
+#### Using environment variables
 
 ```bash
 docker run -p 5963:5963 \
@@ -509,7 +464,7 @@ docker run -p 5963:5963 \
   nuget-server:latest
 ```
 
-### Volume Mounts
+### Volume mounts
 
 - `/packages`: Package storage directory (should be mounted to persist data)
 - `/config`: Configuration directory for htpasswd files (optional)
