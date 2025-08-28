@@ -35,6 +35,11 @@ A modern browser-based UI is also provided:
 * Basic authentication: htpasswd-based authentication for publish and general access
 * Proxy support: Configurable trusted proxy handling for proper URL resolution
 * Docker image available
+* Modern Web UI with enhanced features:
+  - Multiple package upload: Drag & drop multiple .nupkg files at once
+  - User management: Add/delete users, reset passwords (admin only)
+  - API password regeneration: Self-service API password updates
+  - Password change: Users can change their own passwords
 
 ## Installation
 
@@ -165,7 +170,41 @@ export NUGET_SERVER_CONFIG_DIR=/path/to/config
 nuget-server
 ```
 
-The configuration directory is used for the following basic authentication.
+The configuration directory is used for the following basic authentication and configuration files.
+
+## Configuration File (config.json)
+
+nuget-server supports configuration through a `config.json` file located in the configuration directory. This provides an alternative to command-line options and environment variables.
+
+### Configuration Priority
+
+Settings are applied in the following order (highest to lowest priority):
+1. Command-line options
+2. Environment variables
+3. config.json
+4. Default values
+
+### config.json Structure
+
+Create a `config.json` file in your configuration directory:
+
+```json
+{
+  "port": 5963,
+  "baseUrl": "http://localhost:5963",
+  "packageDir": "./packages",
+  "realm": "nuget-server 0.1.0",
+  "logLevel": "info",
+  "noUi": false,
+  "trustedProxies": ["127.0.0.1", "::1"],
+  "authMode": "none",
+  "sessionSecret": "your-secret-here",
+  "passwordMinScore": 2,
+  "passwordStrengthCheck": true
+}
+```
+
+All fields are optional. Only include the settings you want to override.
 
 ## JSON-based Authentication with --auth-init
 
@@ -181,10 +220,22 @@ nuget-server --auth-init --config-dir ./config
 
 This command will:
 1. Prompt for admin username (default: admin)
-2. Prompt for password (minimum 4 characters, masked input)
+2. Prompt for password (with strength checking, masked input)
 3. Generate an API password for the admin user
 4. Create `users.json` in the config directory
 5. Exit after initialization (server does not start)
+
+#### Non-interactive Mode (CI/CD)
+
+For automated deployments, you can provide credentials via environment variables:
+
+```bash
+export NUGET_SERVER_ADMIN_USERNAME=admin
+export NUGET_SERVER_ADMIN_PASSWORD=MySecurePassword123!
+nuget-server --auth-init --config-dir ./config
+```
+
+This allows initialization in CI/CD pipelines without user interaction.
 
 Example session:
 ```
@@ -235,6 +286,23 @@ curl -X POST http://localhost:5963/api/publish \
 ```
 
 Note: The `users.json` file should be protected with appropriate file permissions and never committed to version control.
+
+### Password Strength Requirements
+
+nuget-server uses the zxcvbn library to enforce strong password requirements:
+
+- Evaluates password strength on a scale of 0-4 (Weak to Very Strong)
+- Default minimum score: 2 (Good)
+- Checks against common passwords, dictionary words, and patterns
+- Provides real-time feedback during password creation
+
+Configure password requirements in `config.json`:
+```json
+{
+  "passwordMinScore": 2,        // 0-4, default: 2 (Good)
+  "passwordStrengthCheck": true // default: true
+}
+```
 
 ## Basic authentication
 
@@ -353,7 +421,20 @@ Environment variables are also supported:
 export NUGET_SERVER_BASE_URL=https://packages.example.com
 export NUGET_SERVER_TRUSTED_PROXIES=10.0.0.1,192.168.1.100
 export NUGET_SERVER_CONFIG_DIR=/path/to/config
+export NUGET_SERVER_SESSION_SECRET=your-secret-key-here
 ```
+
+### Security Configuration
+
+#### Session Security
+For production deployments, always set a secure session secret:
+
+```bash
+export NUGET_SERVER_SESSION_SECRET=$(openssl rand -base64 32)
+nuget-server
+```
+
+If not set, a random secret is generated (warning will be logged). The session secret is crucial for securing web UI sessions.
 
 ## Supported NuGet V3 API endpoints
 
@@ -436,12 +517,6 @@ docker run -p 5963:5963 \
 The Docker image uses fixed directories internally, but you can mount any host directories to these locations.
 
 ----
-
-## TODO
-
-* Package explorer UI
-* API key authentication (alternative to Basic auth)
-* User management commands
 
 ## License
 
