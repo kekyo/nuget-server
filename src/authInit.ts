@@ -201,7 +201,7 @@ export const runAuthInit = async (
 
           // Check password strength
           if (config.passwordStrengthCheck !== false) {
-            const strength = await checkPasswordStrength(password, [username]);
+            const strength = checkPasswordStrength(password, [username]);
             const minScore = getMinPasswordScore(config);
 
             if (strength.score < minScore) {

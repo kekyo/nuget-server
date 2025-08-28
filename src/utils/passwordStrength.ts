@@ -2,11 +2,7 @@
 // Copyright (c) Kouji Matsui (@kekyo@mi.kekyo.net)
 // License under MIT.
 
-// Dynamic import type for zxcvbn
-type ZxcvbnFunction = typeof import("zxcvbn");
-
-// Cache for the loaded zxcvbn module
-let zxcvbnCache: ZxcvbnFunction | null = null;
+import zxcvbn from "zxcvbn";
 
 export interface PasswordStrengthResult {
   score: number; // 0-4
@@ -19,28 +15,12 @@ export interface PasswordStrengthResult {
 }
 
 /**
- * Dynamically load zxcvbn library
+ * Check password strength
  */
-const loadZxcvbn = async (): Promise<ZxcvbnFunction> => {
-  if (!zxcvbnCache) {
-    const module = await import(
-      /* webpackChunkName: "password-checker" */
-      "zxcvbn"
-    );
-    // Handle both default export and module export
-    zxcvbnCache = (module as any).default || module;
-  }
-  return zxcvbnCache!;
-};
-
-/**
- * Check password strength asynchronously
- */
-export const checkPasswordStrength = async (
+export const checkPasswordStrength = (
   password: string,
   userInputs?: string[],
-): Promise<PasswordStrengthResult> => {
-  const zxcvbn = await loadZxcvbn();
+): PasswordStrengthResult => {
   const result = zxcvbn(password, userInputs);
 
   const strengthLabels: Array<

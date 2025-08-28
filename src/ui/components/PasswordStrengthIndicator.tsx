@@ -28,9 +28,9 @@ export const PasswordStrengthIndicator = ({
     }
 
     setLoading(true);
-    const checkStrength = async () => {
+    const checkStrength = () => {
       try {
-        const result = await checkPasswordStrength(
+        const result = checkPasswordStrength(
           password,
           username ? [username] : [],
         );
