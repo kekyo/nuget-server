@@ -73,16 +73,23 @@ export default defineConfig(({ mode, command }) => {
               if (id.includes("zxcvbn")) {
                 return "password-checker";
               }
-              // Group MUI components
-              if (
-                id.includes("@mui/material") ||
-                id.includes("@mui/icons-material")
-              ) {
-                return "mui-vendor";
-              }
-              // Group React and related
+              // Group React and related FIRST (before MUI)
               if (id.includes("react") || id.includes("react-dom")) {
                 return "react-vendor";
+              }
+              // Group emotion (MUI's dependency)
+              if (id.includes("@emotion")) {
+                return "emotion-vendor";
+              }
+              // Group MUI components AFTER React and emotion
+              if (
+                id.includes("@mui/material") ||
+                id.includes("@mui/icons-material") ||
+                id.includes("@mui/system") ||
+                id.includes("@mui/base") ||
+                id.includes("@mui/utils")
+              ) {
+                return "mui-vendor";
               }
             },
           },
