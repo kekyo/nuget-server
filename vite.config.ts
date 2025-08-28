@@ -45,7 +45,7 @@ export default defineConfig(({ mode, command }) => {
         emptyOutDir: true,
         rollupOptions: {
           input: {
-            main: resolve(__dirname, "src/ui/index.html"),
+            index: resolve(__dirname, "src/ui/index.html"),
             login: resolve(__dirname, "src/ui/login.html"),
           },
         },
