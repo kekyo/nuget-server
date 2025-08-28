@@ -2,13 +2,16 @@
 // Copyright (c) Kouji Matsui (@kekyo@mi.kekyo.net)
 // License under MIT.
 
-import * as readline from 'readline';
-import { join } from 'path';
-import { access, mkdir } from 'fs/promises';
-import { constants } from 'fs';
-import { createUserService } from './services/userService';
-import { Logger, ServerConfig } from './types';
-import { checkPasswordStrength, getMinPasswordScore } from './utils/passwordStrength';
+import * as readline from "readline";
+import { join } from "path";
+import { access, mkdir } from "fs/promises";
+import { constants } from "fs";
+import { createUserService } from "./services/userService";
+import { Logger, ServerConfig } from "./types";
+import {
+  checkPasswordStrength,
+  getMinPasswordScore,
+} from "./utils/passwordStrength";
 
 /**
  * Options for auth initialization
@@ -21,11 +24,17 @@ export interface AuthInitOptions {
 /**
  * Prompts for user input with optional default value
  */
-const promptInput = (rl: readline.Interface, prompt: string, defaultValue?: string): Promise<string> => {
+const promptInput = (
+  rl: readline.Interface,
+  prompt: string,
+  defaultValue?: string,
+): Promise<string> => {
   return new Promise((resolve) => {
-    const displayPrompt = defaultValue ? `${prompt} [${defaultValue}]: ` : `${prompt}: `;
+    const displayPrompt = defaultValue
+      ? `${prompt} [${defaultValue}]: `
+      : `${prompt}: `;
     rl.question(displayPrompt, (answer) => {
-      resolve(answer.trim() || defaultValue || '');
+      resolve(answer.trim() || defaultValue || "");
     });
   });
 };
@@ -41,69 +50,69 @@ const promptPassword = (prompt: string): Promise<string> => {
       const rl = readline.createInterface({
         input: process.stdin,
         output: process.stdout,
-        terminal: false
+        terminal: false,
       });
-      
+
       process.stdout.write(`${prompt}: `);
-      
-      rl.once('line', (input) => {
-        process.stdout.write('\n');
+
+      rl.once("line", (input) => {
+        process.stdout.write("\n");
         rl.close();
         resolve(input);
       });
-      
+
       return;
     }
-    
+
     // Interactive mode: mask password input
     // Don't create readline interface to avoid echo conflicts
     process.stdout.write(`${prompt}: `);
-    
+
     // Set raw mode to hide input completely
     process.stdin.setRawMode(true);
     process.stdin.resume();
-    
-    let password = '';
-    
+
+    let password = "";
+
     const onData = (char: Buffer) => {
       const str = char.toString();
-      
+
       switch (str) {
-        case '\u0003': // Ctrl+C
-          process.stdout.write('\n');
+        case "\u0003": // Ctrl+C
+          process.stdout.write("\n");
           process.stdin.setRawMode(false);
           process.stdin.pause();
-          process.stdin.removeListener('data', onData);
-          reject(new Error('Cancelled by user'));
+          process.stdin.removeListener("data", onData);
+          reject(new Error("Cancelled by user"));
           break;
-          
-        case '\r':
-        case '\n': // Enter
-          process.stdout.write('\n');
+
+        case "\r":
+        case "\n": // Enter
+          process.stdout.write("\n");
           process.stdin.setRawMode(false);
           process.stdin.pause();
-          process.stdin.removeListener('data', onData);
+          process.stdin.removeListener("data", onData);
           resolve(password);
           break;
-          
-        case '\u007F': // Backspace
+
+        case "\u007F": // Backspace
           if (password.length > 0) {
             password = password.slice(0, -1);
-            process.stdout.write('\b \b'); // Move back, write space, move back again
+            process.stdout.write("\b \b"); // Move back, write space, move back again
           }
           break;
-          
+
         default:
           // Only accept printable characters
           if (str.charCodeAt(0) >= 32 && str.charCodeAt(0) < 127) {
             password += str;
-            process.stdout.write('*');
+            process.stdout.write("*");
           }
           break;
       }
     };
-    
-    process.stdin.on('data', onData);
+
+    process.stdin.on("data", onData);
   });
 };
 
@@ -111,7 +120,7 @@ const promptPassword = (prompt: string): Promise<string> => {
  * Check if users.json already exists
  */
 const checkUsersFileExists = async (configDir: string): Promise<boolean> => {
-  const usersFilePath = join(configDir, 'users.json');
+  const usersFilePath = join(configDir, "users.json");
   try {
     await access(usersFilePath, constants.F_OK);
     return true;
@@ -135,64 +144,77 @@ const ensureConfigDir = async (configDir: string): Promise<void> => {
 /**
  * Run authentication initialization
  */
-export const runAuthInit = async (config: ServerConfig, logger: Logger): Promise<void> => {
+export const runAuthInit = async (
+  config: ServerConfig,
+  logger: Logger,
+): Promise<void> => {
   const { configDir } = config;
-  
-  logger.info('Initializing authentication...');
-  
+
+  logger.info("Initializing authentication...");
+
   try {
     // Check if users.json already exists
     if (await checkUsersFileExists(configDir)) {
-      logger.error('users.json already exists. Please remove it first to initialize authentication.');
+      logger.error(
+        "users.json already exists. Please remove it first to initialize authentication.",
+      );
       process.exit(1);
     }
-    
+
     // Ensure config directory exists
     await ensureConfigDir(configDir);
     logger.debug(`Using config directory: ${configDir}`);
-    
+
     // Create readline interface for regular input
     const rl = readline.createInterface({
       input: process.stdin,
-      output: process.stdout
+      output: process.stdout,
     });
-    
+
     try {
       // Prompt for username
-      const username = await promptInput(rl, 'Enter admin username', 'admin');
-      
+      const username = await promptInput(rl, "Enter admin username", "admin");
+
       if (!username) {
-        logger.error('Username cannot be empty');
+        logger.error("Username cannot be empty");
         process.exit(1);
       }
-      
+
       // Close readline interface before password input
       rl.close();
-      
+
       // Prompt for password (with masking)
       let password: string;
       let confirmPassword: string;
       let attempts = 0;
       const maxAttempts = 3;
-      
+
       while (attempts < maxAttempts) {
         try {
-          password = await promptPassword('Enter password');
-          
+          password = await promptPassword("Enter password");
+
           if (!password || password.length < 4) {
-            logger.error('Password must be at least 4 characters long');
+            logger.error("Password must be at least 4 characters long");
             attempts++;
             continue;
           }
-          
+
           // Check password strength
           if (config.passwordStrengthCheck !== false) {
             const strength = checkPasswordStrength(password, [username]);
             const minScore = getMinPasswordScore(config);
-            
+
             if (strength.score < minScore) {
-              const strengthLabel = ['Weak', 'Fair', 'Good', 'Strong', 'Very Strong'][minScore];
-              logger.error(`Password is too weak (${strength.strength}). Minimum required: ${strengthLabel}.`);
+              const strengthLabel = [
+                "Weak",
+                "Fair",
+                "Good",
+                "Strong",
+                "Very Strong",
+              ][minScore];
+              logger.error(
+                `Password is too weak (${strength.strength}). Minimum required: ${strengthLabel}.`,
+              );
               if (strength.feedback.warning) {
                 logger.info(`Hint: ${strength.feedback.warning}`);
               } else if (strength.feedback.suggestions.length > 0) {
@@ -201,74 +223,84 @@ export const runAuthInit = async (config: ServerConfig, logger: Logger): Promise
               attempts++;
               continue;
             }
-            
+
             logger.info(`Password strength: ${strength.strength}`);
           }
-          
-          confirmPassword = await promptPassword('Confirm password');
-          
+
+          confirmPassword = await promptPassword("Confirm password");
+
           if (password !== confirmPassword) {
-            logger.error('Passwords do not match. Please try again.');
+            logger.error("Passwords do not match. Please try again.");
             attempts++;
             continue;
           }
-          
+
           break; // Passwords match, exit loop
         } catch (error: any) {
-          if (error.message === 'Cancelled by user') {
-            logger.info('Authentication initialization cancelled.');
+          if (error.message === "Cancelled by user") {
+            logger.info("Authentication initialization cancelled.");
             process.exit(0);
           }
           throw error;
         }
       }
-      
+
       if (attempts >= maxAttempts) {
-        logger.error('Maximum password attempts exceeded.');
+        logger.error("Maximum password attempts exceeded.");
         process.exit(1);
       }
-      
+
       // Create user service
-      const userService = createUserService({ configDir, logger, serverConfig: config });
+      const userService = createUserService({
+        configDir,
+        logger,
+        serverConfig: config,
+      });
       await userService.initialize();
-      
+
       // Create admin user
-      logger.info('Creating admin user...');
+      logger.info("Creating admin user...");
       const result = await userService.createUser({
         username,
         password: password!,
-        role: 'admin'
+        role: "admin",
       });
-      
+
       // Display success message and API password
-      console.log('\n' + '='.repeat(60));
-      console.log('Admin user created successfully!');
-      console.log('='.repeat(60));
+      console.log("\n" + "=".repeat(60));
+      console.log("Admin user created successfully!");
+      console.log("=".repeat(60));
       console.log(`Username: ${result.user.username}`);
       console.log(`Password: *********************`);
       console.log(`API password: ${result.apiPassword}`);
-      console.log('='.repeat(60));
-      console.log('\nIMPORTANT: Save this API password securely. It cannot be retrieved again.');
-      console.log('Use this API user/password combination for NuGet client authentication.');
+      console.log("=".repeat(60));
+      console.log(
+        "\nIMPORTANT: Save this API password securely. It cannot be retrieved again.",
+      );
+      console.log(
+        "Use this API user/password combination for NuGet client authentication.",
+      );
 
       if (config.baseUrl) {
-        console.log(`Example register: dotnet nuget add source "${config.baseUrl}/v3/index.json" -n ref1 -u ${result.user.username} -p ${result.apiPassword} --store-password-in-clear-text${config.baseUrl.startsWith('https:') ? '' : ' --allow-insecure-connections'}`);
+        console.log(
+          `Example register: dotnet nuget add source "${config.baseUrl}/v3/index.json" -n ref1 -u ${result.user.username} -p ${result.apiPassword} --store-password-in-clear-text${config.baseUrl.startsWith("https:") ? "" : " --allow-insecure-connections"}`,
+        );
       } else {
-        console.log(`Example register: dotnet nuget add source "http://localhost:${config.port}/v3/index.json" -n ref1 -u ${result.user.username} -p ${result.apiPassword} --store-password-in-clear-text --allow-insecure-connections`);
+        console.log(
+          `Example register: dotnet nuget add source "http://localhost:${config.port}/v3/index.json" -n ref1 -u ${result.user.username} -p ${result.apiPassword} --store-password-in-clear-text --allow-insecure-connections`,
+        );
       }
 
-      console.log('='.repeat(60) + '\n');
-      
-      logger.info('Authentication initialization completed.');
-      
+      console.log("=".repeat(60) + "\n");
+
+      logger.info("Authentication initialization completed.");
+
       // Clean up
       userService.destroy();
-      
     } catch (error: any) {
       rl.close();
       throw error;
     }
-    
   } catch (error: any) {
     logger.error(`Authentication initialization failed: ${error.message}`);
     process.exit(1);

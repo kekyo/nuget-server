@@ -2,7 +2,7 @@
 // Copyright (c) Kouji Matsui (@kekyo@mi.kekyo.net)
 // License under MIT.
 
-import { useState } from 'react';
+import { useState } from "react";
 import {
   Drawer,
   Box,
@@ -13,14 +13,17 @@ import {
   IconButton,
   Divider,
   Paper,
-} from '@mui/material';
+} from "@mui/material";
 import {
   Close as CloseIcon,
   VpnKey as VpnKeyIcon,
   CheckCircle as SuccessIcon,
   Error as ErrorIcon,
-} from '@mui/icons-material';
-import { buildAddSourceCommand, buildPublishCommand } from '../utils/commandBuilder';
+} from "@mui/icons-material";
+import {
+  buildAddSourceCommand,
+  buildPublishCommand,
+} from "../utils/commandBuilder";
 
 interface ApiPasswordDrawerProps {
   open: boolean;
@@ -35,28 +38,32 @@ interface RegenerationResult {
   username?: string;
 }
 
-const ApiPasswordDrawer = ({ open, onClose, serverConfig }: ApiPasswordDrawerProps) => {
+const ApiPasswordDrawer = ({
+  open,
+  onClose,
+  serverConfig,
+}: ApiPasswordDrawerProps) => {
   const [regenerating, setRegenerating] = useState(false);
   const [result, setResult] = useState<RegenerationResult | null>(null);
 
   const handleRegenerate = async () => {
     try {
       setRegenerating(true);
-      
-      const response = await fetch('/api/ui/apipassword', {
-        method: 'POST',
+
+      const response = await fetch("/api/ui/apipassword", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({}),
-        credentials: 'same-origin',
+        credentials: "same-origin",
       });
 
       if (response.ok) {
         const data = await response.json();
         setResult({
           success: true,
-          message: 'API password regenerated successfully',
+          message: "API password regenerated successfully",
           apiPassword: data.apiPassword,
           username: data.username,
         });
@@ -64,13 +71,15 @@ const ApiPasswordDrawer = ({ open, onClose, serverConfig }: ApiPasswordDrawerPro
         const errorData = await response.json().catch(() => ({}));
         setResult({
           success: false,
-          message: errorData.error || `Failed to regenerate API password (${response.status})`,
+          message:
+            errorData.error ||
+            `Failed to regenerate API password (${response.status})`,
         });
       }
     } catch (error) {
       setResult({
         success: false,
-        message: `Error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        message: `Error: ${error instanceof Error ? error.message : "Unknown error"}`,
       });
     } finally {
       setRegenerating(false);
@@ -93,11 +102,11 @@ const ApiPasswordDrawer = ({ open, onClose, serverConfig }: ApiPasswordDrawerPro
       await navigator.clipboard.writeText(text);
     } catch (err) {
       // Fallback for older browsers
-      const textArea = document.createElement('textarea');
+      const textArea = document.createElement("textarea");
       textArea.value = text;
       document.body.appendChild(textArea);
       textArea.select();
-      document.execCommand('copy');
+      document.execCommand("copy");
       document.body.removeChild(textArea);
     }
   };
@@ -111,14 +120,21 @@ const ApiPasswordDrawer = ({ open, onClose, serverConfig }: ApiPasswordDrawerPro
       sx={{
         width: 500,
         flexShrink: 0,
-        '& .MuiDrawer-paper': {
+        "& .MuiDrawer-paper": {
           width: 500,
-          boxSizing: 'border-box',
+          boxSizing: "border-box",
         },
       }}
     >
-      <Box sx={{ p: 3, height: '100%', overflowY: 'auto' }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
+      <Box sx={{ p: 3, height: "100%", overflowY: "auto" }}>
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            mb: 3,
+          }}
+        >
           <Typography variant="h6" component="h2">
             Regenerate API Password
           </Typography>
@@ -132,75 +148,91 @@ const ApiPasswordDrawer = ({ open, onClose, serverConfig }: ApiPasswordDrawerPro
         {!result ? (
           <Box>
             <Alert severity="warning" sx={{ mb: 3 }}>
-              <Typography variant="body2" sx={{ fontWeight: 'bold', mb: 1 }}>
+              <Typography variant="body2" sx={{ fontWeight: "bold", mb: 1 }}>
                 Warning: This will invalidate your current API password
               </Typography>
               <Typography variant="body2">
-                Regenerating your API password will invalidate the current one. 
-                Any applications or scripts using the old password will need to be updated.
-                This action cannot be undone.
+                Regenerating your API password will invalidate the current one.
+                Any applications or scripts using the old password will need to
+                be updated. This action cannot be undone.
               </Typography>
             </Alert>
 
-            <Box sx={{ display: 'flex', gap: 2 }}>
+            <Box sx={{ display: "flex", gap: 2 }}>
               <Button
                 variant="contained"
                 color="primary"
-                startIcon={regenerating ? <CircularProgress size={20} /> : <VpnKeyIcon />}
+                startIcon={
+                  regenerating ? <CircularProgress size={20} /> : <VpnKeyIcon />
+                }
                 onClick={handleRegenerate}
                 disabled={regenerating}
                 fullWidth
               >
-                {regenerating ? 'Regenerating...' : 'Regenerate API Password'}
+                {regenerating ? "Regenerating..." : "Regenerate API Password"}
               </Button>
             </Box>
           </Box>
         ) : (
           <Box>
             <Alert
-              severity={result.success ? 'success' : 'error'}
+              severity={result.success ? "success" : "error"}
               icon={result.success ? <SuccessIcon /> : <ErrorIcon />}
               sx={{ mb: 3 }}
             >
-              {result.success ? 'API Password Regenerated Successfully!' : 'Regeneration Failed'}
+              {result.success
+                ? "API Password Regenerated Successfully!"
+                : "Regeneration Failed"}
             </Alert>
 
             {result.success && result.apiPassword && (
               <>
                 <Alert severity="warning" sx={{ mb: 3 }}>
-                  <Typography variant="body2" sx={{ fontWeight: 'bold', mb: 1 }}>
+                  <Typography
+                    variant="body2"
+                    sx={{ fontWeight: "bold", mb: 1 }}
+                  >
                     Important: Save your API password!
                   </Typography>
                   <Typography variant="body2">
-                    This API password will only be shown once. Copy it now and store it securely.
+                    This API password will only be shown once. Copy it now and
+                    store it securely.
                   </Typography>
                 </Alert>
 
                 <Paper sx={{ p: 2, mb: 3 }} variant="outlined" elevation={0}>
-                  <Typography variant="body2" color="text.secondary" gutterBottom>
+                  <Typography
+                    variant="body2"
+                    color="text.secondary"
+                    gutterBottom
+                  >
                     API Password:
                   </Typography>
                   <Paper
                     sx={{
                       p: 2,
-                      bgcolor: (theme) => theme.palette.mode === 'dark' ? 'grey.800' : 'grey.100',
-                      border: '2px dashed',
-                      borderColor: 'primary.main',
-                      cursor: 'pointer',
+                      bgcolor: (theme) =>
+                        theme.palette.mode === "dark" ? "grey.800" : "grey.100",
+                      border: "2px dashed",
+                      borderColor: "primary.main",
+                      cursor: "pointer",
                       mb: 3,
-                      '&:hover': {
-                        bgcolor: (theme) => theme.palette.mode === 'dark' ? 'grey.700' : 'grey.200'
-                      }
+                      "&:hover": {
+                        bgcolor: (theme) =>
+                          theme.palette.mode === "dark"
+                            ? "grey.700"
+                            : "grey.200",
+                      },
                     }}
                     onClick={() => copyToClipboard(result.apiPassword!)}
                   >
                     <Typography
                       variant="body2"
                       sx={{
-                        fontFamily: 'monospace',
-                        fontSize: '0.9rem',
-                        wordBreak: 'break-all',
-                        mb: 1
+                        fontFamily: "monospace",
+                        fontSize: "0.9rem",
+                        wordBreak: "break-all",
+                        mb: 1,
                       }}
                     >
                       {result.apiPassword}
@@ -210,35 +242,43 @@ const ApiPasswordDrawer = ({ open, onClose, serverConfig }: ApiPasswordDrawerPro
                     </Typography>
                   </Paper>
 
-                  {serverConfig.authMode === 'full' && (
+                  {serverConfig.authMode === "full" && (
                     <>
-                      <Typography variant="body2" color="text.secondary" gutterBottom>
+                      <Typography
+                        variant="body2"
+                        color="text.secondary"
+                        gutterBottom
+                      >
                         Add source using dotnet CLI:
                       </Typography>
                       <Paper
                         sx={{
                           p: 2,
-                          bgcolor: 'grey.900',
-                          color: 'grey.100',
-                          cursor: 'pointer',
+                          bgcolor: "grey.900",
+                          color: "grey.100",
+                          cursor: "pointer",
                           mb: 3,
-                          '&:hover': {
-                            bgcolor: 'grey.800'
-                          }
+                          "&:hover": {
+                            bgcolor: "grey.800",
+                          },
                         }}
-                        onClick={() => copyToClipboard(buildAddSourceCommand({
-                          serverUrl: serverConfig.serverUrl,
-                          username: result.username,
-                          apiPassword: result.apiPassword,
-                        }))}
+                        onClick={() =>
+                          copyToClipboard(
+                            buildAddSourceCommand({
+                              serverUrl: serverConfig.serverUrl,
+                              username: result.username,
+                              apiPassword: result.apiPassword,
+                            }),
+                          )
+                        }
                       >
                         <Typography
                           variant="body2"
                           sx={{
-                            fontFamily: 'monospace',
-                            fontSize: '0.85rem',
-                            wordBreak: 'break-all',
-                            mb: 1
+                            fontFamily: "monospace",
+                            fontSize: "0.85rem",
+                            wordBreak: "break-all",
+                            mb: 1,
                           }}
                         >
                           {buildAddSourceCommand({
@@ -247,40 +287,51 @@ const ApiPasswordDrawer = ({ open, onClose, serverConfig }: ApiPasswordDrawerPro
                             apiPassword: result.apiPassword,
                           })}
                         </Typography>
-                        <Typography variant="caption" sx={{ color: 'grey.400' }}>
+                        <Typography
+                          variant="caption"
+                          sx={{ color: "grey.400" }}
+                        >
                           Click to copy to clipboard
                         </Typography>
                       </Paper>
                     </>
                   )}
 
-                  <Typography variant="body2" color="text.secondary" gutterBottom>
+                  <Typography
+                    variant="body2"
+                    color="text.secondary"
+                    gutterBottom
+                  >
                     Example publish packages using curl:
                   </Typography>
                   <Paper
                     sx={{
                       p: 2,
-                      bgcolor: 'grey.900',
-                      color: 'grey.100',
-                      cursor: 'pointer',
-                      '&:hover': {
-                        bgcolor: 'grey.800'
-                      }
+                      bgcolor: "grey.900",
+                      color: "grey.100",
+                      cursor: "pointer",
+                      "&:hover": {
+                        bgcolor: "grey.800",
+                      },
                     }}
-                    onClick={() => copyToClipboard(buildPublishCommand({
-                      serverUrl: serverConfig.serverUrl,
-                      username: result.username,
-                      apiPassword: result.apiPassword,
-                    }))}
+                    onClick={() =>
+                      copyToClipboard(
+                        buildPublishCommand({
+                          serverUrl: serverConfig.serverUrl,
+                          username: result.username,
+                          apiPassword: result.apiPassword,
+                        }),
+                      )
+                    }
                   >
                     <Typography
                       variant="body2"
                       sx={{
-                        fontFamily: 'monospace',
-                        fontSize: '0.85rem',
-                        whiteSpace: 'pre',
-                        overflowX: 'auto',
-                        mb: 1
+                        fontFamily: "monospace",
+                        fontSize: "0.85rem",
+                        whiteSpace: "pre",
+                        overflowX: "auto",
+                        mb: 1,
                       }}
                     >
                       {buildPublishCommand({
@@ -289,7 +340,7 @@ const ApiPasswordDrawer = ({ open, onClose, serverConfig }: ApiPasswordDrawerPro
                         apiPassword: result.apiPassword,
                       })}
                     </Typography>
-                    <Typography variant="caption" sx={{ color: 'grey.400' }}>
+                    <Typography variant="caption" sx={{ color: "grey.400" }}>
                       Click to copy to clipboard
                     </Typography>
                   </Paper>
@@ -302,19 +353,17 @@ const ApiPasswordDrawer = ({ open, onClose, serverConfig }: ApiPasswordDrawerPro
                 sx={{
                   p: 2,
                   mb: 3,
-                  bgcolor: 'error.light',
-                  color: 'error.contrastText'
+                  bgcolor: "error.light",
+                  color: "error.contrastText",
                 }}
                 variant="outlined"
                 elevation={0}
               >
-                <Typography variant="body2">
-                  {result.message}
-                </Typography>
+                <Typography variant="body2">{result.message}</Typography>
               </Paper>
             )}
 
-            <Box sx={{ display: 'flex', gap: 2 }}>
+            <Box sx={{ display: "flex", gap: 2 }}>
               {result.success ? (
                 <Button
                   variant="contained"
@@ -334,11 +383,7 @@ const ApiPasswordDrawer = ({ open, onClose, serverConfig }: ApiPasswordDrawerPro
                   >
                     Try Again
                   </Button>
-                  <Button
-                    variant="outlined"
-                    onClick={handleClose}
-                    fullWidth
-                  >
+                  <Button variant="outlined" onClick={handleClose} fullWidth>
                     Cancel
                   </Button>
                 </>

@@ -2,7 +2,7 @@
 // Copyright (c) Kouji Matsui (@kekyo@mi.kekyo.net)
 // License under MIT.
 
-import { useState } from 'react';
+import { useState } from "react";
 import {
   Dialog,
   DialogTitle,
@@ -17,9 +17,9 @@ import {
   CircularProgress,
   useTheme,
   useMediaQuery,
-  IconButton
-} from '@mui/material';
-import { Login as LoginIcon, Close as CloseIcon } from '@mui/icons-material';
+  IconButton,
+} from "@mui/material";
+import { Login as LoginIcon, Close as CloseIcon } from "@mui/icons-material";
 
 interface LoginResponse {
   success: boolean;
@@ -38,27 +38,27 @@ interface LoginDialogProps {
   disableBackdropClick?: boolean; // For authMode='full'
 }
 
-const LoginDialog = ({ 
-  open, 
-  onClose, 
-  onLoginSuccess, 
-  realm, 
-  disableBackdropClick = false 
+const LoginDialog = ({
+  open,
+  onClose,
+  onLoginSuccess,
+  realm,
+  disableBackdropClick = false,
 }: LoginDialogProps) => {
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
-    
+
     if (!username.trim() || !password.trim()) {
-      setError('Username and password are required');
+      setError("Username and password are required");
       return;
     }
 
@@ -66,17 +66,17 @@ const LoginDialog = ({
     setError(null);
 
     try {
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           username: username.trim(),
           password,
-          rememberMe
+          rememberMe,
         }),
-        credentials: 'same-origin'
+        credentials: "same-origin",
       });
 
       const data: LoginResponse = await response.json();
@@ -85,16 +85,16 @@ const LoginDialog = ({
         // Login successful, call success callback
         onLoginSuccess();
         // Clear form
-        setUsername('');
-        setPassword('');
+        setUsername("");
+        setPassword("");
         setRememberMe(false);
         setError(null);
       } else {
-        setError(data.message || 'Login failed');
+        setError(data.message || "Login failed");
       }
     } catch (err) {
-      setError('Network error. Please try again.');
-      console.error('Login error:', err);
+      setError("Network error. Please try again.");
+      console.error("Login error:", err);
     } finally {
       setIsLoading(false);
     }
@@ -117,26 +117,28 @@ const LoginDialog = ({
       PaperProps={{
         sx: {
           borderRadius: 2,
-          p: isMobile ? 1 : 2
-        }
+          p: isMobile ? 1 : 2,
+        },
       }}
     >
-      <DialogTitle sx={{ 
-        display: 'flex', 
-        alignItems: 'center', 
-        justifyContent: 'space-between',
-        pb: 1
-      }}>
-        <Box sx={{ display: 'flex', alignItems: 'center' }}>
-          <LoginIcon 
-            sx={{ 
-              fontSize: 32, 
+      <DialogTitle
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          pb: 1,
+        }}
+      >
+        <Box sx={{ display: "flex", alignItems: "center" }}>
+          <LoginIcon
+            sx={{
+              fontSize: 32,
               color: theme.palette.primary.main,
-              mr: 1
-            }} 
+              mr: 1,
+            }}
           />
-          <Typography variant="h5" component="div" sx={{ fontWeight: 'bold' }}>
-            {realm || 'NuGet Server'}
+          <Typography variant="h5" component="div" sx={{ fontWeight: "bold" }}>
+            {realm || "NuGet Server"}
           </Typography>
         </Box>
         {!disableBackdropClick && (
@@ -156,20 +158,17 @@ const LoginDialog = ({
           Please sign in to continue
         </Typography>
 
-        <Box 
-          component="form" 
-          onSubmit={handleSubmit} 
-          sx={{ 
-            display: 'flex',
-            flexDirection: 'column',
-            gap: 2
+        <Box
+          component="form"
+          onSubmit={handleSubmit}
+          sx={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 2,
           }}
         >
           {error && (
-            <Alert 
-              severity="error" 
-              onClose={() => setError(null)}
-            >
+            <Alert severity="error" onClose={() => setError(null)}>
               {error}
             </Alert>
           )}
@@ -225,15 +224,21 @@ const LoginDialog = ({
               mt: 1,
               mb: 2,
               height: 48,
-              fontSize: '1.1rem'
+              fontSize: "1.1rem",
             }}
-            startIcon={isLoading ? <CircularProgress size={20} /> : <LoginIcon />}
+            startIcon={
+              isLoading ? <CircularProgress size={20} /> : <LoginIcon />
+            }
           >
-            {isLoading ? 'Signing in...' : 'Sign In'}
+            {isLoading ? "Signing in..." : "Sign In"}
           </Button>
         </Box>
 
-        <Typography variant="body2" color="text.secondary" sx={{ mt: 2, textAlign: 'center' }}>
+        <Typography
+          variant="body2"
+          color="text.secondary"
+          sx={{ mt: 2, textAlign: "center" }}
+        >
           Need help? Contact your system administrator.
         </Typography>
       </DialogContent>

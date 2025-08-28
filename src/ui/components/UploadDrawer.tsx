@@ -2,7 +2,7 @@
 // Copyright (c) Kouji Matsui (@kekyo@mi.kekyo.net)
 // License under MIT.
 
-import { useState, useRef } from 'react';
+import { useState, useRef } from "react";
 import {
   Drawer,
   Box,
@@ -14,7 +14,7 @@ import {
   IconButton,
   Divider,
   Paper,
-} from '@mui/material';
+} from "@mui/material";
 import {
   Close as CloseIcon,
   CloudUpload as UploadIcon,
@@ -22,7 +22,7 @@ import {
   Error as ErrorIcon,
   FileUpload as FileUploadIcon,
   Clear as ClearIcon,
-} from '@mui/icons-material';
+} from "@mui/icons-material";
 import {
   Chip,
   LinearProgress,
@@ -32,8 +32,8 @@ import {
   AccordionSummary,
   AccordionDetails,
   Stack,
-} from '@mui/material';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+} from "@mui/material";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 
 interface UploadDrawerProps {
   open: boolean;
@@ -47,10 +47,14 @@ interface UploadResult {
   packageName?: string;
   version?: string;
   message?: string;
-  status: 'pending' | 'uploading' | 'success' | 'error';
+  status: "pending" | "uploading" | "success" | "error";
 }
 
-const UploadDrawer = ({ open, onClose, onUploadSuccess }: UploadDrawerProps) => {
+const UploadDrawer = ({
+  open,
+  onClose,
+  onUploadSuccess,
+}: UploadDrawerProps) => {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
   const [uploadResults, setUploadResults] = useState<UploadResult[]>([]);
@@ -60,13 +64,13 @@ const UploadDrawer = ({ open, onClose, onUploadSuccess }: UploadDrawerProps) => 
   const hasTriggeredAuthReload = useRef(false);
 
   const handleFileSelection = (files: File[]) => {
-    const validFiles = files.filter(file => file.name.endsWith('.nupkg'));
+    const validFiles = files.filter((file) => file.name.endsWith(".nupkg"));
     const invalidCount = files.length - validFiles.length;
-    
+
     if (invalidCount > 0) {
       alert(`${invalidCount} file(s) were not .nupkg files and were excluded.`);
     }
-    
+
     if (validFiles.length > 0) {
       setSelectedFiles(validFiles);
       setUploadResults([]);
@@ -91,34 +95,34 @@ const UploadDrawer = ({ open, onClose, onUploadSuccess }: UploadDrawerProps) => 
     for (let i = 0; i < selectedFiles.length; i++) {
       const file = selectedFiles[i];
       setCurrentUploadIndex(i);
-      
+
       const result: UploadResult = {
         fileName: file.name,
         success: false,
-        status: 'uploading',
-        packageName: file.name.replace('.nupkg', ''),
+        status: "uploading",
+        packageName: file.name.replace(".nupkg", ""),
       };
-      
+
       try {
         // Update status for current file
         setUploadResults([...results, result]);
-        
+
         // Read file as ArrayBuffer to send as binary data
         const fileBuffer = await file.arrayBuffer();
 
-        const response = await fetch('/api/publish', {
-          method: 'POST',
+        const response = await fetch("/api/publish", {
+          method: "POST",
           headers: {
-            'Content-Type': 'application/octet-stream',
+            "Content-Type": "application/octet-stream",
           },
           body: fileBuffer,
-          credentials: 'same-origin'
+          credentials: "same-origin",
         });
 
         if (response.ok) {
           const apiResult = await response.json();
           result.success = true;
-          result.status = 'success';
+          result.status = "success";
           result.version = apiResult.version;
           result.message = `${apiResult.message}\nResolved: ${apiResult.id} ${apiResult.version}`;
         } else if (response.status === 401 && !hasTriggeredAuthReload.current) {
@@ -128,23 +132,23 @@ const UploadDrawer = ({ open, onClose, onUploadSuccess }: UploadDrawerProps) => 
           return;
         } else {
           const errorText = await response.text();
-          result.status = 'error';
+          result.status = "error";
           result.message = `Upload failed: ${response.status} ${response.statusText}\n${errorText}`;
         }
       } catch (error) {
-        result.status = 'error';
-        result.message = `Upload error: ${error instanceof Error ? error.message : 'Unknown error'}`;
+        result.status = "error";
+        result.message = `Upload error: ${error instanceof Error ? error.message : "Unknown error"}`;
       }
-      
+
       results.push(result);
       setUploadResults([...results]);
     }
 
     setUploading(false);
     setCurrentUploadIndex(-1);
-    
+
     // Call success callback if at least one upload succeeded
-    if (results.some(r => r.success)) {
+    if (results.some((r) => r.success)) {
       onUploadSuccess();
     }
   };
@@ -177,7 +181,7 @@ const UploadDrawer = ({ open, onClose, onUploadSuccess }: UploadDrawerProps) => 
     e.stopPropagation();
     setIsDragging(false);
     dragCounter.current = 0;
-    
+
     const files = e.dataTransfer.files;
     if (files && files.length > 0) {
       handleFileSelection(Array.from(files));
@@ -200,11 +204,11 @@ const UploadDrawer = ({ open, onClose, onUploadSuccess }: UploadDrawerProps) => 
     setUploadResults([]);
     setCurrentUploadIndex(-1);
   };
-  
+
   const removeFile = (index: number) => {
-    setSelectedFiles(files => files.filter((_, i) => i !== index));
+    setSelectedFiles((files) => files.filter((_, i) => i !== index));
   };
-  
+
   const getTotalSize = () => {
     return selectedFiles.reduce((total, file) => total + file.size, 0);
   };
@@ -218,20 +222,27 @@ const UploadDrawer = ({ open, onClose, onUploadSuccess }: UploadDrawerProps) => 
       sx={{
         width: 400,
         flexShrink: 0,
-        '& .MuiDrawer-paper': {
+        "& .MuiDrawer-paper": {
           width: 400,
-          boxSizing: 'border-box',
+          boxSizing: "border-box",
         },
       }}
     >
-      <Box 
-        sx={{ p: 3, height: '100%' }}
+      <Box
+        sx={{ p: 3, height: "100%" }}
         onDragEnter={handleDragEnter}
         onDragLeave={handleDragLeave}
         onDragOver={handleDragOver}
         onDrop={handleDrop}
       >
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            mb: 3,
+          }}
+        >
           <Typography variant="h6" component="h2">
             Upload Package
           </Typography>
@@ -252,31 +263,37 @@ const UploadDrawer = ({ open, onClose, onUploadSuccess }: UploadDrawerProps) => 
               sx={{
                 p: 4,
                 mb: 3,
-                textAlign: 'center',
-                border: isDragging ? '2px dashed #2196f3' : '2px dashed #ccc',
-                backgroundColor: isDragging 
-                  ? (theme) => theme.palette.mode === 'dark' ? 'rgba(33, 150, 243, 0.1)' : 'rgba(33, 150, 243, 0.05)' 
-                  : 'transparent',
-                cursor: 'pointer',
-                transition: 'all 0.3s ease',
-                '&:hover': {
-                  backgroundColor: (theme) => theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.02)',
-                  borderColor: '#999',
+                textAlign: "center",
+                border: isDragging ? "2px dashed #2196f3" : "2px dashed #ccc",
+                backgroundColor: isDragging
+                  ? (theme) =>
+                      theme.palette.mode === "dark"
+                        ? "rgba(33, 150, 243, 0.1)"
+                        : "rgba(33, 150, 243, 0.05)"
+                  : "transparent",
+                cursor: "pointer",
+                transition: "all 0.3s ease",
+                "&:hover": {
+                  backgroundColor: (theme) =>
+                    theme.palette.mode === "dark"
+                      ? "rgba(255, 255, 255, 0.05)"
+                      : "rgba(0, 0, 0, 0.02)",
+                  borderColor: "#999",
                 },
               }}
               variant="outlined"
               elevation={0}
-              onClick={() => document.getElementById('file-input')?.click()}
+              onClick={() => document.getElementById("file-input")?.click()}
             >
-              <FileUploadIcon 
-                sx={{ 
-                  fontSize: 48, 
-                  color: isDragging ? '#2196f3' : 'text.secondary',
+              <FileUploadIcon
+                sx={{
+                  fontSize: 48,
+                  color: isDragging ? "#2196f3" : "text.secondary",
                   mb: 2,
-                  transition: 'color 0.3s ease'
-                }} 
+                  transition: "color 0.3s ease",
+                }}
               />
-              
+
               {isDragging ? (
                 <Typography variant="h6" color="primary" sx={{ mb: 1 }}>
                   Drop your .nupkg files here
@@ -299,17 +316,23 @@ const UploadDrawer = ({ open, onClose, onUploadSuccess }: UploadDrawerProps) => 
               fullWidth
               variant="outlined"
               inputProps={{
-                accept: '.nupkg',
+                accept: ".nupkg",
                 multiple: true,
               }}
               onChange={handleFileChange}
-              sx={{ display: 'none' }}
+              sx={{ display: "none" }}
             />
 
             {selectedFiles.length > 0 && (
               <Paper sx={{ p: 2, mb: 3 }} variant="outlined" elevation={0}>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                  Selected files ({selectedFiles.length} file{selectedFiles.length !== 1 ? 's' : ''}, {(getTotalSize() / 1024 / 1024).toFixed(2)} MB total):
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                  sx={{ mb: 1 }}
+                >
+                  Selected files ({selectedFiles.length} file
+                  {selectedFiles.length !== 1 ? "s" : ""},{" "}
+                  {(getTotalSize() / 1024 / 1024).toFixed(2)} MB total):
                 </Typography>
                 <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
                   {selectedFiles.map((file, index) => (
@@ -328,42 +351,56 @@ const UploadDrawer = ({ open, onClose, onUploadSuccess }: UploadDrawerProps) => 
 
             {uploading && currentUploadIndex >= 0 && (
               <Box sx={{ mb: 2 }}>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-                  Uploading {currentUploadIndex + 1} of {selectedFiles.length}: {selectedFiles[currentUploadIndex].name}
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                  sx={{ mb: 1 }}
+                >
+                  Uploading {currentUploadIndex + 1} of {selectedFiles.length}:{" "}
+                  {selectedFiles[currentUploadIndex].name}
                 </Typography>
-                <LinearProgress 
-                  variant="determinate" 
+                <LinearProgress
+                  variant="determinate"
                   value={(currentUploadIndex / selectedFiles.length) * 100}
                 />
               </Box>
             )}
-            
+
             <Button
               variant="contained"
               fullWidth
-              startIcon={uploading ? <CircularProgress size={20} /> : <UploadIcon />}
+              startIcon={
+                uploading ? <CircularProgress size={20} /> : <UploadIcon />
+              }
               onClick={handleUpload}
               disabled={selectedFiles.length === 0 || uploading}
               sx={{ mb: 2 }}
             >
-              {uploading ? `Uploading (${currentUploadIndex + 1}/${selectedFiles.length})...` : `Upload ${selectedFiles.length} file${selectedFiles.length !== 1 ? 's' : ''}`}
+              {uploading
+                ? `Uploading (${currentUploadIndex + 1}/${selectedFiles.length})...`
+                : `Upload ${selectedFiles.length} file${selectedFiles.length !== 1 ? "s" : ""}`}
             </Button>
           </Box>
         ) : (
           <Box>
             {/* Summary */}
             <Box sx={{ mb: 3 }}>
-              {uploadResults.filter(r => r.status === 'success').length === uploadResults.length ? (
+              {uploadResults.filter((r) => r.status === "success").length ===
+              uploadResults.length ? (
                 <Alert severity="success" icon={<SuccessIcon />}>
-                  All {uploadResults.length} package{uploadResults.length !== 1 ? 's' : ''} uploaded successfully!
+                  All {uploadResults.length} package
+                  {uploadResults.length !== 1 ? "s" : ""} uploaded successfully!
                 </Alert>
-              ) : uploadResults.filter(r => r.status === 'error').length === uploadResults.length ? (
+              ) : uploadResults.filter((r) => r.status === "error").length ===
+                uploadResults.length ? (
                 <Alert severity="error" icon={<ErrorIcon />}>
                   All uploads failed
                 </Alert>
               ) : (
                 <Alert severity="warning">
-                  {uploadResults.filter(r => r.status === 'success').length} of {uploadResults.length} package{uploadResults.length !== 1 ? 's' : ''} uploaded successfully
+                  {uploadResults.filter((r) => r.status === "success").length}{" "}
+                  of {uploadResults.length} package
+                  {uploadResults.length !== 1 ? "s" : ""} uploaded successfully
                 </Alert>
               )}
             </Box>
@@ -372,17 +409,20 @@ const UploadDrawer = ({ open, onClose, onUploadSuccess }: UploadDrawerProps) => 
             <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
               Upload Results:
             </Typography>
-            
+
             <List sx={{ mb: 3 }}>
               {uploadResults.map((result, index) => (
-                <Accordion key={index} defaultExpanded={result.status === 'error'}>
+                <Accordion
+                  key={index}
+                  defaultExpanded={result.status === "error"}
+                >
                   <AccordionSummary expandIcon={<ExpandMoreIcon />}>
                     <ListItemIcon sx={{ minWidth: 40 }}>
-                      {result.status === 'success' ? (
+                      {result.status === "success" ? (
                         <SuccessIcon color="success" />
-                      ) : result.status === 'error' ? (
+                      ) : result.status === "error" ? (
                         <ErrorIcon color="error" />
-                      ) : result.status === 'uploading' ? (
+                      ) : result.status === "uploading" ? (
                         <CircularProgress size={20} />
                       ) : null}
                     </ListItemIcon>
@@ -401,8 +441,10 @@ const UploadDrawer = ({ open, onClose, onUploadSuccess }: UploadDrawerProps) => 
                         sx={{
                           p: 1,
                           borderRadius: 1,
-                          backgroundColor: (theme) => 
-                            theme.palette.mode === 'dark' ? 'rgba(255, 255, 255, 0.05)' : 'rgba(0, 0, 0, 0.02)',
+                          backgroundColor: (theme) =>
+                            theme.palette.mode === "dark"
+                              ? "rgba(255, 255, 255, 0.05)"
+                              : "rgba(0, 0, 0, 0.02)",
                         }}
                         variant="outlined"
                         elevation={0}
@@ -410,9 +452,9 @@ const UploadDrawer = ({ open, onClose, onUploadSuccess }: UploadDrawerProps) => 
                         <Typography
                           variant="body2"
                           sx={{
-                            fontFamily: 'monospace',
-                            fontSize: '0.75rem',
-                            whiteSpace: 'pre-wrap',
+                            fontFamily: "monospace",
+                            fontSize: "0.75rem",
+                            whiteSpace: "pre-wrap",
                           }}
                         >
                           {result.message}
@@ -424,12 +466,8 @@ const UploadDrawer = ({ open, onClose, onUploadSuccess }: UploadDrawerProps) => 
               ))}
             </List>
 
-            <Box sx={{ display: 'flex', gap: 1 }}>
-              <Button
-                variant="outlined"
-                onClick={resetForm}
-                sx={{ flex: 1 }}
-              >
+            <Box sx={{ display: "flex", gap: 1 }}>
+              <Button variant="outlined" onClick={resetForm} sx={{ flex: 1 }}>
                 Upload More
               </Button>
             </Box>

@@ -16,8 +16,8 @@ interface ParsedVersion {
  * @returns Parsed version information
  */
 const parseVersion = (version: string): ParsedVersion => {
-  const [main, prerelease] = version.split('-');
-  const parts = main.split('.').map(Number);
+  const [main, prerelease] = version.split("-");
+  const parts = main.split(".").map(Number);
   return { parts, prerelease };
 };
 
@@ -32,10 +32,14 @@ export const compareVersions = (a: string, b: string): number => {
   const versionB = parseVersion(b);
 
   // Compare main version parts (major.minor.patch)
-  for (let i = 0; i < Math.max(versionA.parts.length, versionB.parts.length); i++) {
+  for (
+    let i = 0;
+    i < Math.max(versionA.parts.length, versionB.parts.length);
+    i++
+  ) {
     const partA = versionA.parts[i] || 0;
     const partB = versionB.parts[i] || 0;
-    
+
     if (partA !== partB) {
       return partA - partB;
     }
@@ -57,10 +61,13 @@ export const compareVersions = (a: string, b: string): number => {
  * @param order - Sort order: 'asc' for ascending (oldest first), 'desc' for descending (newest first)
  * @returns Sorted array of version strings
  */
-export const sortVersions = (versions: string[], order: 'asc' | 'desc' = 'desc'): string[] => {
+export const sortVersions = (
+  versions: string[],
+  order: "asc" | "desc" = "desc",
+): string[] => {
   return [...versions].sort((a, b) => {
     const result = compareVersions(a, b);
-    return order === 'desc' ? -result : result;
+    return order === "desc" ? -result : result;
   });
 };
 
@@ -71,6 +78,6 @@ export const sortVersions = (versions: string[], order: 'asc' | 'desc' = 'desc')
  */
 export const getLatestVersion = (versions: string[]): string | null => {
   if (versions.length === 0) return null;
-  const sorted = sortVersions(versions, 'desc');
+  const sorted = sortVersions(versions, "desc");
   return sorted[0];
 };

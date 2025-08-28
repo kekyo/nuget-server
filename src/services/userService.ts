@@ -2,13 +2,22 @@
 // Copyright (c) Kouji Matsui (@kekyo@mi.kekyo.net)
 // License under MIT.
 
-import { constants } from 'fs';
-import { readFile, writeFile, access } from 'fs/promises';
-import { join } from 'path';
-import { createReaderWriterLock } from 'async-primitives';
-import { Logger, ServerConfig } from '../types';
-import { generateSalt, hashPassword, verifyPassword, generateApiPassword, generateUserId } from '../utils/crypto';
-import { checkPasswordStrength, getMinPasswordScore } from '../utils/passwordStrength';
+import { constants } from "fs";
+import { readFile, writeFile, access } from "fs/promises";
+import { join } from "path";
+import { createReaderWriterLock } from "async-primitives";
+import { Logger, ServerConfig } from "../types";
+import {
+  generateSalt,
+  hashPassword,
+  verifyPassword,
+  generateApiPassword,
+  generateUserId,
+} from "../utils/crypto";
+import {
+  checkPasswordStrength,
+  getMinPasswordScore,
+} from "../utils/passwordStrength";
 
 /**
  * User data structure
@@ -20,7 +29,7 @@ export interface User {
   salt: string;
   apiPasswordHash: string;
   apiPasswordSalt: string;
-  role: 'read' | 'publish' | 'admin';
+  role: "read" | "publish" | "admin";
   createdAt: string;
   updatedAt: string;
 }
@@ -31,7 +40,7 @@ export interface User {
 export interface CreateUserRequest {
   username: string;
   password: string;
-  role: 'read' | 'publish' | 'admin';
+  role: "read" | "publish" | "admin";
 }
 
 /**
@@ -64,14 +73,27 @@ export interface UserServiceConfig {
 export interface UserService {
   readonly initialize: () => Promise<void>;
   readonly destroy: () => void;
-  readonly createUser: (request: CreateUserRequest) => Promise<CreateUserResponse>;
+  readonly createUser: (
+    request: CreateUserRequest,
+  ) => Promise<CreateUserResponse>;
   readonly getUser: (username: string) => Promise<User | null>;
   readonly getAllUsers: () => Promise<User[]>;
-  readonly updateUser: (username: string, updates: Partial<Pick<User, 'role'>> | { password: string }) => Promise<User | null>;
+  readonly updateUser: (
+    username: string,
+    updates: Partial<Pick<User, "role">> | { password: string },
+  ) => Promise<User | null>;
   readonly deleteUser: (username: string) => Promise<boolean>;
-  readonly regenerateApiPassword: (username: string) => Promise<RegenerateApiPasswordResponse | null>;
-  readonly validateCredentials: (username: string, password: string) => Promise<User | null>;
-  readonly validateApiPassword: (username: string, apiPassword: string) => Promise<User | null>;
+  readonly regenerateApiPassword: (
+    username: string,
+  ) => Promise<RegenerateApiPasswordResponse | null>;
+  readonly validateCredentials: (
+    username: string,
+    password: string,
+  ) => Promise<User | null>;
+  readonly validateApiPassword: (
+    username: string,
+    apiPassword: string,
+  ) => Promise<User | null>;
   readonly getUserCount: () => Promise<number>;
   readonly isReady: () => boolean;
 }
@@ -83,7 +105,7 @@ export interface UserService {
  */
 export const createUserService = (config: UserServiceConfig): UserService => {
   const { configDir, logger, serverConfig } = config;
-  const usersFilePath = join(configDir, 'users.json');
+  const usersFilePath = join(configDir, "users.json");
   let users: Map<string, User> = new Map();
   let isInitialized = false;
   const fileLock = createReaderWriterLock();
@@ -96,21 +118,20 @@ export const createUserService = (config: UserServiceConfig): UserService => {
     try {
       // Check if file exists
       await access(usersFilePath, constants.R_OK);
-      
+
       // Read and parse file
-      const content = await readFile(usersFilePath, 'utf-8');
+      const content = await readFile(usersFilePath, "utf-8");
       const usersArray: User[] = JSON.parse(content);
-      
+
       users.clear();
       for (const user of usersArray) {
         users.set(user.username, user);
       }
-      
+
       logger.info(`Loaded ${usersArray.length} users from users.json`);
-      
     } catch (error: any) {
-      if (error.code === 'ENOENT') {
-        logger.info('users.json not found - starting with empty user database');
+      if (error.code === "ENOENT") {
+        logger.info("users.json not found - starting with empty user database");
         users.clear();
       } else {
         logger.error(`Failed to load users.json: ${error.message}`);
@@ -128,7 +149,7 @@ export const createUserService = (config: UserServiceConfig): UserService => {
     try {
       const usersArray = Array.from(users.values());
       const content = JSON.stringify(usersArray, null, 2);
-      await writeFile(usersFilePath, content, 'utf-8');
+      await writeFile(usersFilePath, content, "utf-8");
       logger.debug(`Saved ${usersArray.length} users to users.json`);
     } catch (error: any) {
       logger.error(`Failed to save users.json: ${error.message}`);
@@ -139,21 +160,26 @@ export const createUserService = (config: UserServiceConfig): UserService => {
   /**
    * Validates username format and uniqueness
    */
-  const validateUsername = (username: string, excludeExisting = false): void => {
+  const validateUsername = (
+    username: string,
+    excludeExisting = false,
+  ): void => {
     if (!username || username.trim().length === 0) {
-      throw new Error('Username cannot be empty');
+      throw new Error("Username cannot be empty");
     }
 
     if (username.length > 50) {
-      throw new Error('Username cannot exceed 50 characters');
+      throw new Error("Username cannot exceed 50 characters");
     }
 
     if (!/^[a-zA-Z0-9._-]+$/.test(username)) {
-      throw new Error('Username can only contain letters, numbers, dots, underscores, and hyphens');
+      throw new Error(
+        "Username can only contain letters, numbers, dots, underscores, and hyphens",
+      );
     }
 
     if (!excludeExisting && users.has(username)) {
-      throw new Error('Username already exists');
+      throw new Error("Username already exists");
     }
   };
 
@@ -162,12 +188,12 @@ export const createUserService = (config: UserServiceConfig): UserService => {
    */
   const validatePassword = (password: string, username?: string): void => {
     if (!password || password.length === 0) {
-      throw new Error('Password cannot be empty');
+      throw new Error("Password cannot be empty");
     }
 
     // Minimum length check (for backward compatibility)
     if (password.length < 4) {
-      throw new Error('Password must be at least 4 characters long');
+      throw new Error("Password must be at least 4 characters long");
     }
 
     // Strength check (can be disabled via config)
@@ -175,12 +201,16 @@ export const createUserService = (config: UserServiceConfig): UserService => {
       const userInputs = username ? [username] : [];
       const strengthResult = checkPasswordStrength(password, userInputs);
       const minScore = getMinPasswordScore(serverConfig);
-      
+
       if (strengthResult.score < minScore) {
-        const strengthLabel = ['Weak', 'Fair', 'Good', 'Strong', 'Very Strong'][minScore];
+        const strengthLabel = ["Weak", "Fair", "Good", "Strong", "Very Strong"][
+          minScore
+        ];
         throw new Error(
           `Password strength is too weak. Minimum required: ${strengthLabel}. ` +
-          (strengthResult.feedback.warning || strengthResult.feedback.suggestions[0] || '')
+            (strengthResult.feedback.warning ||
+              strengthResult.feedback.suggestions[0] ||
+              ""),
         );
       }
     }
@@ -190,8 +220,8 @@ export const createUserService = (config: UserServiceConfig): UserService => {
    * Validates role
    */
   const validateRole = (role: string): void => {
-    if (!['read', 'publish', 'admin'].includes(role)) {
-      throw new Error('Role must be one of: read, publish, admin');
+    if (!["read", "publish", "admin"].includes(role)) {
+      throw new Error("Role must be one of: read, publish, admin");
     }
   };
 
@@ -205,10 +235,12 @@ export const createUserService = (config: UserServiceConfig): UserService => {
       }
 
       const startTime = Date.now();
-      logger.info(`Initializing user service with config directory: ${configDir}`);
-      
+      logger.info(
+        `Initializing user service with config directory: ${configDir}`,
+      );
+
       await loadUsers();
-      
+
       isInitialized = true;
       const duration = Date.now() - startTime;
       logger.info(`User service initialization completed in ${duration}ms`);
@@ -227,7 +259,9 @@ export const createUserService = (config: UserServiceConfig): UserService => {
      * @param request - User creation request
      * @returns User creation response with API password
      */
-    createUser: async (request: CreateUserRequest): Promise<CreateUserResponse> => {
+    createUser: async (
+      request: CreateUserRequest,
+    ): Promise<CreateUserResponse> => {
       const handle = await fileLock.writeLock();
       try {
         validateUsername(request.username);
@@ -237,7 +271,7 @@ export const createUserService = (config: UserServiceConfig): UserService => {
         // Generate salts and hashes
         const passwordSalt = generateSalt();
         const passwordHash = hashPassword(request.password, passwordSalt);
-        
+
         const apiPassword = generateApiPassword();
         const apiPasswordSalt = generateSalt();
         const apiPasswordHash = hashPassword(apiPassword, apiPasswordSalt);
@@ -252,17 +286,19 @@ export const createUserService = (config: UserServiceConfig): UserService => {
           apiPasswordSalt,
           role: request.role,
           createdAt: now,
-          updatedAt: now
+          updatedAt: now,
         };
 
         users.set(request.username, user);
         await saveUsersInternal();
 
-        logger.info(`Created user: ${request.username} with role: ${request.role}`);
+        logger.info(
+          `Created user: ${request.username} with role: ${request.role}`,
+        );
 
         return {
           user,
-          apiPassword // Only provided once during creation
+          apiPassword, // Only provided once during creation
         };
       } finally {
         handle.release();
@@ -292,7 +328,10 @@ export const createUserService = (config: UserServiceConfig): UserService => {
      * @param updates - Properties to update
      * @returns Updated user or null if not found
      */
-    updateUser: async (username: string, updates: Partial<Pick<User, 'role'>> | { password: string }): Promise<User | null> => {
+    updateUser: async (
+      username: string,
+      updates: Partial<Pick<User, "role">> | { password: string },
+    ): Promise<User | null> => {
       const handle = await fileLock.writeLock();
       try {
         const user = users.get(username);
@@ -300,15 +339,18 @@ export const createUserService = (config: UserServiceConfig): UserService => {
           return null;
         }
 
-        if ('role' in updates && updates.role) {
+        if ("role" in updates && updates.role) {
           validateRole(updates.role);
           user.role = updates.role;
         }
 
-        if ('password' in updates && updates.password) {
+        if ("password" in updates && updates.password) {
           validatePassword(updates.password, username);
           const newPasswordSalt = generateSalt();
-          const newPasswordHash = hashPassword(updates.password, newPasswordSalt);
+          const newPasswordHash = hashPassword(
+            updates.password,
+            newPasswordSalt,
+          );
           user.passwordHash = newPasswordHash;
           user.salt = newPasswordSalt;
         }
@@ -347,7 +389,9 @@ export const createUserService = (config: UserServiceConfig): UserService => {
      * @param username - Username to regenerate API password for
      * @returns New API password or null if user not found
      */
-    regenerateApiPassword: async (username: string): Promise<RegenerateApiPasswordResponse | null> => {
+    regenerateApiPassword: async (
+      username: string,
+    ): Promise<RegenerateApiPasswordResponse | null> => {
       const handle = await fileLock.writeLock();
       try {
         const user = users.get(username);
@@ -357,7 +401,10 @@ export const createUserService = (config: UserServiceConfig): UserService => {
 
         const newApiPassword = generateApiPassword();
         const newApiPasswordSalt = generateSalt();
-        const newApiPasswordHash = hashPassword(newApiPassword, newApiPasswordSalt);
+        const newApiPasswordHash = hashPassword(
+          newApiPassword,
+          newApiPasswordSalt,
+        );
 
         user.apiPasswordHash = newApiPasswordHash;
         user.apiPasswordSalt = newApiPasswordSalt;
@@ -367,7 +414,7 @@ export const createUserService = (config: UserServiceConfig): UserService => {
         logger.info(`Regenerated API password for user: ${username}`);
 
         return {
-          apiPassword: newApiPassword
+          apiPassword: newApiPassword,
         };
       } finally {
         handle.release();
@@ -380,7 +427,10 @@ export const createUserService = (config: UserServiceConfig): UserService => {
      * @param password - Password
      * @returns User data if valid, null otherwise
      */
-    validateCredentials: async (username: string, password: string): Promise<User | null> => {
+    validateCredentials: async (
+      username: string,
+      password: string,
+    ): Promise<User | null> => {
       const user = users.get(username);
       if (!user) {
         return null;
@@ -396,13 +446,20 @@ export const createUserService = (config: UserServiceConfig): UserService => {
      * @param apiPassword - API password
      * @returns User data if valid, null otherwise
      */
-    validateApiPassword: async (username: string, apiPassword: string): Promise<User | null> => {
+    validateApiPassword: async (
+      username: string,
+      apiPassword: string,
+    ): Promise<User | null> => {
       const user = users.get(username);
       if (!user) {
         return null;
       }
 
-      const isValid = verifyPassword(apiPassword, user.apiPasswordHash, user.apiPasswordSalt);
+      const isValid = verifyPassword(
+        apiPassword,
+        user.apiPasswordHash,
+        user.apiPasswordSalt,
+      );
       return isValid ? user : null;
     },
 
@@ -420,6 +477,6 @@ export const createUserService = (config: UserServiceConfig): UserService => {
      */
     isReady: (): boolean => {
       return isInitialized;
-    }
+    },
   };
 };

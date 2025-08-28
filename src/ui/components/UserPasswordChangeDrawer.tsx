@@ -2,7 +2,7 @@
 // Copyright (c) Kouji Matsui (@kekyo@mi.kekyo.net)
 // License under MIT.
 
-import { useState } from 'react';
+import { useState } from "react";
 import {
   Drawer,
   Box,
@@ -13,14 +13,14 @@ import {
   CircularProgress,
   IconButton,
   InputAdornment,
-} from '@mui/material';
+} from "@mui/material";
 import {
   Close as CloseIcon,
   Visibility,
   VisibilityOff,
   LockReset as LockResetIcon,
-} from '@mui/icons-material';
-import { PasswordStrengthIndicator } from './PasswordStrengthIndicator';
+} from "@mui/icons-material";
+import { PasswordStrengthIndicator } from "./PasswordStrengthIndicator";
 
 interface UserPasswordChangeDrawerProps {
   open: boolean;
@@ -32,26 +32,29 @@ interface PasswordChangeResult {
   message: string;
 }
 
-const UserPasswordChangeDrawer = ({ open, onClose }: UserPasswordChangeDrawerProps) => {
-  const [currentPassword, setCurrentPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+const UserPasswordChangeDrawer = ({
+  open,
+  onClose,
+}: UserPasswordChangeDrawerProps) => {
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<PasswordChangeResult | null>(null);
-  const [validationError, setValidationError] = useState('');
+  const [validationError, setValidationError] = useState("");
 
   const resetForm = () => {
-    setCurrentPassword('');
-    setNewPassword('');
-    setConfirmPassword('');
+    setCurrentPassword("");
+    setNewPassword("");
+    setConfirmPassword("");
     setShowCurrentPassword(false);
     setShowNewPassword(false);
     setShowConfirmPassword(false);
     setResult(null);
-    setValidationError('');
+    setValidationError("");
   };
 
   const handleClose = () => {
@@ -63,31 +66,33 @@ const UserPasswordChangeDrawer = ({ open, onClose }: UserPasswordChangeDrawerPro
 
   const validateForm = (): boolean => {
     if (!currentPassword) {
-      setValidationError('Current password is required');
+      setValidationError("Current password is required");
       return false;
     }
-    
+
     if (!newPassword) {
-      setValidationError('New password is required');
+      setValidationError("New password is required");
       return false;
     }
-    
+
     if (newPassword.length < 4) {
-      setValidationError('New password must be at least 4 characters');
+      setValidationError("New password must be at least 4 characters");
       return false;
     }
-    
+
     if (newPassword !== confirmPassword) {
-      setValidationError('New passwords do not match');
+      setValidationError("New passwords do not match");
       return false;
     }
-    
+
     if (currentPassword === newPassword) {
-      setValidationError('New password must be different from current password');
+      setValidationError(
+        "New password must be different from current password",
+      );
       return false;
     }
-    
-    setValidationError('');
+
+    setValidationError("");
     return true;
   };
 
@@ -99,13 +104,13 @@ const UserPasswordChangeDrawer = ({ open, onClose }: UserPasswordChangeDrawerPro
     try {
       setLoading(true);
       setResult(null);
-      
-      const response = await fetch('/api/ui/password', {
-        method: 'POST',
+
+      const response = await fetch("/api/ui/password", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
-        credentials: 'same-origin',
+        credentials: "same-origin",
         body: JSON.stringify({
           currentPassword,
           newPassword,
@@ -113,13 +118,13 @@ const UserPasswordChangeDrawer = ({ open, onClose }: UserPasswordChangeDrawerPro
       });
 
       const data = await response.json();
-      
+
       if (response.ok) {
         setResult({
           success: true,
-          message: data.message || 'Password changed successfully',
+          message: data.message || "Password changed successfully",
         });
-        
+
         // Auto-close drawer after success
         setTimeout(() => {
           handleClose();
@@ -127,19 +132,19 @@ const UserPasswordChangeDrawer = ({ open, onClose }: UserPasswordChangeDrawerPro
       } else {
         setResult({
           success: false,
-          message: data.error || 'Failed to change password',
+          message: data.error || "Failed to change password",
         });
-        
+
         // Clear password fields on error
         if (response.status === 401) {
-          setCurrentPassword('');
+          setCurrentPassword("");
         }
       }
     } catch (error) {
-      console.error('Failed to change password:', error);
+      console.error("Failed to change password:", error);
       setResult({
         success: false,
-        message: 'Failed to connect to server',
+        message: "Failed to connect to server",
       });
     } finally {
       setLoading(false);
@@ -147,7 +152,7 @@ const UserPasswordChangeDrawer = ({ open, onClose }: UserPasswordChangeDrawerPro
   };
 
   const handleKeyPress = (event: React.KeyboardEvent) => {
-    if (event.key === 'Enter' && !loading && !validationError) {
+    if (event.key === "Enter" && !loading && !validationError) {
       handleSubmit();
     }
   };
@@ -158,14 +163,24 @@ const UserPasswordChangeDrawer = ({ open, onClose }: UserPasswordChangeDrawerPro
       open={open}
       onClose={handleClose}
       PaperProps={{
-        sx: { 
+        sx: {
           width: 500,
           p: 3,
         },
       }}
     >
-      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
-        <Typography variant="h5" sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+      <Box
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          mb: 3,
+        }}
+      >
+        <Typography
+          variant="h5"
+          sx={{ display: "flex", alignItems: "center", gap: 1 }}
+        >
           <LockResetIcon />
           Change Password
         </Typography>
@@ -180,10 +195,10 @@ const UserPasswordChangeDrawer = ({ open, onClose }: UserPasswordChangeDrawerPro
             Enter your current password and choose a new password.
           </Alert>
 
-          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+          <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
             <TextField
               label="Current Password"
-              type={showCurrentPassword ? 'text' : 'password'}
+              type={showCurrentPassword ? "text" : "password"}
               value={currentPassword}
               onChange={(e) => setCurrentPassword(e.target.value)}
               onKeyPress={handleKeyPress}
@@ -195,7 +210,9 @@ const UserPasswordChangeDrawer = ({ open, onClose }: UserPasswordChangeDrawerPro
                 endAdornment: (
                   <InputAdornment position="end">
                     <IconButton
-                      onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                      onClick={() =>
+                        setShowCurrentPassword(!showCurrentPassword)
+                      }
                       edge="end"
                     >
                       {showCurrentPassword ? <VisibilityOff /> : <Visibility />}
@@ -207,7 +224,7 @@ const UserPasswordChangeDrawer = ({ open, onClose }: UserPasswordChangeDrawerPro
 
             <TextField
               label="New Password"
-              type={showNewPassword ? 'text' : 'password'}
+              type={showNewPassword ? "text" : "password"}
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
               onKeyPress={handleKeyPress}
@@ -228,11 +245,13 @@ const UserPasswordChangeDrawer = ({ open, onClose }: UserPasswordChangeDrawerPro
                 ),
               }}
             />
-            {newPassword && <PasswordStrengthIndicator password={newPassword} />}
+            {newPassword && (
+              <PasswordStrengthIndicator password={newPassword} />
+            )}
 
             <TextField
               label="Confirm New Password"
-              type={showConfirmPassword ? 'text' : 'password'}
+              type={showConfirmPassword ? "text" : "password"}
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               onKeyPress={handleKeyPress}
@@ -243,7 +262,9 @@ const UserPasswordChangeDrawer = ({ open, onClose }: UserPasswordChangeDrawerPro
                 endAdornment: (
                   <InputAdornment position="end">
                     <IconButton
-                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      onClick={() =>
+                        setShowConfirmPassword(!showConfirmPassword)
+                      }
                       edge="end"
                     >
                       {showConfirmPassword ? <VisibilityOff /> : <Visibility />}
@@ -259,20 +280,26 @@ const UserPasswordChangeDrawer = ({ open, onClose }: UserPasswordChangeDrawerPro
 
             <Button
               variant="contained"
-              startIcon={loading ? <CircularProgress size={20} color="inherit" /> : <LockResetIcon />}
+              startIcon={
+                loading ? (
+                  <CircularProgress size={20} color="inherit" />
+                ) : (
+                  <LockResetIcon />
+                )
+              }
               onClick={handleSubmit}
               disabled={loading || !!validationError}
               fullWidth
               sx={{ mt: 2 }}
             >
-              {loading ? 'Changing Password...' : 'Change Password'}
+              {loading ? "Changing Password..." : "Change Password"}
             </Button>
           </Box>
         </>
       )}
 
       {result && (
-        <Alert severity={result.success ? 'success' : 'error'} sx={{ mt: 2 }}>
+        <Alert severity={result.success ? "success" : "error"} sx={{ mt: 2 }}>
           {result.message}
         </Alert>
       )}

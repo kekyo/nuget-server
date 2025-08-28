@@ -1,4 +1,4 @@
-import { promises as fs } from 'fs';
+import { promises as fs } from "fs";
 
 /**
  * Check if buffer contains PNG file header
@@ -6,14 +6,16 @@ import { promises as fs } from 'fs';
  */
 export const isPNGHeader = (buffer: Buffer): boolean => {
   if (buffer.length < 8) return false;
-  return buffer[0] === 0x89 && 
-         buffer[1] === 0x50 && 
-         buffer[2] === 0x4E && 
-         buffer[3] === 0x47 &&
-         buffer[4] === 0x0D &&
-         buffer[5] === 0x0A &&
-         buffer[6] === 0x1A &&
-         buffer[7] === 0x0A;
+  return (
+    buffer[0] === 0x89 &&
+    buffer[1] === 0x50 &&
+    buffer[2] === 0x4e &&
+    buffer[3] === 0x47 &&
+    buffer[4] === 0x0d &&
+    buffer[5] === 0x0a &&
+    buffer[6] === 0x1a &&
+    buffer[7] === 0x0a
+  );
 };
 
 /**
@@ -22,18 +24,20 @@ export const isPNGHeader = (buffer: Buffer): boolean => {
  */
 export const isICOHeader = (buffer: Buffer): boolean => {
   if (buffer.length < 4) return false;
-  return buffer[0] === 0x00 && 
-         buffer[1] === 0x00 && 
-         buffer[2] === 0x01 && 
-         buffer[3] === 0x00;
+  return (
+    buffer[0] === 0x00 &&
+    buffer[1] === 0x00 &&
+    buffer[2] === 0x01 &&
+    buffer[3] === 0x00
+  );
 };
 
 /**
  * Compare two binary files for equality
  */
 export const compareBinaryFiles = async (
-  file1Path: string, 
-  file2Path: string
+  file1Path: string,
+  file2Path: string,
 ): Promise<boolean> => {
   try {
     const buffer1 = await fs.readFile(file1Path);
@@ -50,7 +54,11 @@ export const compareBinaryFiles = async (
  */
 export const hasReplacementCharacters = (buffer: Buffer): boolean => {
   for (let i = 0; i <= buffer.length - 3; i++) {
-    if (buffer[i] === 0xEF && buffer[i + 1] === 0xBF && buffer[i + 2] === 0xBD) {
+    if (
+      buffer[i] === 0xef &&
+      buffer[i + 1] === 0xbf &&
+      buffer[i + 2] === 0xbd
+    ) {
       return true;
     }
   }
@@ -68,7 +76,7 @@ export const getFileStats = async (filePath: string) => {
       isPNG: isPNGHeader(buffer),
       isICO: isICOHeader(buffer),
       hasReplacementChars: hasReplacementCharacters(buffer),
-      firstBytes: buffer.slice(0, 16).toString('hex')
+      firstBytes: buffer.slice(0, 16).toString("hex"),
     };
   } catch (error) {
     throw new Error(`Failed to read file ${filePath}: ${error}`);

@@ -2,7 +2,7 @@
 // Copyright (c) Kouji Matsui (@kekyo@mi.kekyo.net)
 // License under MIT.
 
-import { Logger, AuthMode } from '../types';
+import { Logger, AuthMode } from "../types";
 
 /**
  * Authentication mode service configuration
@@ -17,7 +17,9 @@ export interface AuthModeServiceConfig {
  */
 export interface AuthModeService {
   readonly getAuthMode: () => AuthMode;
-  readonly isAuthRequired: (endpoint: 'general' | 'publish' | 'admin') => boolean;
+  readonly isAuthRequired: (
+    endpoint: "general" | "publish" | "admin",
+  ) => boolean;
 }
 
 /**
@@ -30,7 +32,9 @@ export type AuthService = AuthModeService;
  * @param config - Authentication mode service configuration
  * @returns Authentication mode service instance
  */
-export const createAuthService = (config: AuthModeServiceConfig): AuthModeService => {
+export const createAuthService = (
+  config: AuthModeServiceConfig,
+): AuthModeService => {
   const { authMode, logger } = config;
 
   logger.info(`Authentication mode service initialized with mode: ${authMode}`);
@@ -49,17 +53,17 @@ export const createAuthService = (config: AuthModeServiceConfig): AuthModeServic
      * @param endpoint - The endpoint type to check
      * @returns True if authentication is required for the endpoint
      */
-    isAuthRequired: (endpoint: 'general' | 'publish' | 'admin'): boolean => {
+    isAuthRequired: (endpoint: "general" | "publish" | "admin"): boolean => {
       switch (authMode) {
-        case 'none':
+        case "none":
           return false;
-        case 'publish':
-          return endpoint === 'publish' || endpoint === 'admin';
-        case 'full':
+        case "publish":
+          return endpoint === "publish" || endpoint === "admin";
+        case "full":
           return true;
         default:
           return false;
       }
-    }
+    },
   };
 };

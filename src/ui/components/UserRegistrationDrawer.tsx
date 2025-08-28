@@ -2,7 +2,7 @@
 // Copyright (c) Kouji Matsui (@kekyo@mi.kekyo.net)
 // License under MIT.
 
-import { useState } from 'react';
+import { useState } from "react";
 import {
   Drawer,
   Box,
@@ -18,14 +18,14 @@ import {
   InputLabel,
   Select,
   MenuItem,
-} from '@mui/material';
+} from "@mui/material";
 import {
   Close as CloseIcon,
   PersonAdd as PersonAddIcon,
   CheckCircle as SuccessIcon,
   Error as ErrorIcon,
-} from '@mui/icons-material';
-import { PasswordStrengthIndicator } from './PasswordStrengthIndicator';
+} from "@mui/icons-material";
+import { PasswordStrengthIndicator } from "./PasswordStrengthIndicator";
 
 interface UserRegistrationDrawerProps {
   open: boolean;
@@ -39,13 +39,17 @@ interface RegistrationResult {
   apiPassword?: string;
 }
 
-type UserRole = 'read' | 'publish' | 'admin';
+type UserRole = "read" | "publish" | "admin";
 
-const UserRegistrationDrawer = ({ open, onClose, onRegistrationSuccess }: UserRegistrationDrawerProps) => {
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [role, setRole] = useState<UserRole>('read');
+const UserRegistrationDrawer = ({
+  open,
+  onClose,
+  onRegistrationSuccess,
+}: UserRegistrationDrawerProps) => {
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [role, setRole] = useState<UserRole>("read");
   const [registering, setRegistering] = useState(false);
   const [result, setResult] = useState<RegistrationResult | null>(null);
 
@@ -54,7 +58,7 @@ const UserRegistrationDrawer = ({ open, onClose, onRegistrationSuccess }: UserRe
     if (!username.trim() || !password || !confirmPassword) {
       setResult({
         success: false,
-        message: 'All fields are required'
+        message: "All fields are required",
       });
       return;
     }
@@ -62,7 +66,7 @@ const UserRegistrationDrawer = ({ open, onClose, onRegistrationSuccess }: UserRe
     if (password !== confirmPassword) {
       setResult({
         success: false,
-        message: 'Passwords do not match'
+        message: "Passwords do not match",
       });
       return;
     }
@@ -70,7 +74,7 @@ const UserRegistrationDrawer = ({ open, onClose, onRegistrationSuccess }: UserRe
     if (password.length < 4) {
       setResult({
         success: false,
-        message: 'Password must be at least 4 characters long'
+        message: "Password must be at least 4 characters long",
       });
       return;
     }
@@ -78,7 +82,8 @@ const UserRegistrationDrawer = ({ open, onClose, onRegistrationSuccess }: UserRe
     if (!/^[a-zA-Z0-9_-]+$/.test(username.trim())) {
       setResult({
         success: false,
-        message: 'Username must contain only alphanumeric characters, hyphens, and underscores'
+        message:
+          "Username must contain only alphanumeric characters, hyphens, and underscores",
       });
       return;
     }
@@ -88,23 +93,23 @@ const UserRegistrationDrawer = ({ open, onClose, onRegistrationSuccess }: UserRe
 
     try {
       // Use Fastify user management endpoint
-      const endpoint = '/api/ui/users';
-      
+      const endpoint = "/api/ui/users";
+
       // Prepare request body
       const requestBody = {
-        action: 'create',
+        action: "create",
         username,
         password,
-        role
+        role,
       };
-      
+
       const response = await fetch(endpoint, {
-        method: 'POST',
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
-        credentials: 'same-origin',
-        body: JSON.stringify(requestBody)
+        credentials: "same-origin",
+        body: JSON.stringify(requestBody),
       });
 
       const data = await response.json();
@@ -112,8 +117,8 @@ const UserRegistrationDrawer = ({ open, onClose, onRegistrationSuccess }: UserRe
       if (response.ok) {
         setResult({
           success: true,
-          message: data.message || 'User registered successfully',
-          apiPassword: data.apiPassword
+          message: data.message || "User registered successfully",
+          apiPassword: data.apiPassword,
         });
         onRegistrationSuccess();
       } else if (response.status === 401) {
@@ -123,13 +128,15 @@ const UserRegistrationDrawer = ({ open, onClose, onRegistrationSuccess }: UserRe
       } else {
         setResult({
           success: false,
-          message: data.message || `Registration failed: ${response.status} ${response.statusText}`,
+          message:
+            data.message ||
+            `Registration failed: ${response.status} ${response.statusText}`,
         });
       }
     } catch (error) {
       setResult({
         success: false,
-        message: `Registration error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        message: `Registration error: ${error instanceof Error ? error.message : "Unknown error"}`,
       });
     } finally {
       setRegistering(false);
@@ -137,44 +144,44 @@ const UserRegistrationDrawer = ({ open, onClose, onRegistrationSuccess }: UserRe
   };
 
   const handleClose = () => {
-    setUsername('');
-    setPassword('');
-    setConfirmPassword('');
-    setRole('read');
+    setUsername("");
+    setPassword("");
+    setConfirmPassword("");
+    setRole("read");
     setRegistering(false);
     setResult(null);
     onClose();
   };
 
   const resetForm = () => {
-    setUsername('');
-    setPassword('');
-    setConfirmPassword('');
-    setRole('read');
+    setUsername("");
+    setPassword("");
+    setConfirmPassword("");
+    setRole("read");
     setResult(null);
   };
 
   const getRoleDescription = (role: UserRole): string => {
     switch (role) {
-      case 'read':
-        return 'Can view and download packages';
-      case 'publish':
-        return 'Can view, download, and upload packages';
-      case 'admin':
-        return 'Can view, download, upload packages, and manage users';
+      case "read":
+        return "Can view and download packages";
+      case "publish":
+        return "Can view, download, and upload packages";
+      case "admin":
+        return "Can view, download, upload packages, and manage users";
       default:
-        return '';
+        return "";
     }
   };
 
   const getRoleDisplayName = (role: UserRole): string => {
     switch (role) {
-      case 'read':
-        return 'Read Only';
-      case 'publish':
-        return 'Read & Publish';
-      case 'admin':
-        return 'Administrator';
+      case "read":
+        return "Read Only";
+      case "publish":
+        return "Read & Publish";
+      case "admin":
+        return "Administrator";
       default:
         return role;
     }
@@ -185,11 +192,11 @@ const UserRegistrationDrawer = ({ open, onClose, onRegistrationSuccess }: UserRe
       await navigator.clipboard.writeText(text);
     } catch (err) {
       // Fallback for older browsers
-      const textArea = document.createElement('textarea');
+      const textArea = document.createElement("textarea");
       textArea.value = text;
       document.body.appendChild(textArea);
       textArea.select();
-      document.execCommand('copy');
+      document.execCommand("copy");
       document.body.removeChild(textArea);
     }
   };
@@ -203,14 +210,21 @@ const UserRegistrationDrawer = ({ open, onClose, onRegistrationSuccess }: UserRe
       sx={{
         width: 400,
         flexShrink: 0,
-        '& .MuiDrawer-paper': {
+        "& .MuiDrawer-paper": {
           width: 400,
-          boxSizing: 'border-box',
+          boxSizing: "border-box",
         },
       }}
     >
-      <Box sx={{ p: 3, height: '100%' }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
+      <Box sx={{ p: 3, height: "100%" }}>
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            mb: 3,
+          }}
+        >
           <Typography variant="h6" component="h2">
             Register User
           </Typography>
@@ -249,7 +263,10 @@ const UserRegistrationDrawer = ({ open, onClose, onRegistrationSuccess }: UserRe
               sx={{ mb: 1 }}
               helperText="Minimum 4 characters"
             />
-            <PasswordStrengthIndicator password={password} username={username} />
+            <PasswordStrengthIndicator
+              password={password}
+              username={username}
+            />
 
             <TextField
               fullWidth
@@ -276,7 +293,11 @@ const UserRegistrationDrawer = ({ open, onClose, onRegistrationSuccess }: UserRe
               </Select>
             </FormControl>
 
-            <Paper sx={{ p: 2, mb: 3, bgcolor: 'background.default' }} variant="outlined" elevation={0}>
+            <Paper
+              sx={{ p: 2, mb: 3, bgcolor: "background.default" }}
+              variant="outlined"
+              elevation={0}
+            >
               <Typography variant="body2" color="text.secondary" gutterBottom>
                 <strong>{getRoleDisplayName(role)}:</strong>
               </Typography>
@@ -288,22 +309,28 @@ const UserRegistrationDrawer = ({ open, onClose, onRegistrationSuccess }: UserRe
             <Button
               variant="contained"
               fullWidth
-              startIcon={registering ? <CircularProgress size={20} /> : <PersonAddIcon />}
+              startIcon={
+                registering ? <CircularProgress size={20} /> : <PersonAddIcon />
+              }
               onClick={handleRegister}
-              disabled={registering || !username.trim() || !password || !confirmPassword}
+              disabled={
+                registering || !username.trim() || !password || !confirmPassword
+              }
               sx={{ mb: 2 }}
             >
-              {registering ? 'Registering...' : 'Register User'}
+              {registering ? "Registering..." : "Register User"}
             </Button>
           </Box>
         ) : (
           <Box>
             <Alert
-              severity={result.success ? 'success' : 'error'}
+              severity={result.success ? "success" : "error"}
               icon={result.success ? <SuccessIcon /> : <ErrorIcon />}
               sx={{ mb: 3 }}
             >
-              {result.success ? 'User Registered Successfully!' : 'Registration Failed'}
+              {result.success
+                ? "User Registered Successfully!"
+                : "Registration Failed"}
             </Alert>
 
             {result.success && (
@@ -311,48 +338,69 @@ const UserRegistrationDrawer = ({ open, onClose, onRegistrationSuccess }: UserRe
                 <Typography variant="body2" color="text.secondary" gutterBottom>
                   User created successfully!
                 </Typography>
-                <Typography variant="body1" sx={{ fontWeight: 'medium', mb: 1 }}>
+                <Typography
+                  variant="body1"
+                  sx={{ fontWeight: "medium", mb: 1 }}
+                >
                   Username: {username}
                 </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                <Typography
+                  variant="body2"
+                  color="text.secondary"
+                  sx={{ mb: 2 }}
+                >
                   Role: {getRoleDisplayName(role)}
                 </Typography>
-                
+
                 {result.apiPassword && (
                   <>
                     <Alert severity="warning" sx={{ mb: 2 }}>
-                      <Typography variant="body2" sx={{ fontWeight: 'bold', mb: 1 }}>
+                      <Typography
+                        variant="body2"
+                        sx={{ fontWeight: "bold", mb: 1 }}
+                      >
                         Important: Save API password!
                       </Typography>
                       <Typography variant="body2">
-                        This API password will only be shown once. Copy it now and store it securely.
-                        They'll need it to authenticate API requests.
+                        This API password will only be shown once. Copy it now
+                        and store it securely. They'll need it to authenticate
+                        API requests.
                       </Typography>
                     </Alert>
-                    
-                    <Typography variant="body2" color="text.secondary" gutterBottom>
+
+                    <Typography
+                      variant="body2"
+                      color="text.secondary"
+                      gutterBottom
+                    >
                       API Password:
                     </Typography>
                     <Paper
                       sx={{
                         p: 2,
-                        bgcolor: (theme) => theme.palette.mode === 'dark' ? 'grey.800' : 'grey.100',
-                        border: '2px dashed',
-                        borderColor: 'primary.main',
-                        cursor: 'pointer',
-                        '&:hover': {
-                          bgcolor: (theme) => theme.palette.mode === 'dark' ? 'grey.700' : 'grey.200'
-                        }
+                        bgcolor: (theme) =>
+                          theme.palette.mode === "dark"
+                            ? "grey.800"
+                            : "grey.100",
+                        border: "2px dashed",
+                        borderColor: "primary.main",
+                        cursor: "pointer",
+                        "&:hover": {
+                          bgcolor: (theme) =>
+                            theme.palette.mode === "dark"
+                              ? "grey.700"
+                              : "grey.200",
+                        },
                       }}
                       onClick={() => copyToClipboard(result.apiPassword!)}
                     >
                       <Typography
                         variant="body2"
                         sx={{
-                          fontFamily: 'monospace',
-                          fontSize: '0.9rem',
-                          wordBreak: 'break-all',
-                          mb: 1
+                          fontFamily: "monospace",
+                          fontSize: "0.9rem",
+                          wordBreak: "break-all",
+                          mb: 1,
                         }}
                       >
                         {result.apiPassword}
@@ -382,9 +430,9 @@ const UserRegistrationDrawer = ({ open, onClose, onRegistrationSuccess }: UserRe
                   <Typography
                     variant="body2"
                     sx={{
-                      fontFamily: 'monospace',
-                      fontSize: '0.75rem',
-                      whiteSpace: 'pre-wrap',
+                      fontFamily: "monospace",
+                      fontSize: "0.75rem",
+                      whiteSpace: "pre-wrap",
                     }}
                   >
                     {result.message}
@@ -393,12 +441,8 @@ const UserRegistrationDrawer = ({ open, onClose, onRegistrationSuccess }: UserRe
               </Box>
             )}
 
-            <Box sx={{ display: 'flex', gap: 1 }}>
-              <Button
-                variant="outlined"
-                onClick={resetForm}
-                sx={{ flex: 1 }}
-              >
+            <Box sx={{ display: "flex", gap: 1 }}>
+              <Button variant="outlined" onClick={resetForm} sx={{ flex: 1 }}>
                 Register Another
               </Button>
             </Box>

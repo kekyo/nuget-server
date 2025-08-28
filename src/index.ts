@@ -5,4 +5,4 @@
 /**
  * Export the startFastifyServer function from server.fastify module
  */
-export { startFastifyServer } from './server';
+export { startFastifyServer } from "./server";

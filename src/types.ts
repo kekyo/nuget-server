@@ -31,12 +31,12 @@ export interface Logger {
 /**
  * Log levels
  */
-export type LogLevel = 'debug' | 'info' | 'warn' | 'error' | 'ignore';
+export type LogLevel = "debug" | "info" | "warn" | "error" | "ignore";
 
 /**
  * Authentication modes
  */
-export type AuthMode = 'none' | 'publish' | 'full';
+export type AuthMode = "none" | "publish" | "full";
 
 /**
  * Server configuration
@@ -52,14 +52,14 @@ export interface ServerConfig {
   noUi?: boolean;
   authMode?: AuthMode;
   sessionSecret?: string;
-  passwordMinScore?: number;        // 0-4, default: 2 (Good)
-  passwordStrengthCheck?: boolean;  // default: true
+  passwordMinScore?: number; // 0-4, default: 2 (Good)
+  passwordStrengthCheck?: boolean; // default: true
 }
 
 /**
  * Extend Fastify types for AbortSignal support
  */
-declare module 'fastify' {
+declare module "fastify" {
   interface FastifyRequest {
     abortSignal: AbortSignal;
   }

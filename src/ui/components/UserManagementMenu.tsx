@@ -2,7 +2,7 @@
 // Copyright (c) Kouji Matsui (@kekyo@mi.kekyo.net)
 // License under MIT.
 
-import { useState } from 'react';
+import { useState } from "react";
 import {
   Button,
   Menu,
@@ -10,14 +10,14 @@ import {
   ListItemIcon,
   ListItemText,
   Divider,
-} from '@mui/material';
+} from "@mui/material";
 import {
   Group as GroupIcon,
   PersonAdd as PersonAddIcon,
   LockReset as LockResetIcon,
   PersonRemove as PersonRemoveIcon,
   ArrowDropDown as ArrowDropDownIcon,
-} from '@mui/icons-material';
+} from "@mui/icons-material";
 
 interface UserManagementMenuProps {
   onAddUser: () => void;
@@ -25,10 +25,10 @@ interface UserManagementMenuProps {
   onDeleteUser: () => void;
 }
 
-const UserManagementMenu = ({ 
-  onAddUser, 
-  onResetPassword, 
-  onDeleteUser 
+const UserManagementMenu = ({
+  onAddUser,
+  onResetPassword,
+  onDeleteUser,
 }: UserManagementMenuProps) => {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const open = Boolean(anchorEl);
@@ -64,9 +64,9 @@ const UserManagementMenu = ({
         endIcon={<ArrowDropDownIcon />}
         onClick={handleClick}
         sx={{ mr: 1 }}
-        aria-controls={open ? 'user-management-menu' : undefined}
+        aria-controls={open ? "user-management-menu" : undefined}
         aria-haspopup="true"
-        aria-expanded={open ? 'true' : undefined}
+        aria-expanded={open ? "true" : undefined}
       >
         Users
       </Button>
@@ -76,15 +76,15 @@ const UserManagementMenu = ({
         open={open}
         onClose={handleClose}
         MenuListProps={{
-          'aria-labelledby': 'user-management-button',
+          "aria-labelledby": "user-management-button",
         }}
         anchorOrigin={{
-          vertical: 'bottom',
-          horizontal: 'left',
+          vertical: "bottom",
+          horizontal: "left",
         }}
         transformOrigin={{
-          vertical: 'top',
-          horizontal: 'left',
+          vertical: "top",
+          horizontal: "left",
         }}
       >
         <MenuItem onClick={handleAddUser}>

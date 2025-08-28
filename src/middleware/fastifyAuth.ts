@@ -2,13 +2,13 @@
 // Copyright (c) Kouji Matsui (@kekyo@mi.kekyo.net)
 // License under MIT.
 
-import { FastifyRequest, FastifyReply } from 'fastify';
-import { Strategy as LocalStrategy } from 'passport-local';
-import { BasicStrategy } from 'passport-http';
-import { Logger } from '../types';
-import { UserService } from '../services/userService';
-import { SessionService } from '../services/sessionService';
-import { AuthFailureTracker } from '../services/authFailureTracker';
+import { FastifyRequest, FastifyReply } from "fastify";
+import { Strategy as LocalStrategy } from "passport-local";
+import { BasicStrategy } from "passport-http";
+import { Logger } from "../types";
+import { UserService } from "../services/userService";
+import { SessionService } from "../services/sessionService";
+import { AuthFailureTracker } from "../services/authFailureTracker";
 
 /**
  * Fastify authentication middleware configuration
@@ -37,10 +37,13 @@ export interface AuthenticatedFastifyRequest extends FastifyRequest {
  * @returns True if request appears to be from UI
  */
 const isUIRequest = (request: FastifyRequest): boolean => {
-  const acceptHeader = request.headers.accept || '';
+  const acceptHeader = request.headers.accept || "";
   // Only consider requests specifically asking for HTML as UI requests
   // Don't treat generic */*, application/json or other API content types as UI requests
-  return acceptHeader.includes('text/html') && !acceptHeader.includes('application/json');
+  return (
+    acceptHeader.includes("text/html") &&
+    !acceptHeader.includes("application/json")
+  );
 };
 
 /**
@@ -48,15 +51,19 @@ const isUIRequest = (request: FastifyRequest): boolean => {
  * @param authHeader - Authorization header value
  * @returns Parsed credentials or null
  */
-const parseBasicAuth = (authHeader: string): { username: string; password: string } | null => {
+const parseBasicAuth = (
+  authHeader: string,
+): { username: string; password: string } | null => {
   try {
-    if (!authHeader.startsWith('Basic ')) {
+    if (!authHeader.startsWith("Basic ")) {
       return null;
     }
 
     const credentials = authHeader.substring(6); // Remove 'Basic ' prefix
-    const decodedCredentials = Buffer.from(credentials, 'base64').toString('utf-8');
-    const colonIndex = decodedCredentials.indexOf(':');
+    const decodedCredentials = Buffer.from(credentials, "base64").toString(
+      "utf-8",
+    );
+    const colonIndex = decodedCredentials.indexOf(":");
 
     if (colonIndex === -1) {
       return null;
@@ -79,10 +86,10 @@ const parseBasicAuth = (authHeader: string): { username: string; password: strin
  * @param realm - Authentication realm
  */
 const sendUnauthorized = (reply: FastifyReply, realm: string) => {
-  reply.header('WWW-Authenticate', `Basic realm="${realm}"`);
+  reply.header("WWW-Authenticate", `Basic realm="${realm}"`);
   reply.status(401).send({
-    error: 'Authentication required',
-    message: 'Please provide valid credentials'
+    error: "Authentication required",
+    message: "Please provide valid credentials",
   });
 };
 
@@ -91,35 +98,37 @@ const sendUnauthorized = (reply: FastifyReply, realm: string) => {
  * @param config - Authentication configuration
  * @returns Local strategy instance
  */
-export const createLocalStrategy = (config: FastifyAuthConfig): LocalStrategy => {
+export const createLocalStrategy = (
+  config: FastifyAuthConfig,
+): LocalStrategy => {
   const { userService, logger } = config;
 
   return new LocalStrategy(
     {
-      usernameField: 'username',
-      passwordField: 'password'
+      usernameField: "username",
+      passwordField: "password",
     },
     async (username: string, password: string, done) => {
       try {
         logger.debug(`Local strategy authenticating user: ${username}`);
-        
+
         const user = await userService.validateCredentials(username, password);
         if (!user) {
           logger.warn(`Local authentication failed for user: ${username}`);
-          return done(null, false, { message: 'Invalid credentials' });
+          return done(null, false, { message: "Invalid credentials" });
         }
 
         logger.debug(`Local authentication successful for user: ${username}`);
         return done(null, {
           id: user.id,
           username: user.username,
-          role: user.role
+          role: user.role,
         });
       } catch (error) {
         logger.error(`Local strategy error: ${error}`);
         return done(error);
       }
-    }
+    },
   );
 };
 
@@ -128,13 +137,15 @@ export const createLocalStrategy = (config: FastifyAuthConfig): LocalStrategy =>
  * @param config - Authentication configuration
  * @returns Basic strategy instance
  */
-export const createBasicStrategy = (config: FastifyAuthConfig): BasicStrategy => {
+export const createBasicStrategy = (
+  config: FastifyAuthConfig,
+): BasicStrategy => {
   const { userService, logger } = config;
 
   return new BasicStrategy(async (username: string, password: string, done) => {
     try {
       logger.debug(`Basic strategy authenticating user: ${username}`);
-      
+
       const user = await userService.validateApiPassword(username, password);
       if (!user) {
         logger.warn(`Basic authentication failed for user: ${username}`);
@@ -145,7 +156,7 @@ export const createBasicStrategy = (config: FastifyAuthConfig): BasicStrategy =>
       return done(null, {
         id: user.id,
         username: user.username,
-        role: user.role
+        role: user.role,
       });
     } catch (error) {
       logger.error(`Basic strategy error: ${error}`);
@@ -160,7 +171,7 @@ export const createBasicStrategy = (config: FastifyAuthConfig): BasicStrategy =>
  * @returns Fastify hook function
  */
 export const createHybridAuthMiddleware = (config: FastifyAuthConfig) => {
-  const realm = config.realm || 'NuGet Server';
+  const realm = config.realm || "NuGet Server";
   const { userService, sessionService, authFailureTracker, logger } = config;
 
   return async (request: AuthenticatedFastifyRequest, reply: FastifyReply) => {
@@ -170,65 +181,77 @@ export const createHybridAuthMiddleware = (config: FastifyAuthConfig) => {
       // 1. Check session authentication (Cookie-based, for UI)
       const sessionToken = request.cookies?.sessionToken;
       if (sessionToken) {
-        logger.debug('Checking session authentication');
+        logger.debug("Checking session authentication");
         const session = sessionService.validateSession(sessionToken);
         if (session) {
           logger.debug(`Session auth successful for user: ${session.username}`);
           request.user = {
             username: session.username,
-            role: session.role
+            role: session.role,
           };
           return;
         } else {
-          logger.debug('Invalid or expired session token');
+          logger.debug("Invalid or expired session token");
           // Clear invalid session cookie
-          reply.clearCookie('sessionToken', {
+          reply.clearCookie("sessionToken", {
             httpOnly: true,
-            secure: request.protocol === 'https',
-            sameSite: 'strict' as const,
-            path: '/'
+            secure: request.protocol === "https",
+            sameSite: "strict" as const,
+            path: "/",
           });
         }
       }
 
       // 2. Check Basic authentication (for API clients)
       const authHeader = request.headers.authorization;
-      if (authHeader && authHeader.startsWith('Basic ')) {
-        logger.debug('Checking Basic authentication');
+      if (authHeader && authHeader.startsWith("Basic ")) {
+        logger.debug("Checking Basic authentication");
         const credentials = parseBasicAuth(authHeader);
-        
+
         if (credentials) {
           // Check for empty credentials (common with dotnet CLI probing)
           if (!credentials.username && !credentials.password) {
-            logger.info('Empty Basic auth credentials received - returning 401 Unauthorized');
+            logger.info(
+              "Empty Basic auth credentials received - returning 401 Unauthorized",
+            );
           } else {
-            const user = await userService.validateApiPassword(credentials.username, credentials.password);
+            const user = await userService.validateApiPassword(
+              credentials.username,
+              credentials.password,
+            );
             if (user) {
               logger.debug(`Basic auth successful for user: ${user.username}`);
-              
+
               // Clear failures on successful authentication
               if (authFailureTracker) {
                 authFailureTracker.clearFailures(request, credentials.username);
               }
-              
+
               request.user = {
                 username: user.username,
-                role: user.role
+                role: user.role,
               };
               return;
             } else {
-              logger.info(`Basic auth failed for user: ${credentials.username} - returning 401 Unauthorized`);
-              
+              logger.info(
+                `Basic auth failed for user: ${credentials.username} - returning 401 Unauthorized`,
+              );
+
               // Record failure and apply delay before responding
               if (authFailureTracker) {
                 authFailureTracker.recordFailure(request, credentials.username);
-                await authFailureTracker.applyDelay(request, credentials.username);
+                await authFailureTracker.applyDelay(
+                  request,
+                  credentials.username,
+                );
               }
             }
           }
         } else {
-          logger.info('Invalid Basic auth header format - returning 401 Unauthorized');
-          
+          logger.info(
+            "Invalid Basic auth header format - returning 401 Unauthorized",
+          );
+
           // Record failure for invalid Basic auth format
           if (authFailureTracker) {
             authFailureTracker.recordFailure(request);
@@ -238,23 +261,24 @@ export const createHybridAuthMiddleware = (config: FastifyAuthConfig) => {
       }
 
       // 3. Authentication failed
-      logger.debug(`Authentication failed for ${request.method} ${request.url}`);
-      
+      logger.debug(
+        `Authentication failed for ${request.method} ${request.url}`,
+      );
+
       if (isUIRequest(request)) {
         // For UI requests, redirect to login page
-        logger.debug('Redirecting UI request to login');
-        return reply.redirect('/login');
+        logger.debug("Redirecting UI request to login");
+        return reply.redirect("/login");
       } else {
         // For API requests, send 401 with WWW-Authenticate header
-        logger.debug('Sending 401 for API request');
+        logger.debug("Sending 401 for API request");
         return sendUnauthorized(reply, realm);
       }
-
     } catch (error) {
       logger.error(`Hybrid auth error: ${error}`);
       return reply.status(500).send({
-        error: 'Authentication error',
-        message: 'Internal server error during authentication'
+        error: "Authentication error",
+        message: "Internal server error during authentication",
       });
     }
   };
@@ -266,11 +290,19 @@ export const createHybridAuthMiddleware = (config: FastifyAuthConfig) => {
  * @param skipAuth - If true, skip authentication regardless of configuration
  * @returns Fastify hook function that conditionally applies authentication
  */
-export const createConditionalHybridAuthMiddleware = (config: FastifyAuthConfig, skipAuth: boolean = false) => {
+export const createConditionalHybridAuthMiddleware = (
+  config: FastifyAuthConfig,
+  skipAuth: boolean = false,
+) => {
   // If authentication should be skipped, return a no-op middleware
   if (skipAuth) {
-    return async (request: AuthenticatedFastifyRequest, reply: FastifyReply) => {
-      config.logger.debug(`Hybrid auth skipped for ${request.method} ${request.url} - disabled by configuration`);
+    return async (
+      request: AuthenticatedFastifyRequest,
+      reply: FastifyReply,
+    ) => {
+      config.logger.debug(
+        `Hybrid auth skipped for ${request.method} ${request.url} - disabled by configuration`,
+      );
     };
   }
 
@@ -287,47 +319,48 @@ export const createSessionOnlyAuthMiddleware = (config: FastifyAuthConfig) => {
   const { sessionService, logger } = config;
 
   return async (request: AuthenticatedFastifyRequest, reply: FastifyReply) => {
-    logger.debug(`Session-only auth check for ${request.method} ${request.url}`);
+    logger.debug(
+      `Session-only auth check for ${request.method} ${request.url}`,
+    );
 
     try {
       // Check session authentication only
       const sessionToken = request.cookies?.sessionToken;
       if (!sessionToken) {
-        logger.debug('No session token found');
+        logger.debug("No session token found");
         return reply.status(401).send({
-          error: 'Session authentication required',
-          message: 'Please log in to access this resource'
+          error: "Session authentication required",
+          message: "Please log in to access this resource",
         });
       }
 
       const session = sessionService.validateSession(sessionToken);
       if (!session) {
-        logger.debug('Invalid or expired session token');
+        logger.debug("Invalid or expired session token");
         // Clear invalid session cookie
-        reply.clearCookie('sessionToken', {
+        reply.clearCookie("sessionToken", {
           httpOnly: true,
-          secure: request.protocol === 'https',
-          sameSite: 'strict' as const,
-          path: '/'
+          secure: request.protocol === "https",
+          sameSite: "strict" as const,
+          path: "/",
         });
-        
+
         return reply.status(401).send({
-          error: 'Invalid or expired session',
-          message: 'Please log in again'
+          error: "Invalid or expired session",
+          message: "Please log in again",
         });
       }
 
       logger.debug(`Session auth successful for user: ${session.username}`);
       request.user = {
         username: session.username,
-        role: session.role
+        role: session.role,
       };
-
     } catch (error) {
       logger.error(`Session auth error: ${error}`);
       return reply.status(500).send({
-        error: 'Authentication error',
-        message: 'Internal server error during authentication'
+        error: "Authentication error",
+        message: "Internal server error during authentication",
       });
     }
   };
@@ -339,30 +372,39 @@ export const createSessionOnlyAuthMiddleware = (config: FastifyAuthConfig) => {
  * @param logger - Logger instance
  * @returns Fastify hook function
  */
-export const createRoleAuthorizationMiddleware = (requiredRoles: string[], logger: Logger) => {
+export const createRoleAuthorizationMiddleware = (
+  requiredRoles: string[],
+  logger: Logger,
+) => {
   return async (request: AuthenticatedFastifyRequest, reply: FastifyReply) => {
     if (!request.user) {
       logger.warn(`Authorization failed - no user information in request`);
       return reply.status(401).send({
-        error: 'Authentication required',
-        message: 'User must be authenticated'
+        error: "Authentication required",
+        message: "User must be authenticated",
       });
     }
 
     const userRole = request.user.role;
-    const hasRequiredRole = requiredRoles.includes(userRole) || 
-                           (requiredRoles.includes('read') && ['publish', 'admin'].includes(userRole)) ||
-                           (requiredRoles.includes('publish') && userRole === 'admin');
+    const hasRequiredRole =
+      requiredRoles.includes(userRole) ||
+      (requiredRoles.includes("read") &&
+        ["publish", "admin"].includes(userRole)) ||
+      (requiredRoles.includes("publish") && userRole === "admin");
 
     if (!hasRequiredRole) {
-      logger.warn(`Authorization failed for user: ${request.user.username} (role: ${userRole}, required: ${requiredRoles.join(', ')})`);
+      logger.warn(
+        `Authorization failed for user: ${request.user.username} (role: ${userRole}, required: ${requiredRoles.join(", ")})`,
+      );
       return reply.status(403).send({
-        error: 'Insufficient permissions',
-        message: `Required role: ${requiredRoles.join(' or ')}`
+        error: "Insufficient permissions",
+        message: `Required role: ${requiredRoles.join(" or ")}`,
       });
     }
 
-    logger.debug(`Authorization successful for user: ${request.user.username} (role: ${userRole})`);
+    logger.debug(
+      `Authorization successful for user: ${request.user.username} (role: ${userRole})`,
+    );
   };
 };
 
@@ -372,13 +414,18 @@ export const createRoleAuthorizationMiddleware = (requiredRoles: string[], logge
  * @param roles - Required roles
  * @returns True if user has required role
  */
-export const requireRole = (request: AuthenticatedFastifyRequest, roles: string[]): boolean => {
+export const requireRole = (
+  request: AuthenticatedFastifyRequest,
+  roles: string[],
+): boolean => {
   if (!request.user) {
     return false;
   }
 
   const userRole = request.user.role;
-  return roles.includes(userRole) || 
-         (roles.includes('read') && ['publish', 'admin'].includes(userRole)) ||
-         (roles.includes('publish') && userRole === 'admin');
+  return (
+    roles.includes(userRole) ||
+    (roles.includes("read") && ["publish", "admin"].includes(userRole)) ||
+    (roles.includes("publish") && userRole === "admin")
+  );
 };

@@ -2,7 +2,7 @@
 // Copyright (c) Kouji Matsui (@kekyo@mi.kekyo.net)
 // License under MIT.
 
-import { useState } from 'react';
+import { useState } from "react";
 import {
   Container,
   Paper,
@@ -15,9 +15,9 @@ import {
   Checkbox,
   CircularProgress,
   useTheme,
-  useMediaQuery
-} from '@mui/material';
-import { Login as LoginIcon } from '@mui/icons-material';
+  useMediaQuery,
+} from "@mui/material";
+import { Login as LoginIcon } from "@mui/icons-material";
 
 interface LoginResponse {
   success: boolean;
@@ -30,19 +30,19 @@ interface LoginResponse {
 
 const Login = () => {
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
-  
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
+  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
-    
+
     if (!username.trim() || !password.trim()) {
-      setError('Username and password are required');
+      setError("Username and password are required");
       return;
     }
 
@@ -50,77 +50,77 @@ const Login = () => {
     setError(null);
 
     try {
-      const response = await fetch('/api/auth/login', {
-        method: 'POST',
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
         body: JSON.stringify({
           username: username.trim(),
           password,
-          rememberMe
+          rememberMe,
         }),
-        credentials: 'same-origin'
+        credentials: "same-origin",
       });
 
       const data: LoginResponse = await response.json();
 
       if (data.success) {
         // Login successful, redirect to main page
-        window.location.href = '/';
+        window.location.href = "/";
       } else {
-        setError(data.message || 'Login failed');
+        setError(data.message || "Login failed");
       }
     } catch (err) {
-      setError('Network error. Please try again.');
-      console.error('Login error:', err);
+      setError("Network error. Please try again.");
+      console.error("Login error:", err);
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <Container 
-      component="main" 
+    <Container
+      component="main"
       maxWidth="sm"
       sx={{
-        minHeight: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        py: 2
+        minHeight: "100vh",
+        display: "flex",
+        alignItems: "center",
+        py: 2,
       }}
     >
       <Paper
         elevation={3}
         sx={{
           p: isMobile ? 3 : 4,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          width: '100%'
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          width: "100%",
         }}
       >
         <Box
           sx={{
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            mb: 3
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            mb: 3,
           }}
         >
-          <LoginIcon 
-            sx={{ 
-              fontSize: 48, 
+          <LoginIcon
+            sx={{
+              fontSize: 48,
               color: theme.palette.primary.main,
-              mb: 1
-            }} 
+              mb: 1,
+            }}
           />
-          <Typography 
-            component="h1" 
-            variant="h4" 
-            sx={{ 
-              fontWeight: 'bold',
-              mb: 1
+          <Typography
+            component="h1"
+            variant="h4"
+            sx={{
+              fontWeight: "bold",
+              mb: 1,
             }}
           >
             NuGet Server
@@ -130,17 +130,17 @@ const Login = () => {
           </Typography>
         </Box>
 
-        <Box 
-          component="form" 
-          onSubmit={handleSubmit} 
-          sx={{ 
-            width: '100%',
-            maxWidth: 400
+        <Box
+          component="form"
+          onSubmit={handleSubmit}
+          sx={{
+            width: "100%",
+            maxWidth: 400,
           }}
         >
           {error && (
-            <Alert 
-              severity="error" 
+            <Alert
+              severity="error"
               sx={{ mb: 2 }}
               onClose={() => setError(null)}
             >
@@ -202,11 +202,13 @@ const Login = () => {
               mt: 1,
               mb: 2,
               height: 48,
-              fontSize: '1.1rem'
+              fontSize: "1.1rem",
             }}
-            startIcon={isLoading ? <CircularProgress size={20} /> : <LoginIcon />}
+            startIcon={
+              isLoading ? <CircularProgress size={20} /> : <LoginIcon />
+            }
           >
-            {isLoading ? 'Signing in...' : 'Sign In'}
+            {isLoading ? "Signing in..." : "Sign In"}
           </Button>
         </Box>
 

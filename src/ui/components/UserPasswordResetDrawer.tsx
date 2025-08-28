@@ -2,7 +2,7 @@
 // Copyright (c) Kouji Matsui (@kekyo@mi.kekyo.net)
 // License under MIT.
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
 import {
   Drawer,
   Box,
@@ -19,14 +19,14 @@ import {
   Select,
   MenuItem,
   Autocomplete,
-} from '@mui/material';
+} from "@mui/material";
 import {
   Close as CloseIcon,
   LockReset as LockResetIcon,
   CheckCircle as SuccessIcon,
   Error as ErrorIcon,
-} from '@mui/icons-material';
-import { PasswordStrengthIndicator } from './PasswordStrengthIndicator';
+} from "@mui/icons-material";
+import { PasswordStrengthIndicator } from "./PasswordStrengthIndicator";
 
 interface UserPasswordResetDrawerProps {
   open: boolean;
@@ -45,16 +45,16 @@ interface ResetResult {
   message: string;
 }
 
-const UserPasswordResetDrawer = ({ 
-  open, 
-  onClose, 
-  onPasswordResetSuccess 
+const UserPasswordResetDrawer = ({
+  open,
+  onClose,
+  onPasswordResetSuccess,
 }: UserPasswordResetDrawerProps) => {
   const [users, setUsers] = useState<User[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
   const [selectedUsername, setSelectedUsername] = useState<string | null>(null);
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [resetting, setResetting] = useState(false);
   const [result, setResult] = useState<ResetResult | null>(null);
 
@@ -68,13 +68,13 @@ const UserPasswordResetDrawer = ({
   const loadUsers = async () => {
     setLoadingUsers(true);
     try {
-      const response = await fetch('/api/ui/users', {
-        method: 'POST',
+      const response = await fetch("/api/ui/users", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
-        credentials: 'same-origin',
-        body: JSON.stringify({ action: 'list' })
+        credentials: "same-origin",
+        body: JSON.stringify({ action: "list" }),
       });
 
       if (response.ok) {
@@ -86,13 +86,13 @@ const UserPasswordResetDrawer = ({
       } else {
         setResult({
           success: false,
-          message: `Failed to load users: ${response.statusText}`
+          message: `Failed to load users: ${response.statusText}`,
         });
       }
     } catch (error) {
       setResult({
         success: false,
-        message: `Error loading users: ${error instanceof Error ? error.message : 'Unknown error'}`
+        message: `Error loading users: ${error instanceof Error ? error.message : "Unknown error"}`,
       });
     } finally {
       setLoadingUsers(false);
@@ -104,7 +104,7 @@ const UserPasswordResetDrawer = ({
     if (!selectedUsername) {
       setResult({
         success: false,
-        message: 'Please select a user'
+        message: "Please select a user",
       });
       return;
     }
@@ -112,7 +112,7 @@ const UserPasswordResetDrawer = ({
     if (!password || !confirmPassword) {
       setResult({
         success: false,
-        message: 'Both password fields are required'
+        message: "Both password fields are required",
       });
       return;
     }
@@ -120,7 +120,7 @@ const UserPasswordResetDrawer = ({
     if (password !== confirmPassword) {
       setResult({
         success: false,
-        message: 'Passwords do not match'
+        message: "Passwords do not match",
       });
       return;
     }
@@ -128,7 +128,7 @@ const UserPasswordResetDrawer = ({
     if (password.length < 4) {
       setResult({
         success: false,
-        message: 'Password must be at least 4 characters long'
+        message: "Password must be at least 4 characters long",
       });
       return;
     }
@@ -137,17 +137,17 @@ const UserPasswordResetDrawer = ({
     setResult(null);
 
     try {
-      const response = await fetch('/api/ui/users', {
-        method: 'POST',
+      const response = await fetch("/api/ui/users", {
+        method: "POST",
         headers: {
-          'Content-Type': 'application/json',
+          "Content-Type": "application/json",
         },
-        credentials: 'same-origin',
+        credentials: "same-origin",
         body: JSON.stringify({
-          action: 'update',
+          action: "update",
           username: selectedUsername,
-          password
-        })
+          password,
+        }),
       });
 
       const data = await response.json();
@@ -155,7 +155,7 @@ const UserPasswordResetDrawer = ({
       if (response.ok) {
         setResult({
           success: true,
-          message: data.message || 'Password reset successfully'
+          message: data.message || "Password reset successfully",
         });
         if (onPasswordResetSuccess) {
           onPasswordResetSuccess();
@@ -167,13 +167,16 @@ const UserPasswordResetDrawer = ({
       } else {
         setResult({
           success: false,
-          message: data.error || data.message || `Reset failed: ${response.status} ${response.statusText}`,
+          message:
+            data.error ||
+            data.message ||
+            `Reset failed: ${response.status} ${response.statusText}`,
         });
       }
     } catch (error) {
       setResult({
         success: false,
-        message: `Reset error: ${error instanceof Error ? error.message : 'Unknown error'}`,
+        message: `Reset error: ${error instanceof Error ? error.message : "Unknown error"}`,
       });
     } finally {
       setResetting(false);
@@ -182,8 +185,8 @@ const UserPasswordResetDrawer = ({
 
   const handleClose = () => {
     setSelectedUsername(null);
-    setPassword('');
-    setConfirmPassword('');
+    setPassword("");
+    setConfirmPassword("");
     setResetting(false);
     setResult(null);
     setUsers([]);
@@ -192,8 +195,8 @@ const UserPasswordResetDrawer = ({
 
   const resetForm = () => {
     setSelectedUsername(null);
-    setPassword('');
-    setConfirmPassword('');
+    setPassword("");
+    setConfirmPassword("");
     setResult(null);
   };
 
@@ -206,14 +209,21 @@ const UserPasswordResetDrawer = ({
       sx={{
         width: 400,
         flexShrink: 0,
-        '& .MuiDrawer-paper': {
+        "& .MuiDrawer-paper": {
           width: 400,
-          boxSizing: 'border-box',
+          boxSizing: "border-box",
         },
       }}
     >
-      <Box sx={{ p: 3, height: '100%' }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
+      <Box sx={{ p: 3, height: "100%" }}>
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            mb: 3,
+          }}
+        >
           <Typography variant="h6" component="h2">
             Reset User Password
           </Typography>
@@ -231,15 +241,19 @@ const UserPasswordResetDrawer = ({
             </Typography>
 
             {loadingUsers ? (
-              <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
+              <Box sx={{ display: "flex", justifyContent: "center", p: 3 }}>
                 <CircularProgress />
               </Box>
             ) : (
               <>
                 <Autocomplete
                   options={users}
-                  getOptionLabel={(option) => `${option.username} (${option.role})`}
-                  value={users.find(u => u.username === selectedUsername) || null}
+                  getOptionLabel={(option) =>
+                    `${option.username} (${option.role})`
+                  }
+                  value={
+                    users.find((u) => u.username === selectedUsername) || null
+                  }
                   onChange={(event, newValue) => {
                     setSelectedUsername(newValue ? newValue.username : null);
                   }}
@@ -266,7 +280,10 @@ const UserPasswordResetDrawer = ({
                   sx={{ mb: 1 }}
                   helperText="Minimum 4 characters"
                 />
-                <PasswordStrengthIndicator password={password} username={selectedUsername || undefined} />
+                <PasswordStrengthIndicator
+                  password={password}
+                  username={selectedUsername || undefined}
+                />
 
                 <TextField
                   fullWidth
@@ -289,12 +306,23 @@ const UserPasswordResetDrawer = ({
                 <Button
                   variant="contained"
                   fullWidth
-                  startIcon={resetting ? <CircularProgress size={20} /> : <LockResetIcon />}
+                  startIcon={
+                    resetting ? (
+                      <CircularProgress size={20} />
+                    ) : (
+                      <LockResetIcon />
+                    )
+                  }
                   onClick={handleReset}
-                  disabled={resetting || !selectedUsername || !password || !confirmPassword}
+                  disabled={
+                    resetting ||
+                    !selectedUsername ||
+                    !password ||
+                    !confirmPassword
+                  }
                   sx={{ mb: 2 }}
                 >
-                  {resetting ? 'Resetting...' : 'Reset Password'}
+                  {resetting ? "Resetting..." : "Reset Password"}
                 </Button>
               </>
             )}
@@ -302,11 +330,11 @@ const UserPasswordResetDrawer = ({
         ) : (
           <Box>
             <Alert
-              severity={result.success ? 'success' : 'error'}
+              severity={result.success ? "success" : "error"}
               icon={result.success ? <SuccessIcon /> : <ErrorIcon />}
               sx={{ mb: 3 }}
             >
-              {result.success ? 'Password Reset Successfully!' : 'Reset Failed'}
+              {result.success ? "Password Reset Successfully!" : "Reset Failed"}
             </Alert>
 
             {result.success && selectedUsername && (
@@ -314,7 +342,10 @@ const UserPasswordResetDrawer = ({
                 <Typography variant="body2" color="text.secondary" gutterBottom>
                   Password reset completed
                 </Typography>
-                <Typography variant="body1" sx={{ fontWeight: 'medium', mb: 1 }}>
+                <Typography
+                  variant="body1"
+                  sx={{ fontWeight: "medium", mb: 1 }}
+                >
                   User: {selectedUsername}
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
@@ -339,9 +370,9 @@ const UserPasswordResetDrawer = ({
                   <Typography
                     variant="body2"
                     sx={{
-                      fontFamily: 'monospace',
-                      fontSize: '0.75rem',
-                      whiteSpace: 'pre-wrap',
+                      fontFamily: "monospace",
+                      fontSize: "0.75rem",
+                      whiteSpace: "pre-wrap",
                     }}
                   >
                     {result.message}
@@ -350,12 +381,8 @@ const UserPasswordResetDrawer = ({
               </Box>
             )}
 
-            <Box sx={{ display: 'flex', gap: 1 }}>
-              <Button
-                variant="outlined"
-                onClick={resetForm}
-                sx={{ flex: 1 }}
-              >
+            <Box sx={{ display: "flex", gap: 1 }}>
+              <Button variant="outlined" onClick={resetForm} sx={{ flex: 1 }}>
                 Reset Another
               </Button>
               <Button

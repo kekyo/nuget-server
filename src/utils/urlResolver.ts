@@ -47,16 +47,16 @@ export const createUrlResolver = (config: UrlResolverConfig = {}) => {
     if (trustedProxies.length === 0) {
       return true;
     }
-    
+
     const clientIp = req.ip || req.socket.remoteAddress;
-    const forwardedFor = req.headers['x-forwarded-for'] as string;
-    
+    const forwardedFor = req.headers["x-forwarded-for"] as string;
+
     const sourceIps = [clientIp];
     if (forwardedFor) {
-      sourceIps.push(...forwardedFor.split(',').map(ip => ip.trim()));
+      sourceIps.push(...forwardedFor.split(",").map((ip) => ip.trim()));
     }
-    
-    return sourceIps.some(ip => trustedProxies.includes(ip || ''));
+
+    return sourceIps.some((ip) => trustedProxies.includes(ip || ""));
   };
 
   /**
@@ -66,15 +66,15 @@ export const createUrlResolver = (config: UrlResolverConfig = {}) => {
    */
   const parseForwardedHeader = (forwarded: string): Record<string, string> => {
     const parsed: Record<string, string> = {};
-    
-    const pairs = forwarded.split(';').map(s => s.trim());
+
+    const pairs = forwarded.split(";").map((s) => s.trim());
     for (const pair of pairs) {
-      const [key, value] = pair.split('=').map(s => s.trim());
+      const [key, value] = pair.split("=").map((s) => s.trim());
       if (key && value) {
-        parsed[key.toLowerCase()] = value.replace(/"/g, '');
+        parsed[key.toLowerCase()] = value.replace(/"/g, "");
       }
     }
-    
+
     return parsed;
   };
 
@@ -86,20 +86,20 @@ export const createUrlResolver = (config: UrlResolverConfig = {}) => {
   const resolveUrl = (req: GenericRequest): ResolvedUrl => {
     if (fixedBaseUrl) {
       return {
-        baseUrl: fixedBaseUrl.replace(/\/$/, ''),
-        isFixed: true
+        baseUrl: fixedBaseUrl.replace(/\/$/, ""),
+        isFixed: true,
       };
     }
 
     let protocol = req.protocol;
-    let host = (req.headers.host as string) || 'localhost';
+    let host = (req.headers.host as string) || "localhost";
     let port: string | undefined;
 
     if (isRequestFromTrustedProxy(req)) {
-      const forwardedProto = req.headers['x-forwarded-proto'] as string;
-      const forwardedHost = req.headers['x-forwarded-host'] as string;
-      const forwardedPort = req.headers['x-forwarded-port'] as string;
-      const forwarded = req.headers['forwarded'] as string;
+      const forwardedProto = req.headers["x-forwarded-proto"] as string;
+      const forwardedHost = req.headers["x-forwarded-host"] as string;
+      const forwardedPort = req.headers["x-forwarded-port"] as string;
+      const forwarded = req.headers["forwarded"] as string;
 
       if (forwarded) {
         const parsed = parseForwardedHeader(forwarded);
@@ -113,19 +113,17 @@ export const createUrlResolver = (config: UrlResolverConfig = {}) => {
       }
     }
 
-    const hostWithPort = port && !host.includes(':') 
-      ? `${host}:${port}`
-      : host;
+    const hostWithPort = port && !host.includes(":") ? `${host}:${port}` : host;
 
     return {
       baseUrl: `${protocol}://${hostWithPort}`,
-      isFixed: false
+      isFixed: false,
     };
   };
 
   return {
     resolveUrl,
-    isFixedUrl: (): boolean => !!fixedBaseUrl
+    isFixedUrl: (): boolean => !!fixedBaseUrl,
   };
 };
 
@@ -144,6 +142,9 @@ export const getBaseUrlFromEnv = (): string | undefined => {
 export const getTrustedProxiesFromEnv = (): string[] | undefined => {
   const proxies = process.env.NUGET_SERVER_TRUSTED_PROXIES;
   if (!proxies) return undefined;
-  
-  return proxies.split(',').map(ip => ip.trim()).filter(Boolean);
+
+  return proxies
+    .split(",")
+    .map((ip) => ip.trim())
+    .filter(Boolean);
 };

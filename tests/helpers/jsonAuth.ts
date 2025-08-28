@@ -1,11 +1,16 @@
-import { promises as fs } from 'fs';
-import path from 'path';
-import { generateSalt, hashPassword, generateApiPassword, generateUserId } from '../../src/utils/crypto';
+import { promises as fs } from "fs";
+import path from "path";
+import {
+  generateSalt,
+  hashPassword,
+  generateApiPassword,
+  generateUserId,
+} from "../../src/utils/crypto";
 
 export interface JsonUser {
   username: string;
   password: string;
-  role: 'read' | 'publish' | 'admin';
+  role: "read" | "publish" | "admin";
 }
 
 /**
@@ -15,18 +20,18 @@ export interface JsonUser {
  */
 export const createUsersJsonFile = async (
   configDir: string,
-  users: JsonUser[]
+  users: JsonUser[],
 ): Promise<void> => {
-  const usersData = users.map(user => {
+  const usersData = users.map((user) => {
     const passwordSalt = generateSalt();
     const passwordHash = hashPassword(user.password, passwordSalt);
-    
+
     const apiPassword = generateApiPassword();
     const apiPasswordSalt = generateSalt();
     const apiPasswordHash = hashPassword(apiPassword, apiPasswordSalt);
 
     const now = new Date().toISOString();
-    
+
     return {
       id: generateUserId(),
       username: user.username,
@@ -36,11 +41,11 @@ export const createUsersJsonFile = async (
       apiPasswordSalt,
       role: user.role,
       createdAt: now,
-      updatedAt: now
+      updatedAt: now,
     };
   });
 
-  const filePath = path.join(configDir, 'users.json');
+  const filePath = path.join(configDir, "users.json");
   await fs.writeFile(filePath, JSON.stringify(usersData, null, 2));
 };
 
@@ -49,7 +54,7 @@ export const createUsersJsonFile = async (
  * @param configDir - Directory containing the users.json file
  */
 export const deleteUsersJsonFile = async (configDir: string): Promise<void> => {
-  const filePath = path.join(configDir, 'users.json');
+  const filePath = path.join(configDir, "users.json");
   try {
     await fs.unlink(filePath);
   } catch (error) {
@@ -63,9 +68,9 @@ export const deleteUsersJsonFile = async (configDir: string): Promise<void> => {
  * @returns Array of user objects
  */
 export const readUsersJsonFile = async (configDir: string): Promise<any[]> => {
-  const filePath = path.join(configDir, 'users.json');
+  const filePath = path.join(configDir, "users.json");
   try {
-    const content = await fs.readFile(filePath, 'utf-8');
+    const content = await fs.readFile(filePath, "utf-8");
     return JSON.parse(content);
   } catch (error) {
     return [];
@@ -77,8 +82,10 @@ export const readUsersJsonFile = async (configDir: string): Promise<any[]> => {
  * @param configDir - Directory containing the users.json file
  * @returns True if file exists
  */
-export const usersJsonFileExists = async (configDir: string): Promise<boolean> => {
-  const filePath = path.join(configDir, 'users.json');
+export const usersJsonFileExists = async (
+  configDir: string,
+): Promise<boolean> => {
+  const filePath = path.join(configDir, "users.json");
   try {
     await fs.access(filePath);
     return true;
@@ -97,21 +104,23 @@ export const usersJsonFileExists = async (configDir: string): Promise<boolean> =
 export const createUserViaApi = async (
   serverUrl: string,
   adminAuth: string,
-  userRequest: { username: string; password: string; role: string }
+  userRequest: { username: string; password: string; role: string },
 ): Promise<string> => {
   const response = await fetch(`${serverUrl}/api/useradd`, {
-    method: 'POST',
+    method: "POST",
     headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Basic ${Buffer.from(adminAuth).toString('base64')}`
+      "Content-Type": "application/json",
+      Authorization: `Basic ${Buffer.from(adminAuth).toString("base64")}`,
     },
-    body: JSON.stringify(userRequest)
+    body: JSON.stringify(userRequest),
   });
-  
+
   if (!response.ok) {
-    throw new Error(`Failed to create user: ${response.status} ${response.statusText}`);
+    throw new Error(
+      `Failed to create user: ${response.status} ${response.statusText}`,
+    );
   }
-  
+
   const result = await response.json();
   return result.apiPassword;
 };
@@ -130,35 +139,41 @@ export const makeApiPasswordAuthenticatedRequest = async (
     apiPassword?: string;
     body?: Buffer | Uint8Array | string | object;
     headers?: Record<string, string>;
-  } = {}
+  } = {},
 ): Promise<Response> => {
-  const { method = 'GET', username, apiPassword, body, headers = {} } = options;
-  
+  const { method = "GET", username, apiPassword, body, headers = {} } = options;
+
   if (username && apiPassword) {
-    headers['Authorization'] = `Basic ${Buffer.from(`${username}:${apiPassword}`).toString('base64')}`;
+    headers["Authorization"] =
+      `Basic ${Buffer.from(`${username}:${apiPassword}`).toString("base64")}`;
   }
-  
+
   let requestBody: Uint8Array | string | undefined;
-  
+
   if (body) {
-    if (typeof body === 'object' && !(body instanceof Buffer) && !(body instanceof Uint8Array)) {
+    if (
+      typeof body === "object" &&
+      !(body instanceof Buffer) &&
+      !(body instanceof Uint8Array)
+    ) {
       // JSON object
-      headers['Content-Type'] = 'application/json';
+      headers["Content-Type"] = "application/json";
       requestBody = JSON.stringify(body);
-    } else if (typeof body === 'string') {
+    } else if (typeof body === "string") {
       // String body
-      headers['Content-Type'] = headers['Content-Type'] || 'text/plain';
+      headers["Content-Type"] = headers["Content-Type"] || "text/plain";
       requestBody = body;
     } else {
       // Buffer or Uint8Array
-      headers['Content-Type'] = headers['Content-Type'] || 'application/octet-stream';
+      headers["Content-Type"] =
+        headers["Content-Type"] || "application/octet-stream";
       requestBody = body instanceof Buffer ? new Uint8Array(body) : body;
     }
   }
-  
+
   return fetch(url, {
     method,
     headers,
-    body: requestBody
+    body: requestBody,
   });
 };

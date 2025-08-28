@@ -2,8 +2,8 @@
 // Copyright (c) Kouji Matsui (@kekyo@mi.kekyo.net)
 // License under MIT.
 
-import { Logger } from '../types';
-import { generateSessionToken } from '../utils/crypto';
+import { Logger } from "../types";
+import { generateSessionToken } from "../utils/crypto";
 
 /**
  * Session data structure
@@ -56,7 +56,9 @@ export interface SessionService {
  * @param config - Session service configuration
  * @returns Session service instance
  */
-export const createSessionService = (config: SessionServiceConfig): SessionService => {
+export const createSessionService = (
+  config: SessionServiceConfig,
+): SessionService => {
   const { logger, cleanupIntervalMinutes = 60 } = config;
   const sessions: Map<string, Session> = new Map();
   let cleanupInterval: NodeJS.Timeout | null = null;
@@ -90,11 +92,16 @@ export const createSessionService = (config: SessionServiceConfig): SessionServi
       clearInterval(cleanupInterval);
     }
 
-    cleanupInterval = setInterval(() => {
-      cleanupExpiredSessions();
-    }, cleanupIntervalMinutes * 60 * 1000);
+    cleanupInterval = setInterval(
+      () => {
+        cleanupExpiredSessions();
+      },
+      cleanupIntervalMinutes * 60 * 1000,
+    );
 
-    logger.debug(`Started session cleanup timer (interval: ${cleanupIntervalMinutes} minutes)`);
+    logger.debug(
+      `Started session cleanup timer (interval: ${cleanupIntervalMinutes} minutes)`,
+    );
   };
 
   /**
@@ -104,7 +111,7 @@ export const createSessionService = (config: SessionServiceConfig): SessionServi
     if (cleanupInterval) {
       clearInterval(cleanupInterval);
       cleanupInterval = null;
-      logger.debug('Stopped session cleanup timer');
+      logger.debug("Stopped session cleanup timer");
     }
   };
 
@@ -130,20 +137,20 @@ export const createSessionService = (config: SessionServiceConfig): SessionServi
      * Initializes the session service
      */
     initialize: (): void => {
-      logger.info('Initializing session service');
+      logger.info("Initializing session service");
       sessions.clear();
       startCleanupTimer();
-      logger.info('Session service initialization completed');
+      logger.info("Session service initialization completed");
     },
 
     /**
      * Destroys the session service and cleans up resources
      */
     destroy: (): void => {
-      logger.info('Destroying session service');
+      logger.info("Destroying session service");
       stopCleanupTimer();
       sessions.clear();
-      logger.info('Session service destroyed');
+      logger.info("Session service destroyed");
     },
 
     /**
@@ -155,7 +162,9 @@ export const createSessionService = (config: SessionServiceConfig): SessionServi
       const token = generateSessionToken();
       const now = new Date();
       const expirationHours = request.expirationHours || 24;
-      const expiresAt = new Date(now.getTime() + (expirationHours * 60 * 60 * 1000));
+      const expiresAt = new Date(
+        now.getTime() + expirationHours * 60 * 60 * 1000,
+      );
 
       const session: Session = {
         token,
@@ -163,12 +172,14 @@ export const createSessionService = (config: SessionServiceConfig): SessionServi
         username: request.username,
         role: request.role,
         expiresAt,
-        createdAt: now
+        createdAt: now,
       };
 
       sessions.set(token, session);
-      
-      logger.info(`Created session for user: ${request.username} (expires: ${expiresAt.toISOString()})`);
+
+      logger.info(
+        `Created session for user: ${request.username} (expires: ${expiresAt.toISOString()})`,
+      );
       logger.debug(`Active sessions count: ${sessions.size}`);
 
       return session;
@@ -212,12 +223,12 @@ export const createSessionService = (config: SessionServiceConfig): SessionServi
     deleteSession: (token: string): boolean => {
       const session = sessions.get(token);
       const deleted = sessions.delete(token);
-      
+
       if (deleted && session) {
         logger.info(`Deleted session for user: ${session.username}`);
         logger.debug(`Active sessions count: ${sessions.size}`);
       }
-      
+
       return deleted;
     },
 
@@ -228,7 +239,7 @@ export const createSessionService = (config: SessionServiceConfig): SessionServi
      */
     deleteAllUserSessions: (userId: string): number => {
       let deletedCount = 0;
-      
+
       for (const [token, session] of sessions) {
         if (session.userId === userId) {
           sessions.delete(token);
@@ -264,6 +275,6 @@ export const createSessionService = (config: SessionServiceConfig): SessionServi
      */
     cleanup: (): number => {
       return cleanupExpiredSessions();
-    }
+    },
   };
 };

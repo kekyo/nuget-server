@@ -1,4 +1,4 @@
-import { promises as fs } from 'fs';
+import { promises as fs } from "fs";
 
 /**
  * Ensures directory exists, creating it recursively if needed

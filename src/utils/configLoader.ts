@@ -2,9 +2,9 @@
 // Copyright (c) Kouji Matsui (@kekyo@mi.kekyo.net)
 // License under MIT.
 
-import { readFile } from 'fs/promises';
-import { join } from 'path';
-import { LogLevel, AuthMode, Logger } from '../types';
+import { readFile } from "fs/promises";
+import { join } from "path";
+import { LogLevel, AuthMode, Logger } from "../types";
 
 /**
  * Configuration file structure for nuget-server
@@ -30,30 +30,40 @@ const validateConfig = (config: any, logger?: Logger): ConfigFile => {
   const validated: ConfigFile = {};
 
   // Validate port
-  if (typeof config.port === 'number' && config.port > 0 && config.port <= 65535) {
+  if (
+    typeof config.port === "number" &&
+    config.port > 0 &&
+    config.port <= 65535
+  ) {
     validated.port = config.port;
   } else if (config.port !== undefined) {
     logger?.warn(`Invalid port in config.json: ${config.port}`);
   }
 
   // Validate baseUrl
-  if (typeof config.baseUrl === 'string') {
+  if (typeof config.baseUrl === "string") {
     validated.baseUrl = config.baseUrl;
   }
 
   // Validate packageDir
-  if (typeof config.packageDir === 'string') {
+  if (typeof config.packageDir === "string") {
     validated.packageDir = config.packageDir;
   }
 
   // Validate realm
-  if (typeof config.realm === 'string') {
+  if (typeof config.realm === "string") {
     validated.realm = config.realm;
   }
 
   // Validate logLevel
-  if (typeof config.logLevel === 'string') {
-    const validLevels: LogLevel[] = ['debug', 'info', 'warn', 'error', 'ignore'];
+  if (typeof config.logLevel === "string") {
+    const validLevels: LogLevel[] = [
+      "debug",
+      "info",
+      "warn",
+      "error",
+      "ignore",
+    ];
     if (validLevels.includes(config.logLevel as LogLevel)) {
       validated.logLevel = config.logLevel as LogLevel;
     } else {
@@ -62,24 +72,28 @@ const validateConfig = (config: any, logger?: Logger): ConfigFile => {
   }
 
   // Validate noUi
-  if (typeof config.noUi === 'boolean') {
+  if (typeof config.noUi === "boolean") {
     validated.noUi = config.noUi;
   }
 
   // Validate trustedProxies
   if (Array.isArray(config.trustedProxies)) {
-    const validProxies = config.trustedProxies.filter((ip: any) => typeof ip === 'string');
+    const validProxies = config.trustedProxies.filter(
+      (ip: any) => typeof ip === "string",
+    );
     if (validProxies.length > 0) {
       validated.trustedProxies = validProxies;
     }
     if (validProxies.length !== config.trustedProxies.length) {
-      logger?.warn('Some invalid trusted proxy IPs in config.json were ignored');
+      logger?.warn(
+        "Some invalid trusted proxy IPs in config.json were ignored",
+      );
     }
   }
 
   // Validate authMode
-  if (typeof config.authMode === 'string') {
-    const validModes: AuthMode[] = ['none', 'publish', 'full'];
+  if (typeof config.authMode === "string") {
+    const validModes: AuthMode[] = ["none", "publish", "full"];
     if (validModes.includes(config.authMode as AuthMode)) {
       validated.authMode = config.authMode as AuthMode;
     } else {
@@ -88,22 +102,30 @@ const validateConfig = (config: any, logger?: Logger): ConfigFile => {
   }
 
   // Validate sessionSecret
-  if (typeof config.sessionSecret === 'string') {
+  if (typeof config.sessionSecret === "string") {
     validated.sessionSecret = config.sessionSecret;
     if (logger) {
-      logger.warn('Session secret found in config.json. Consider using environment variable NUGET_SERVER_SESSION_SECRET instead for better security.');
+      logger.warn(
+        "Session secret found in config.json. Consider using environment variable NUGET_SERVER_SESSION_SECRET instead for better security.",
+      );
     }
   }
 
   // Validate passwordMinScore
-  if (typeof config.passwordMinScore === 'number' && config.passwordMinScore >= 0 && config.passwordMinScore <= 4) {
+  if (
+    typeof config.passwordMinScore === "number" &&
+    config.passwordMinScore >= 0 &&
+    config.passwordMinScore <= 4
+  ) {
     validated.passwordMinScore = config.passwordMinScore;
   } else if (config.passwordMinScore !== undefined) {
-    logger?.warn(`Invalid passwordMinScore in config.json: ${config.passwordMinScore}. Must be 0-4.`);
+    logger?.warn(
+      `Invalid passwordMinScore in config.json: ${config.passwordMinScore}. Must be 0-4.`,
+    );
   }
 
   // Validate passwordStrengthCheck
-  if (typeof config.passwordStrengthCheck === 'boolean') {
+  if (typeof config.passwordStrengthCheck === "boolean") {
     validated.passwordStrengthCheck = config.passwordStrengthCheck;
   }
 
@@ -116,18 +138,21 @@ const validateConfig = (config: any, logger?: Logger): ConfigFile => {
  * @param logger Optional logger for warnings
  * @returns Parsed and validated configuration object, or empty object if file doesn't exist or is invalid
  */
-export const loadConfigFromFile = async (configDir: string, logger?: Logger): Promise<ConfigFile> => {
-  const configPath = join(configDir, 'config.json');
+export const loadConfigFromFile = async (
+  configDir: string,
+  logger?: Logger,
+): Promise<ConfigFile> => {
+  const configPath = join(configDir, "config.json");
 
   try {
-    const content = await readFile(configPath, 'utf-8');
+    const content = await readFile(configPath, "utf-8");
     const config = JSON.parse(content);
-    
+
     logger?.debug(`Loaded configuration from ${configPath}`);
-    
+
     return validateConfig(config, logger);
   } catch (error: any) {
-    if (error.code === 'ENOENT') {
+    if (error.code === "ENOENT") {
       // File doesn't exist - this is normal, return empty config
       logger?.debug(`No config.json found at ${configPath}`);
       return {};

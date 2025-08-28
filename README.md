@@ -8,7 +8,7 @@ Simple modenized NuGet server implementation on Node.js
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![npm version](https://img.shields.io/npm/v/nuget-server.svg)](https://www.npmjs.com/package/nuget-server)
 
-----
+---
 
 ## What is this?
 
@@ -18,10 +18,10 @@ Compatible with `dotnet restore` and standard NuGet clients for package publishi
 
 A modern browser-based UI is also provided:
 
-* You can refer to registered packages. You can check various package attributes.
-* You can download packages by version.
-* You can also publish (upload) packages.
-* You can manage user accounts.
+- You can refer to registered packages. You can check various package attributes.
+- You can download packages by version.
+- You can also publish (upload) packages.
+- You can manage user accounts.
 
 **Browse package list:**
 
@@ -37,18 +37,18 @@ A modern browser-based UI is also provided:
 
 ### Key Features
 
-* **Easy setup, run NuGet server in 10 seconds!**
-* NuGet V3 API compatibility: Support for modern NuGet client operations
-* No need database management: Store package file and nuspecs into filesystem directly, feel free any database managements
-* Package publish: Flexible client to upload `.nupkg` files via `HTTP POST` using cURL and others
-* Basic authentication: Setup authentication for publish and general access when you want it
-* Reverse proxy support: Configurable trusted reverse proxy handling for proper URL resolution
-* Modern Web UI with enhanced features:
+- **Easy setup, run NuGet server in 10 seconds!**
+- NuGet V3 API compatibility: Support for modern NuGet client operations
+- No need database management: Store package file and nuspecs into filesystem directly, feel free any database managements
+- Package publish: Flexible client to upload `.nupkg` files via `HTTP POST` using cURL and others
+- Basic authentication: Setup authentication for publish and general access when you want it
+- Reverse proxy support: Configurable trusted reverse proxy handling for proper URL resolution
+- Modern Web UI with enhanced features:
   - Multiple package upload: Drag & drop multiple .nupkg files at once
   - User account management: Add/delete users, reset passwords (admin only)
   - API password regeneration: Self-service API password updates
   - Password change: Users can change their own passwords
-* Docker image available
+- Docker image available
 
 ## Installation
 
@@ -71,8 +71,8 @@ nuget-server --log-level debug
 
 The NuGet V3 API is served on the `/v3` path.
 
-* Default nuget-server served URL (Show UI): `http://localhost:5963`
-* Actual NuGet V3 API endpoint: `http://localhost:5963/v3/index.json`
+- Default nuget-server served URL (Show UI): `http://localhost:5963`
+- Actual NuGet V3 API endpoint: `http://localhost:5963/v3/index.json`
 
 Default nuget-server served URL can change with `--base-url` option, it shows below section.
 
@@ -160,7 +160,7 @@ tar -cf - ./packages | lz4 > backup-packages.tar.lz4
 
 Restore is simply extract it and re-run nuget-server with the same package directory configuration.
 
-----
+---
 
 ## Configuration directory
 
@@ -225,6 +225,7 @@ nuget-server --auth-init --config-dir ./config
 ```
 
 This command will:
+
 1. Prompt for admin username (default: admin)
 2. Prompt for password (with strength checking, masked input)
 3. Generate an API password for the admin user
@@ -247,7 +248,7 @@ Example session:
 
 ```
 Initializing authentication...
-Enter admin username [admin]: 
+Enter admin username [admin]:
 Enter password: ****
 Confirm password: ****
 
@@ -331,7 +332,7 @@ Configure password requirements in `config.json`:
 
 ```json
 {
-  "passwordMinScore": 2,        // 0-4, default: 2 (Good)
+  "passwordMinScore": 2, // 0-4, default: 2 (Good)
   "passwordStrengthCheck": true // default: true
 }
 ```
@@ -350,8 +351,8 @@ The server resolves URLs using the following priority order:
 
 For example `--base-url` option:
 
-* nuget-server served public base URL: `https://packages.example.com`
-* Actual NuGet V3 API endpoint: `https://packages.example.com/v3/index.json`
+- nuget-server served public base URL: `https://packages.example.com`
+- Actual NuGet V3 API endpoint: `https://packages.example.com/v3/index.json`
 
 ```bash
 # Configure served URL (do not include /api path)
@@ -393,12 +394,12 @@ If not set, a random secret is generated (warning will be logged). The session s
 
 The server implements a subset of the NuGet V3 API protocol:
 
-* Service index: `/v3/index.json`
-* Package content: `/v3/package/{id}/index.json`
-* Package downloads: `/v3/package/{id}/{version}/{filename}`
-* Registration index: `/v3/registrations/{id}/index.json`
+- Service index: `/v3/index.json`
+- Package content: `/v3/package/{id}/index.json`
+- Package downloads: `/v3/package/{id}/{version}/{filename}`
+- Registration index: `/v3/registrations/{id}/index.json`
 
-----
+---
 
 ## Docker Usage (WIP)
 
@@ -471,7 +472,7 @@ docker run -p 5963:5963 \
 
 The Docker image uses fixed directories internally, but you can mount any host directories to these locations.
 
-----
+---
 
 ## License
 
