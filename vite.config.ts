@@ -30,6 +30,9 @@ export default defineConfig(({ mode, command }) => {
       root: 'src/ui',
       plugins: [
         react(),
+        screwUp({
+          outputMetadataFile: true
+        }),
         // Add Fastify plugin for development
         fastifyHost(devConfig)
       ],
