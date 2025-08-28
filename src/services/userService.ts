@@ -186,7 +186,10 @@ export const createUserService = (config: UserServiceConfig): UserService => {
   /**
    * Validates password strength
    */
-  const validatePassword = (password: string, username?: string): void => {
+  const validatePassword = async (
+    password: string,
+    username?: string,
+  ): Promise<void> => {
     if (!password || password.length === 0) {
       throw new Error("Password cannot be empty");
     }
@@ -199,7 +202,7 @@ export const createUserService = (config: UserServiceConfig): UserService => {
     // Strength check (can be disabled via config)
     if (serverConfig?.passwordStrengthCheck !== false) {
       const userInputs = username ? [username] : [];
-      const strengthResult = checkPasswordStrength(password, userInputs);
+      const strengthResult = await checkPasswordStrength(password, userInputs);
       const minScore = getMinPasswordScore(serverConfig);
 
       if (strengthResult.score < minScore) {
@@ -265,7 +268,7 @@ export const createUserService = (config: UserServiceConfig): UserService => {
       const handle = await fileLock.writeLock();
       try {
         validateUsername(request.username);
-        validatePassword(request.password, request.username);
+        await validatePassword(request.password, request.username);
         validateRole(request.role);
 
         // Generate salts and hashes
@@ -345,7 +348,7 @@ export const createUserService = (config: UserServiceConfig): UserService => {
         }
 
         if ("password" in updates && updates.password) {
-          validatePassword(updates.password, username);
+          await validatePassword(updates.password, username);
           const newPasswordSalt = generateSalt();
           const newPasswordHash = hashPassword(
             updates.password,

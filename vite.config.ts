@@ -13,6 +13,7 @@ const __dirname = fileURLToPath(new URL(".", import.meta.url));
 export default defineConfig(({ mode, command }) => {
   const isDev = mode === "development";
   const isBuild = command === "build";
+  const buildTarget = process.env.BUILD_TARGET || "server";
 
   // Development server configuration
   const devConfig: ServerConfig = {
@@ -31,9 +32,6 @@ export default defineConfig(({ mode, command }) => {
       root: "src/ui",
       plugins: [
         react(),
-        screwUp({
-          outputMetadataFile: true,
-        }),
         prettierMax(),
         // Add Fastify plugin for development
         fastifyHost(devConfig),
@@ -47,7 +45,7 @@ export default defineConfig(({ mode, command }) => {
         emptyOutDir: true,
         rollupOptions: {
           input: {
-            main: resolve(__dirname, "src/ui/index.html"),
+            index: resolve(__dirname, "src/ui/index.html"),
             login: resolve(__dirname, "src/ui/login.html"),
           },
         },
@@ -55,7 +53,45 @@ export default defineConfig(({ mode, command }) => {
     };
   }
 
-  // For build mode, handle both server and UI
+  // For build mode, handle server or UI based on BUILD_TARGET
+  if (isBuild && buildTarget === "ui") {
+    // UI build mode
+    return {
+      root: "src/ui",
+      plugins: [react(), prettierMax()],
+      build: {
+        outDir: "../../dist/ui",
+        emptyOutDir: false, // Don't clean server build files
+        rollupOptions: {
+          input: {
+            index: resolve(__dirname, "src/ui/index.html"),
+            login: resolve(__dirname, "src/ui/login.html"),
+          },
+          output: {
+            manualChunks: (id) => {
+              // Separate zxcvbn into its own chunk
+              if (id.includes("zxcvbn")) {
+                return "password-checker";
+              }
+              // Group MUI components
+              if (
+                id.includes("@mui/material") ||
+                id.includes("@mui/icons-material")
+              ) {
+                return "mui-vendor";
+              }
+              // Group React and related
+              if (id.includes("react") || id.includes("react-dom")) {
+                return "react-vendor";
+              }
+            },
+          },
+        },
+      },
+    };
+  }
+
+  // Server build mode (default)
   return {
     plugins: [
       react(),
@@ -69,6 +105,7 @@ export default defineConfig(({ mode, command }) => {
       prettierMax(),
     ],
     build: {
+      emptyOutDir: true, // Clean on first build
       // Build server code as library
       lib: {
         entry: {

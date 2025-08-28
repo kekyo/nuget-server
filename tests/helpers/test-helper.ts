@@ -46,23 +46,20 @@ export const createTestDirectory = async (
   return testDir;
 };
 
-// Port counter for sequential uniqueness
-let portCounter = 0;
-
 /**
  * Generates a test port number to avoid conflicts
- * Ensures ports stay within valid range and don't conflict
+ * Uses process.pid and random component for better uniqueness across parallel test runs
  */
-export const getTestPort = (basePort: number): number => {
-  // Simple incremental approach with wrap-around
-  // This ensures unique ports for each test within a test run
-  const offset = portCounter++ % 100; // Use range of 100 ports
-  const port = basePort + offset;
+export const getTestPort = (basePort: number = 6000): number => {
+  // Use process.pid for better uniqueness across parallel test runs
+  const pidComponent = process.pid % 1000;
+  const randomComponent = Math.floor(Math.random() * 4000); // 0-3999
+  const port = basePort + pidComponent + randomComponent;
 
-  // Additional safety check
+  // Ensure port stays within valid range
   if (port > 65535) {
-    portCounter = 0; // Reset counter
-    return basePort;
+    // Fall back to basePort with smaller random offset
+    return basePort + Math.floor(Math.random() * 1000);
   }
 
   return port;

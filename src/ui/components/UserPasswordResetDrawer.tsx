@@ -14,10 +14,6 @@ import {
   IconButton,
   Divider,
   Paper,
-  FormControl,
-  InputLabel,
-  Select,
-  MenuItem,
   Autocomplete,
 } from "@mui/material";
 import {
@@ -254,7 +250,7 @@ const UserPasswordResetDrawer = ({
                   value={
                     users.find((u) => u.username === selectedUsername) || null
                   }
-                  onChange={(event, newValue) => {
+                  onChange={(_event, newValue) => {
                     setSelectedUsername(newValue ? newValue.username : null);
                   }}
                   disabled={resetting}
