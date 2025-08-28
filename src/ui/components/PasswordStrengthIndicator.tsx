@@ -2,8 +2,12 @@
 // Copyright (c) Kouji Matsui (@kekyo@mi.kekyo.net)
 // License under MIT.
 
-import { LinearProgress, Box, Typography } from "@mui/material";
-import { checkPasswordStrength } from "../../utils/passwordStrength";
+import { useState, useEffect } from "react";
+import { LinearProgress, Box, Typography, Skeleton } from "@mui/material";
+import {
+  checkPasswordStrength,
+  PasswordStrengthResult,
+} from "../../utils/passwordStrength";
 
 interface PasswordStrengthIndicatorProps {
   password: string;
@@ -14,9 +18,45 @@ export const PasswordStrengthIndicator = ({
   password,
   username,
 }: PasswordStrengthIndicatorProps) => {
+  const [strength, setStrength] = useState<PasswordStrengthResult | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!password) {
+      setStrength(null);
+      return;
+    }
+
+    setLoading(true);
+    const checkStrength = async () => {
+      try {
+        const result = await checkPasswordStrength(
+          password,
+          username ? [username] : [],
+        );
+        setStrength(result);
+      } catch (error) {
+        console.error("Failed to check password strength:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    // Debounce password strength check
+    const timer = setTimeout(checkStrength, 300);
+    return () => clearTimeout(timer);
+  }, [password, username]);
+
   if (!password) return null;
 
-  const strength = checkPasswordStrength(password, username ? [username] : []);
+  if (loading || !strength) {
+    return (
+      <Box sx={{ mt: 1 }}>
+        <Skeleton variant="rectangular" height={6} />
+        <Skeleton variant="text" width="60%" sx={{ mt: 0.5 }} />
+      </Box>
+    );
+  }
 
   const colors = ["#f44336", "#ff9800", "#ffc107", "#8bc34a", "#4caf50"];
   const color = colors[strength.score];
