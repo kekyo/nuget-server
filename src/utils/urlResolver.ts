@@ -2,7 +2,17 @@
 // Copyright (c) Kouji Matsui (@kekyo@mi.kekyo.net)
 // License under MIT.
 
-import { Request } from 'express';
+/**
+ * Generic request interface for URL resolution
+ */
+interface GenericRequest {
+  protocol: string;
+  ip?: string;
+  socket: {
+    remoteAddress?: string;
+  };
+  headers: { [key: string]: string | string[] | undefined };
+}
 
 /**
  * Configuration for URL resolver
@@ -30,23 +40,23 @@ export const createUrlResolver = (config: UrlResolverConfig = {}) => {
 
   /**
    * Checks if a request comes from a trusted proxy
-   * @param req - Express request object
+   * @param req - Generic request object
    * @returns True if from trusted proxy, false otherwise
    */
-  const isRequestFromTrustedProxy = (req: Request): boolean => {
+  const isRequestFromTrustedProxy = (req: GenericRequest): boolean => {
     if (trustedProxies.length === 0) {
       return true;
     }
-    
+
     const clientIp = req.ip || req.socket.remoteAddress;
-    const forwardedFor = req.get('X-Forwarded-For');
-    
+    const forwardedFor = req.headers["x-forwarded-for"] as string;
+
     const sourceIps = [clientIp];
     if (forwardedFor) {
-      sourceIps.push(...forwardedFor.split(',').map(ip => ip.trim()));
+      sourceIps.push(...forwardedFor.split(",").map((ip) => ip.trim()));
     }
-    
-    return sourceIps.some(ip => trustedProxies.includes(ip || ''));
+
+    return sourceIps.some((ip) => trustedProxies.includes(ip || ""));
   };
 
   /**
@@ -56,40 +66,40 @@ export const createUrlResolver = (config: UrlResolverConfig = {}) => {
    */
   const parseForwardedHeader = (forwarded: string): Record<string, string> => {
     const parsed: Record<string, string> = {};
-    
-    const pairs = forwarded.split(';').map(s => s.trim());
+
+    const pairs = forwarded.split(";").map((s) => s.trim());
     for (const pair of pairs) {
-      const [key, value] = pair.split('=').map(s => s.trim());
+      const [key, value] = pair.split("=").map((s) => s.trim());
       if (key && value) {
-        parsed[key.toLowerCase()] = value.replace(/"/g, '');
+        parsed[key.toLowerCase()] = value.replace(/"/g, "");
       }
     }
-    
+
     return parsed;
   };
 
   /**
    * Resolves the base URL for API endpoints from request headers
-   * @param req - Express request object
+   * @param req - Generic request object
    * @returns Resolved URL information
    */
-  const resolveUrl = (req: Request): ResolvedUrl => {
+  const resolveUrl = (req: GenericRequest): ResolvedUrl => {
     if (fixedBaseUrl) {
       return {
-        baseUrl: fixedBaseUrl.replace(/\/$/, ''),
-        isFixed: true
+        baseUrl: fixedBaseUrl.replace(/\/$/, ""),
+        isFixed: true,
       };
     }
 
     let protocol = req.protocol;
-    let host = req.get('Host') || 'localhost';
+    let host = (req.headers.host as string) || "localhost";
     let port: string | undefined;
 
     if (isRequestFromTrustedProxy(req)) {
-      const forwardedProto = req.get('X-Forwarded-Proto');
-      const forwardedHost = req.get('X-Forwarded-Host');
-      const forwardedPort = req.get('X-Forwarded-Port');
-      const forwarded = req.get('Forwarded');
+      const forwardedProto = req.headers["x-forwarded-proto"] as string;
+      const forwardedHost = req.headers["x-forwarded-host"] as string;
+      const forwardedPort = req.headers["x-forwarded-port"] as string;
+      const forwarded = req.headers["forwarded"] as string;
 
       if (forwarded) {
         const parsed = parseForwardedHeader(forwarded);
@@ -103,19 +113,17 @@ export const createUrlResolver = (config: UrlResolverConfig = {}) => {
       }
     }
 
-    const hostWithPort = port && !host.includes(':') 
-      ? `${host}:${port}`
-      : host;
+    const hostWithPort = port && !host.includes(":") ? `${host}:${port}` : host;
 
     return {
-      baseUrl: `${protocol}://${hostWithPort}/api`,
-      isFixed: false
+      baseUrl: `${protocol}://${hostWithPort}`,
+      isFixed: false,
     };
   };
 
   return {
     resolveUrl,
-    isFixedUrl: (): boolean => !!fixedBaseUrl
+    isFixedUrl: (): boolean => !!fixedBaseUrl,
   };
 };
 
@@ -129,11 +137,14 @@ export const getBaseUrlFromEnv = (): string | undefined => {
 
 /**
  * Gets trusted proxies list from environment variable
- * @returns Array of trusted proxy IPs from NUGET_SERVER_TRUSTED_PROXIES environment variable
+ * @returns Array of trusted proxy IPs from NUGET_SERVER_TRUSTED_PROXIES environment variable, or undefined if not set
  */
-export const getTrustedProxiesFromEnv = (): string[] => {
+export const getTrustedProxiesFromEnv = (): string[] | undefined => {
   const proxies = process.env.NUGET_SERVER_TRUSTED_PROXIES;
-  if (!proxies) return [];
-  
-  return proxies.split(',').map(ip => ip.trim()).filter(Boolean);
+  if (!proxies) return undefined;
+
+  return proxies
+    .split(",")
+    .map((ip) => ip.trim())
+    .filter(Boolean);
 };

@@ -2,10 +2,11 @@
 // Copyright (c) Kouji Matsui (@kekyo@mi.kekyo.net)
 // License under MIT.
 
-import fs from 'fs/promises';
-import path from 'path';
-import xml2js from 'xml2js';
-import { Logger } from '../types';
+import fs from "fs/promises";
+import path from "path";
+import xml2js from "xml2js";
+import { Logger } from "../types";
+import { compareVersions } from "../utils/semver";
 
 /**
  * Group of package dependencies for a specific target framework
@@ -48,9 +49,9 @@ export interface PackageMetadata {
  * Storage information for package files on disk
  */
 export interface PackageStorage {
-  dirName: string;      // Actual directory name (e.g., "FlashCap")
-  fileName: string;     // Actual nupkg file name (e.g., "FlashCap.1.10.0.nupkg")
-  nuspecName: string;   // Actual nuspec file name (e.g., "FlashCap.nuspec")
+  dirName: string; // Actual directory name (e.g., "FlashCap")
+  fileName: string; // Actual nupkg file name (e.g., "FlashCap.1.10.0.nupkg")
+  nuspecName: string; // Actual nuspec file name (e.g., "FlashCap.nuspec")
 }
 
 /**
@@ -65,14 +66,21 @@ export interface PackageEntry {
  * Service interface for managing package metadata and caching
  */
 export interface MetadataService {
-  initialize(): Promise<void>;
-  getPackageMetadata(packageId: string): PackageMetadata[];
-  getPackageVersion(packageId: string, version: string): PackageMetadata | null;
-  getPackageEntry(packageId: string, version: string): PackageEntry | null;
-  getAllPackageIds(): string[];
-  updateBaseUrl(baseUrl: string): void;
-  addPackage(metadata: PackageMetadata): void;
-  addPackageEntry(entry: PackageEntry): void;
+  readonly initialize: () => Promise<void>;
+  readonly getPackageMetadata: (packageId: string) => PackageMetadata[];
+  readonly getPackageVersion: (
+    packageId: string,
+    version: string,
+  ) => PackageMetadata | null;
+  readonly getPackageEntry: (
+    packageId: string,
+    version: string,
+  ) => PackageEntry | null;
+  readonly getAllPackageIds: () => string[];
+  readonly getLatestPackageEntry: (packageId: string) => PackageEntry | null;
+  readonly updateBaseUrl: (baseUrl: string) => void;
+  readonly addPackage: (metadata: PackageMetadata) => void;
+  readonly addPackageEntry: (entry: PackageEntry) => void;
 }
 
 /**
@@ -82,10 +90,14 @@ export interface MetadataService {
  * @param logger - Logger instance for service events
  * @returns Configured metadata service instance
  */
-export const createMetadataService = (packagesRoot: string = './packages', baseUrl: string = '', logger: Logger): MetadataService => {
+export const createMetadataService = (
+  packagesRoot: string = "./packages",
+  baseUrl: string = "",
+  logger: Logger,
+): MetadataService => {
   const packagesCache = new Map<string, PackageEntry[]>();
   let currentBaseUrl = baseUrl;
-  
+
   /**
    * Extracts dependency groups from parsed XML metadata
    * @param deps - Raw dependency data from XML parser
@@ -93,58 +105,62 @@ export const createMetadataService = (packagesRoot: string = './packages', baseU
    */
   const extractDependencies = (deps: any): DependencyGroup[] => {
     if (!deps) return [];
-    
+
     const groups: DependencyGroup[] = [];
-    
+
     if (deps.group) {
       const groupArray = Array.isArray(deps.group) ? deps.group : [deps.group];
-      
+
       for (const group of groupArray) {
         const targetFramework = group.$ ? group.$.targetFramework : undefined;
         const dependencies: PackageDependency[] = [];
-        
+
         if (group.dependency) {
-          const depArray = Array.isArray(group.dependency) ? group.dependency : [group.dependency];
-          
+          const depArray = Array.isArray(group.dependency)
+            ? group.dependency
+            : [group.dependency];
+
           for (const dep of depArray) {
             if (dep.$) {
               dependencies.push({
                 id: dep.$.id,
                 version: dep.$.version,
-                exclude: dep.$.exclude
+                exclude: dep.$.exclude,
               });
             }
           }
         }
-        
+
         groups.push({
           targetFramework,
-          dependencies
+          dependencies,
         });
       }
     } else if (deps.dependency) {
       // Dependencies without groups
-      const depArray = Array.isArray(deps.dependency) ? deps.dependency : [deps.dependency];
+      const depArray = Array.isArray(deps.dependency)
+        ? deps.dependency
+        : [deps.dependency];
       const dependencies: PackageDependency[] = [];
-      
+
       for (const dep of depArray) {
         if (dep.$) {
           dependencies.push({
             id: dep.$.id,
             version: dep.$.version,
-            exclude: dep.$.exclude
+            exclude: dep.$.exclude,
           });
         }
       }
-      
+
       if (dependencies.length > 0) {
         groups.push({ dependencies });
       }
     }
-    
+
     return groups;
   };
-  
+
   /**
    * Loads package metadata from a nuspec file
    * @param packageId - Package identifier
@@ -152,14 +168,18 @@ export const createMetadataService = (packagesRoot: string = './packages', baseU
    * @param versionPath - File system path to the version directory
    * @returns Package entry with metadata and storage info, or null if loading fails
    */
-  const loadPackageMetadata = async (packageId: string, version: string, versionPath: string): Promise<PackageEntry | null> => {
+  const loadPackageMetadata = async (
+    packageId: string,
+    version: string,
+    versionPath: string,
+  ): Promise<PackageEntry | null> => {
     try {
       const nuspecPath = path.join(versionPath, `${packageId}.nuspec`);
-      const nuspecContent = await fs.readFile(nuspecPath, 'utf-8');
-      
+      const nuspecContent = await fs.readFile(nuspecPath, "utf-8");
+
       const parser = new xml2js.Parser({ explicitArray: false });
       const result = await parser.parseStringPromise(nuspecContent);
-      
+
       const metadata = result.package?.metadata;
       if (!metadata) {
         logger.warn(`Invalid nuspec format in ${nuspecPath}`);
@@ -168,21 +188,26 @@ export const createMetadataService = (packagesRoot: string = './packages', baseU
 
       // Extract dependencies
       const dependencies = extractDependencies(metadata.dependencies);
-      
+
       // Extract tags
-      const tags = metadata.tags ? 
-        (typeof metadata.tags === 'string' ? metadata.tags.split(/[\s,;]+/).filter(t => t) : []) : 
-        [];
+      const tags = metadata.tags
+        ? typeof metadata.tags === "string"
+          ? metadata.tags.split(/[\s,;]+/).filter((t: string) => t)
+          : []
+        : [];
 
       const actualPackageId = metadata.id || packageId;
-      
+
       const packageMetadata: PackageMetadata = {
         id: actualPackageId,
         version: metadata.version || version,
         authors: metadata.authors,
         description: metadata.description,
         licenseUrl: metadata.licenseUrl,
-        licenseExpression: typeof metadata.license === 'object' ? metadata.license._ : metadata.license,
+        licenseExpression:
+          typeof metadata.license === "object"
+            ? metadata.license._
+            : metadata.license,
         projectUrl: metadata.projectUrl,
         iconUrl: metadata.iconUrl,
         icon: metadata.icon,
@@ -190,72 +215,83 @@ export const createMetadataService = (packagesRoot: string = './packages', baseU
         dependencies,
         published: new Date(), // Use current date as we don't have publish info
         listed: true,
-        packageContentUrl: `${currentBaseUrl}/package/${actualPackageId.toLowerCase()}/${version}/${actualPackageId.toLowerCase()}.${version}.nupkg`
+        packageContentUrl: `${currentBaseUrl}/v3/package/${actualPackageId.toLowerCase()}/${version}/${actualPackageId.toLowerCase()}.${version}.nupkg`,
       };
 
       // Read actual file names from directory
       const files = await fs.readdir(versionPath);
-      const actualNupkgFile = files.find(file => file.endsWith('.nupkg'));
-      const actualNuspecFile = files.find(file => file.endsWith('.nuspec'));
+      const actualNupkgFile = files.find((file) => file.endsWith(".nupkg"));
+      const actualNuspecFile = files.find((file) => file.endsWith(".nuspec"));
 
       const packageStorage: PackageStorage = {
-        dirName: packageId,  // Actual directory name (e.g., "FlashCap")
-        fileName: actualNupkgFile || `${packageId}.${version}.nupkg`,  // Use actual file name
-        nuspecName: actualNuspecFile || `${packageId}.nuspec`  // Use actual nuspec name
+        dirName: packageId, // Actual directory name (e.g., "FlashCap")
+        fileName: actualNupkgFile || `${packageId}.${version}.nupkg`, // Use actual file name
+        nuspecName: actualNuspecFile || `${packageId}.nuspec`, // Use actual nuspec name
       };
 
       return {
         metadata: packageMetadata,
-        storage: packageStorage
+        storage: packageStorage,
       };
     } catch (error) {
-      logger.warn(`Failed to load metadata for ${packageId} ${version}: ${error}`);
+      logger.warn(
+        `Failed to load metadata for ${packageId} ${version}: ${error}`,
+      );
       return null;
     }
   };
-  
+
   /**
    * Scans all versions of a specific package and loads their metadata
    * @param packageId - Package identifier
    * @param packagePath - File system path to the package directory
    */
-  const scanPackageVersions = async (packageId: string, packagePath: string): Promise<void> => {
+  const scanPackageVersions = async (
+    packageId: string,
+    packagePath: string,
+  ): Promise<void> => {
     try {
       const versionDirs = await fs.readdir(packagePath);
       const entries: PackageEntry[] = [];
-      
+
       for (const version of versionDirs) {
         const versionPath = path.join(packagePath, version);
         const stat = await fs.stat(versionPath);
-        
+
         if (stat.isDirectory()) {
-          const entry = await loadPackageMetadata(packageId, version, versionPath);
+          const entry = await loadPackageMetadata(
+            packageId,
+            version,
+            versionPath,
+          );
           if (entry) {
             entries.push(entry);
           }
         }
       }
-      
+
       if (entries.length > 0) {
-        entries.sort((a, b) => a.metadata.version.localeCompare(b.metadata.version));
+        entries.sort((a, b) =>
+          compareVersions(b.metadata.version, a.metadata.version),
+        ); // Descending order (newest first)
         packagesCache.set(packageId.toLowerCase(), entries);
       }
     } catch (error) {
       logger.warn(`Failed to scan versions for package ${packageId}: ${error}`);
     }
   };
-  
+
   /**
    * Scans the packages root directory and loads all package metadata
    */
   const scanPackages = async (): Promise<void> => {
     try {
       const packageDirs = await fs.readdir(packagesRoot);
-      
+
       for (const packageId of packageDirs) {
         const packagePath = path.join(packagesRoot, packageId);
         const stat = await fs.stat(packagePath);
-        
+
         if (stat.isDirectory()) {
           await scanPackageVersions(packageId, packagePath);
         }
@@ -264,20 +300,27 @@ export const createMetadataService = (packagesRoot: string = './packages', baseU
       logger.warn(`Packages directory not found or empty: ${packagesRoot}`);
     }
   };
-  
+
   return {
     /**
      * Initializes the metadata service by scanning packages directory
      */
     initialize: async (): Promise<void> => {
-      logger.info('Initializing metadata cache...');
+      const startTime = Date.now();
+      logger.info("Initializing metadata cache...");
       packagesCache.clear();
-      
+
       try {
         await scanPackages();
-        const packageCount = Array.from(packagesCache.values()).reduce((sum, versions) => sum + versions.length, 0);
+        const packageCount = Array.from(packagesCache.values()).reduce(
+          (sum, versions) => sum + versions.length,
+          0,
+        );
         const packageIds = packagesCache.size;
-        logger.info(`Metadata cache initialized: ${packageIds} packages, ${packageCount} versions`);
+        const elapsedTime = Date.now() - startTime;
+        logger.info(
+          `Metadata cache initialized: ${packageIds} packages, ${packageCount} versions (took ${elapsedTime}ms)`,
+        );
       } catch (error) {
         logger.error(`Failed to initialize metadata cache: ${error}`);
         throw error;
@@ -291,7 +334,7 @@ export const createMetadataService = (packagesRoot: string = './packages', baseU
      */
     getPackageMetadata: (packageId: string): PackageMetadata[] => {
       const entries = packagesCache.get(packageId.toLowerCase()) || [];
-      return entries.map(entry => entry.metadata);
+      return entries.map((entry) => entry.metadata);
     },
 
     /**
@@ -300,10 +343,13 @@ export const createMetadataService = (packagesRoot: string = './packages', baseU
      * @param version - Package version
      * @returns Package metadata or null if not found
      */
-    getPackageVersion: (packageId: string, version: string): PackageMetadata | null => {
+    getPackageVersion: (
+      packageId: string,
+      version: string,
+    ): PackageMetadata | null => {
       const entries = packagesCache.get(packageId.toLowerCase()) || [];
-      const metadata = entries.map(entry => entry.metadata);
-      return metadata.find(v => v.version === version) || null;
+      const metadata = entries.map((entry) => entry.metadata);
+      return metadata.find((v) => v.version === version) || null;
     },
 
     /**
@@ -312,9 +358,14 @@ export const createMetadataService = (packagesRoot: string = './packages', baseU
      * @param version - Package version
      * @returns Package entry or null if not found
      */
-    getPackageEntry: (packageId: string, version: string): PackageEntry | null => {
+    getPackageEntry: (
+      packageId: string,
+      version: string,
+    ): PackageEntry | null => {
       const entries = packagesCache.get(packageId.toLowerCase()) || [];
-      return entries.find(entry => entry.metadata.version === version) || null;
+      return (
+        entries.find((entry) => entry.metadata.version === version) || null
+      );
     },
 
     /**
@@ -326,12 +377,23 @@ export const createMetadataService = (packagesRoot: string = './packages', baseU
     },
 
     /**
+     * Gets the latest package entry (metadata + storage info) for a package
+     * @param packageId - Package identifier
+     * @returns Latest package entry or null if package not found
+     */
+    getLatestPackageEntry: (packageId: string): PackageEntry | null => {
+      const entries = packagesCache.get(packageId.toLowerCase()) || [];
+      // Entries are already sorted in descending order (newest first)
+      return entries.length > 0 ? entries[0] : null;
+    },
+
+    /**
      * Updates the base URL and refreshes all package content URLs
      * @param baseUrl - New base URL for package content
      */
     updateBaseUrl: (baseUrl: string): void => {
       currentBaseUrl = baseUrl;
-      
+
       // Update package content URLs
       for (const entries of packagesCache.values()) {
         for (const entry of entries) {
@@ -349,30 +411,36 @@ export const createMetadataService = (packagesRoot: string = './packages', baseU
     addPackage: (metadata: PackageMetadata): void => {
       // Create a simple storage entry for uploaded packages
       const packageStorage: PackageStorage = {
-        dirName: metadata.id,  // Use the actual package ID from nuspec
+        dirName: metadata.id, // Use the actual package ID from nuspec
         fileName: `${metadata.id}.${metadata.version}.nupkg`,
-        nuspecName: `${metadata.id}.nuspec`
+        nuspecName: `${metadata.id}.nuspec`,
       };
 
       const packageEntry: PackageEntry = {
         metadata: metadata,
-        storage: packageStorage
+        storage: packageStorage,
       };
 
       // Inline the addPackageEntry logic to avoid circular reference
       const packageId = packageEntry.metadata.id.toLowerCase();
       const existingEntries = packagesCache.get(packageId) || [];
-      
+
       // Remove existing version if it exists (for overwrite)
-      const filteredEntries = existingEntries.filter(e => e.metadata.version !== packageEntry.metadata.version);
-      
+      const filteredEntries = existingEntries.filter(
+        (e) => e.metadata.version !== packageEntry.metadata.version,
+      );
+
       // Add new version
       filteredEntries.push(packageEntry);
-      filteredEntries.sort((a, b) => a.metadata.version.localeCompare(b.metadata.version));
-      
+      filteredEntries.sort((a, b) =>
+        compareVersions(b.metadata.version, a.metadata.version),
+      ); // Descending order (newest first)
+
       packagesCache.set(packageId, filteredEntries);
-      
-      logger.info(`Package added to cache: ${packageEntry.metadata.id} ${packageEntry.metadata.version}`);
+
+      logger.info(
+        `Package added to cache: ${packageEntry.metadata.id} ${packageEntry.metadata.version}`,
+      );
     },
 
     /**
@@ -382,17 +450,23 @@ export const createMetadataService = (packagesRoot: string = './packages', baseU
     addPackageEntry: (entry: PackageEntry): void => {
       const packageId = entry.metadata.id.toLowerCase();
       const existingEntries = packagesCache.get(packageId) || [];
-      
+
       // Remove existing version if it exists (for overwrite)
-      const filteredEntries = existingEntries.filter(e => e.metadata.version !== entry.metadata.version);
-      
+      const filteredEntries = existingEntries.filter(
+        (e) => e.metadata.version !== entry.metadata.version,
+      );
+
       // Add new version
       filteredEntries.push(entry);
-      filteredEntries.sort((a, b) => a.metadata.version.localeCompare(b.metadata.version));
-      
+      filteredEntries.sort((a, b) =>
+        compareVersions(b.metadata.version, a.metadata.version),
+      ); // Descending order (newest first)
+
       packagesCache.set(packageId, filteredEntries);
-      
-      logger.info(`Package added to cache: ${entry.metadata.id} ${entry.metadata.version}`);
-    }
+
+      logger.info(
+        `Package added to cache: ${entry.metadata.id} ${entry.metadata.version}`,
+      );
+    },
   };
 };
