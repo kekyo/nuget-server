@@ -13,6 +13,7 @@ const __dirname = fileURLToPath(new URL(".", import.meta.url));
 export default defineConfig(({ mode, command }) => {
   const isDev = mode === "development";
   const isBuild = command === "build";
+  const buildTarget = process.env.BUILD_TARGET || "server";
 
   // Development server configuration
   const devConfig: ServerConfig = {
@@ -55,7 +56,26 @@ export default defineConfig(({ mode, command }) => {
     };
   }
 
-  // For build mode, handle both server and UI
+  // For build mode, handle server or UI based on BUILD_TARGET
+  if (isBuild && buildTarget === "ui") {
+    // UI build mode
+    return {
+      root: "src/ui",
+      plugins: [react(), prettierMax()],
+      build: {
+        outDir: "../../dist/ui",
+        emptyOutDir: false, // Don't clean server build files
+        rollupOptions: {
+          input: {
+            index: resolve(__dirname, "src/ui/index.html"),
+            login: resolve(__dirname, "src/ui/login.html"),
+          },
+        },
+      },
+    };
+  }
+
+  // Server build mode (default)
   return {
     plugins: [
       react(),
@@ -69,6 +89,7 @@ export default defineConfig(({ mode, command }) => {
       prettierMax(),
     ],
     build: {
+      emptyOutDir: true, // Clean on first build
       // Build server code as library
       lib: {
         entry: {
