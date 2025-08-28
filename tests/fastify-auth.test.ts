@@ -84,7 +84,7 @@ describe("Fastify Authentication - Phase 2 Tests", () => {
     await fs.mkdir(testPackagesDir, { recursive: true });
 
     // Generate unique port for each test
-    serverPort = getTestPort(6500);
+    serverPort = getTestPort(6100);
 
     // Create test users
     await createTestUsers();

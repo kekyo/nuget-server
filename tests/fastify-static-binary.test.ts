@@ -73,7 +73,7 @@ describe("Fastify Static Binary Files", () => {
   // Production Mode
 
   test("should serve /icon.png with correct binary data", async () => {
-    const serverPort = 7001; // Fixed port for this test
+    const serverPort = getTestPort(10000);
     const logger = createConsoleLogger(
       "fastify-static-binary",
       testGlobalLogLevel,
@@ -125,7 +125,7 @@ describe("Fastify Static Binary Files", () => {
   }, 30000);
 
   test("should serve /favicon.ico with correct binary data", async () => {
-    const serverPort = 7002; // Fixed port for this test
+    const serverPort = getTestPort(10100);
     const logger = createConsoleLogger(
       "fastify-static-binary",
       testGlobalLogLevel,
@@ -179,7 +179,7 @@ describe("Fastify Static Binary Files", () => {
   // Development Mode (inject)
 
   test("should handle binary data through fastify.inject", async () => {
-    const serverPort = 7003; // Fixed port for this test
+    const serverPort = getTestPort(10200);
     const logger = createConsoleLogger(
       "fastify-static-binary",
       testGlobalLogLevel,
@@ -237,7 +237,7 @@ describe("Fastify Static Binary Files", () => {
   }, 30000);
 
   test("should detect corruption in payload vs rawPayload", async () => {
-    const serverPort = 7004; // Fixed port for this test
+    const serverPort = getTestPort(10300);
     const logger = createConsoleLogger(
       "fastify-static-binary",
       testGlobalLogLevel,

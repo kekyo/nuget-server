@@ -14,7 +14,7 @@ describe("CLI configuration priority", () => {
 
   beforeEach(async (fn) => {
     testDir = await createTestDirectory("cli-config", fn.task.name);
-    testPort = getTestPort();
+    testPort = getTestPort(6200);
   });
 
   afterEach(() => {

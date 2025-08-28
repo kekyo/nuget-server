@@ -53,10 +53,10 @@ let portCounter = 0;
  * Generates a test port number to avoid conflicts
  * Ensures ports stay within valid range and don't conflict
  */
-export const getTestPort = (basePort: number = 6000): number => {
+export const getTestPort = (basePort: number): number => {
   // Simple incremental approach with wrap-around
   // This ensures unique ports for each test within a test run
-  const offset = portCounter++ % 9000; // Use range of 9000 ports
+  const offset = portCounter++ % 100; // Use range of 100 ports
   const port = basePort + offset;
 
   // Additional safety check

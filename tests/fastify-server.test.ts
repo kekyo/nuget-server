@@ -39,7 +39,7 @@ describe("Fastify Server - Phase 1 Basic Tests", () => {
     await fs.mkdir(testPackagesDir, { recursive: true });
 
     // Generate unique port for each test
-    serverPort = getTestPort(6001);
+    serverPort = getTestPort(6000);
   });
 
   test("should start Fastify server successfully", async () => {
