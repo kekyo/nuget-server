@@ -31,9 +31,6 @@ export default defineConfig(({ mode, command }) => {
       root: "src/ui",
       plugins: [
         react(),
-        screwUp({
-          outputMetadataFile: true,
-        }),
         prettierMax(),
         // Add Fastify plugin for development
         fastifyHost(devConfig),
@@ -61,7 +58,7 @@ export default defineConfig(({ mode, command }) => {
       react(),
       dts({
         insertTypesEntry: true,
-        exclude: ["src/ui/**/*", "src/plugins/**/*"],
+        exclude: ["src/plugins/**/*"],
       }),
       screwUp({
         outputMetadataFile: true,
@@ -69,6 +66,7 @@ export default defineConfig(({ mode, command }) => {
       prettierMax(),
     ],
     build: {
+      emptyOutDir: true,
       // Build server code as library
       lib: {
         entry: {
@@ -81,6 +79,10 @@ export default defineConfig(({ mode, command }) => {
         formats: ["es", "cjs"],
       },
       rollupOptions: {
+        input: {
+          main: resolve(__dirname, "src/ui/index.html"),
+          login: resolve(__dirname, "src/ui/login.html"),
+        },
         external: [
           "commander",
           "fs/promises",
