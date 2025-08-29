@@ -42,9 +42,9 @@
     "build:ui": "./gen-packageMetadata.sh && BUILD_TARGET=ui vite build",
     "dev": "./gen-packageMetadata.sh && vite dev",
     "test": "npm run build && vitest run",
-    "init": "npm run build && node dist/cli.js -c ./dev --auth-init",
-    "import": "npm run build && node dist/cli.js -c ./dev --import-packages",
-    "start": "npm run build && node dist/cli.js -c ./dev",
+    "init": "npm run build && node dist/cli.js -c ./dev -d ./dev/packages --auth-init",
+    "import": "npm run build && node dist/cli.js -c ./dev -d ./dev/packages --import-packages",
+    "start": "npm run build && node dist/cli.js -c ./dev -d ./dev/packages",
     "dump": "npm run build && screw-up dump",
     "pack": "npm run build && screw-up pack --pack-destination artifacts/"
   },

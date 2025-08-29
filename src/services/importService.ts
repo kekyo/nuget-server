@@ -310,13 +310,15 @@ export const createImportService = (
 
           try {
             // Check if already exists
+            let overwrite = false;
             if (await packageExists(packageDir, pkg.id, version)) {
               logger.debug(
                 `Overwriting existing package: ${pkg.id}@${version}`,
               );
+              overwrite = true;
             }
 
-            logger.info(`Downloading ${pkg.id}@${version}...`);
+            logger.debug(`Downloading ${pkg.id}@${version}...`);
 
             // Download package
             const packageData = await client.downloadPackage(
@@ -331,7 +333,9 @@ export const createImportService = (
             result.successfulVersions++;
             progress.downloadedVersions++;
 
-            logger.info(`Successfully imported ${pkg.id}@${version}`);
+            logger.info(
+              `Successfully imported ${pkg.id}@${version}${overwrite ? " (overwrite)" : ""}`,
+            );
           } catch (error: any) {
             logger.error(
               `Failed to import ${pkg.id}@${version}: ${error.message}`,

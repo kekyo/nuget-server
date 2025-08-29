@@ -16,20 +16,6 @@ export interface ImportPackagesOptions {
 }
 
 /**
- * Format progress message
- */
-const formatProgress = (progress: ImportProgress): string => {
-  const percentage =
-    progress.totalVersions > 0
-      ? ((progress.downloadedVersions / progress.totalVersions) * 100).toFixed(
-          1,
-        )
-      : "0.0";
-
-  return `Downloaded: ${progress.downloadedVersions}/${progress.totalVersions} packages (${percentage}%)`;
-};
-
-/**
  * Run package import process
  */
 export const runImportPackages = async (
@@ -112,12 +98,12 @@ export const runImportPackages = async (
       });
 
       // Confirm import
-      console.log("\n" + "=".repeat(60));
-      console.log("Import Configuration:");
-      console.log(`Source: ${sourceUrl}`);
-      console.log(`Target: ${packageDir}`);
-      console.log(`Authentication: ${username} (password hidden)`);
-      console.log("=".repeat(60) + "\n");
+      logger.info("=".repeat(60));
+      logger.info("Import Configuration:");
+      logger.info(`Source: ${sourceUrl}`);
+      logger.info(`Target: ${packageDir}`);
+      logger.info(`Authentication: ${username} (password hidden)`);
+      logger.info("=".repeat(60));
 
       const confirmed = await promptConfirm(
         rl2,
@@ -133,12 +119,12 @@ export const runImportPackages = async (
       }
     } else {
       // Confirm import without auth
-      console.log("\n" + "=".repeat(60));
-      console.log("Import Configuration:");
-      console.log(`Source: ${sourceUrl}`);
-      console.log(`Target: ${packageDir}`);
-      console.log(`Authentication: None`);
-      console.log("=".repeat(60) + "\n");
+      logger.info("=".repeat(60));
+      logger.info("Import Configuration:");
+      logger.info(`Source: ${sourceUrl}`);
+      logger.info(`Target: ${packageDir}`);
+      logger.info(`Authentication: None`);
+      logger.info("=".repeat(60));
 
       const confirmed = await promptConfirm(
         rl,
@@ -155,6 +141,7 @@ export const runImportPackages = async (
     }
 
     // Create import service
+    let lastPercentage = -1;
     const importService = createImportService({
       sourceUrl,
       username,
@@ -162,13 +149,25 @@ export const runImportPackages = async (
       packageDir: packageDir!,
       logger,
       onProgress: (progress: ImportProgress) => {
-        // Clear the line and write progress
-        process.stdout.write("\r" + " ".repeat(80) + "\r");
-        process.stdout.write(formatProgress(progress));
+        const percentage =
+          progress.totalVersions > 0
+            ? Math.floor(
+                (progress.downloadedVersions / progress.totalVersions) * 100,
+              )
+            : 0;
 
-        if (progress.currentPackage && progress.currentVersion) {
-          process.stdout.write(
-            ` - ${progress.currentPackage}@${progress.currentVersion}`,
+        // Update only at 1% intervals or on completion
+        if (
+          percentage !== lastPercentage ||
+          progress.downloadedVersions === progress.totalVersions
+        ) {
+          lastPercentage = percentage;
+          const packageInfo =
+            progress.currentPackage && progress.currentVersion
+              ? ` - ${progress.currentPackage}@${progress.currentVersion}`
+              : "";
+          logger.info(
+            `Progress: ${progress.downloadedVersions}/${progress.totalVersions} packages (${percentage}%)${packageInfo}`,
           );
         }
       },
@@ -187,8 +186,8 @@ export const runImportPackages = async (
       (sum, p) => sum + p.versions.length,
       0,
     );
-    console.log(
-      `\nFound ${packages.length} packages with ${totalVersions} versions total.`,
+    logger.info(
+      `Found ${packages.length} packages with ${totalVersions} versions total.`,
     );
 
     // Start import
@@ -199,32 +198,29 @@ export const runImportPackages = async (
 
     const elapsedTime = ((Date.now() - startTime) / 1000).toFixed(1);
 
-    // Clear the progress line
-    process.stdout.write("\r" + " ".repeat(80) + "\r");
-
     // Display results
-    console.log("\n" + "=".repeat(60));
-    console.log("Import Complete!");
-    console.log("=".repeat(60));
-    console.log(`Total packages: ${result.totalPackages}`);
-    console.log(`Total versions: ${result.totalVersions}`);
-    console.log(`Successfully imported: ${result.successfulVersions}`);
-    console.log(`Failed: ${result.failedVersions}`);
-    console.log(`Time elapsed: ${elapsedTime} seconds`);
+    logger.info("=".repeat(60));
+    logger.info("Import Complete!");
+    logger.info("=".repeat(60));
+    logger.info(`Total packages: ${result.totalPackages}`);
+    logger.info(`Total versions: ${result.totalVersions}`);
+    logger.info(`Successfully imported: ${result.successfulVersions}`);
+    logger.info(`Failed: ${result.failedVersions}`);
+    logger.info(`Time elapsed: ${elapsedTime} seconds`);
 
     if (result.failures.length > 0) {
-      console.log("\nFailed imports:");
+      logger.info("Failed imports:");
       for (const failure of result.failures.slice(0, 10)) {
-        console.log(
+        logger.error(
           `  - ${failure.packageId}@${failure.version}: ${failure.error}`,
         );
       }
       if (result.failures.length > 10) {
-        console.log(`  ... and ${result.failures.length - 10} more`);
+        logger.info(`  ... and ${result.failures.length - 10} more`);
       }
     }
 
-    console.log("=".repeat(60) + "\n");
+    logger.info("=".repeat(60));
 
     logger.info("Package import completed.");
   } catch (error: any) {
