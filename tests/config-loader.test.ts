@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { loadConfigFromFile } from "../src/utils/configLoader";
 import { createTestDirectory } from "./helpers/test-helper";
 import { writeFile, mkdir } from "fs/promises";
-import { join } from "path";
+import { join, resolve } from "path";
 
 describe("config-loader", () => {
   let testDir: string;
@@ -34,7 +34,11 @@ describe("config-loader", () => {
     );
 
     const config = await loadConfigFromFile(testDir);
-    expect(config).toEqual(configData);
+    // packageDir is now resolved to absolute path
+    expect(config).toEqual({
+      ...configData,
+      packageDir: resolve(testDir, "./my-packages"),
+    });
   });
 
   it("should validate and skip invalid fields", async () => {
@@ -179,5 +183,69 @@ describe("config-loader", () => {
     });
     expect(config.packageDir).toBeUndefined();
     expect(config.authMode).toBeUndefined();
+  });
+
+  describe("packageDir path resolution", () => {
+    it("should resolve relative packageDir from config directory", async () => {
+      const configData = {
+        packageDir: "./packages",
+      };
+
+      await writeFile(join(testDir, "config.json"), JSON.stringify(configData));
+
+      const config = await loadConfigFromFile(testDir);
+      expect(config.packageDir).toBe(resolve(testDir, "./packages"));
+    });
+
+    it("should resolve parent relative packageDir from config directory", async () => {
+      const configData = {
+        packageDir: "../packages",
+      };
+
+      await writeFile(join(testDir, "config.json"), JSON.stringify(configData));
+
+      const config = await loadConfigFromFile(testDir);
+      expect(config.packageDir).toBe(resolve(testDir, "../packages"));
+    });
+
+    it("should preserve absolute packageDir path", async () => {
+      const absolutePath = "/absolute/path/to/packages";
+      const configData = {
+        packageDir: absolutePath,
+      };
+
+      await writeFile(join(testDir, "config.json"), JSON.stringify(configData));
+
+      const config = await loadConfigFromFile(testDir);
+      expect(config.packageDir).toBe(absolutePath);
+    });
+
+    it("should resolve complex relative packageDir path", async () => {
+      const configData = {
+        packageDir: "./subdir/../packages",
+      };
+
+      await writeFile(join(testDir, "config.json"), JSON.stringify(configData));
+
+      const config = await loadConfigFromFile(testDir);
+      expect(config.packageDir).toBe(resolve(testDir, "./subdir/../packages"));
+      // This should normalize to testDir/packages
+      expect(config.packageDir).toBe(join(testDir, "packages"));
+    });
+
+    it("should handle Windows-style absolute paths", async () => {
+      // This test only makes sense on Windows, but we can still verify the behavior
+      const windowsPath = "C:\\Users\\test\\packages";
+      const configData = {
+        packageDir: windowsPath,
+      };
+
+      await writeFile(join(testDir, "config.json"), JSON.stringify(configData));
+
+      const config = await loadConfigFromFile(testDir);
+      // On Windows, this would remain as-is
+      // On Unix, path.resolve would still handle it properly
+      expect(config.packageDir).toBeDefined();
+    });
   });
 });

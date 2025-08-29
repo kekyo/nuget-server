@@ -3,7 +3,7 @@ import { exec } from "child_process";
 import { promisify } from "util";
 import { createTestDirectory, getTestPort } from "./helpers/test-helper";
 import { writeFile } from "fs/promises";
-import { join } from "path";
+import { join, resolve } from "path";
 
 const execAsync = promisify(exec);
 
@@ -114,7 +114,10 @@ describe("CLI configuration priority", () => {
 
     // config.json values should be used
     expect(output).toContain(`Port: ${testPort}`);
-    expect(output).toContain("Package directory: ./json-packages");
+    // packageDir is now resolved to absolute path from config directory
+    expect(output).toContain(
+      `Package directory: ${resolve(testDir, "./json-packages")}`,
+    );
     expect(output).toContain("Log level: debug");
     expect(output).toContain("Authentication mode: publish");
     expect(output).toContain(

@@ -211,6 +211,7 @@ Create a `config.json` file in your configuration directory:
 ```
 
 All fields are optional. Only include the settings you want to override.
+`packageDir` path is relative from `config.json`.
 
 ## JSON-based authentication with --auth-init
 
