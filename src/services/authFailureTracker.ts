@@ -59,7 +59,7 @@ export const createAuthFailureTracker = (
 
   const ipFailures = new Map<string, FailureEntry>();
   const userFailures = new Map<string, FailureEntry>();
-  let cleanupTimer: NodeJS.Timeout | null = null;
+  let cleanupTimer: NodeJS.Timeout | undefined = undefined;
 
   /**
    * Get client IP address from request
@@ -129,7 +129,7 @@ export const createAuthFailureTracker = (
   const stopCleanupTimer = (): void => {
     if (cleanupTimer) {
       clearInterval(cleanupTimer);
-      cleanupTimer = null;
+      cleanupTimer = undefined;
     }
   };
 

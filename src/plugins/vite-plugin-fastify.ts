@@ -58,7 +58,7 @@ const requestToStream = (req: IncomingMessage): Readable => {
  * Runs Fastify server in the same process as Vite dev server
  */
 export const fastifyHost = (config: ServerConfig): Plugin => {
-  let fastify: FastifyInstance | null = null;
+  let fastify: FastifyInstance | undefined = undefined;
   let logger = createConsoleLogger(`${name} vite`, "debug");
   const locker = createReaderWriterLock();
 
@@ -164,7 +164,7 @@ export const fastifyHost = (config: ServerConfig): Plugin => {
             logger.info("Fastify instance reloaded successfully");
           } catch (error) {
             logger.error(`Failed to reload Fastify instance: ${error}`);
-            fastify = null;
+            fastify = undefined;
           }
         }
       });

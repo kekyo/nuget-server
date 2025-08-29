@@ -76,24 +76,24 @@ export interface UserService {
   readonly createUser: (
     request: CreateUserRequest,
   ) => Promise<CreateUserResponse>;
-  readonly getUser: (username: string) => Promise<User | null>;
+  readonly getUser: (username: string) => Promise<User | undefined>;
   readonly getAllUsers: () => Promise<User[]>;
   readonly updateUser: (
     username: string,
     updates: Partial<Pick<User, "role">> | { password: string },
-  ) => Promise<User | null>;
+  ) => Promise<User | undefined>;
   readonly deleteUser: (username: string) => Promise<boolean>;
   readonly regenerateApiPassword: (
     username: string,
-  ) => Promise<RegenerateApiPasswordResponse | null>;
+  ) => Promise<RegenerateApiPasswordResponse | undefined>;
   readonly validateCredentials: (
     username: string,
     password: string,
-  ) => Promise<User | null>;
+  ) => Promise<User | undefined>;
   readonly validateApiPassword: (
     username: string,
     apiPassword: string,
-  ) => Promise<User | null>;
+  ) => Promise<User | undefined>;
   readonly getUserCount: () => Promise<number>;
   readonly isReady: () => boolean;
 }
@@ -308,10 +308,10 @@ export const createUserService = (config: UserServiceConfig): UserService => {
     /**
      * Gets a user by username
      * @param username - Username to look up
-     * @returns User data or null if not found
+     * @returns User data or undefined if not found
      */
-    getUser: async (username: string): Promise<User | null> => {
-      return users.get(username) || null;
+    getUser: async (username: string): Promise<User | undefined> => {
+      return users.get(username);
     },
 
     /**
@@ -326,17 +326,17 @@ export const createUserService = (config: UserServiceConfig): UserService => {
      * Updates user properties
      * @param username - Username to update
      * @param updates - Properties to update
-     * @returns Updated user or null if not found
+     * @returns Updated user or undefined if not found
      */
     updateUser: async (
       username: string,
       updates: Partial<Pick<User, "role">> | { password: string },
-    ): Promise<User | null> => {
+    ): Promise<User | undefined> => {
       const handle = await fileLock.writeLock();
       try {
         const user = users.get(username);
         if (!user) {
-          return null;
+          return undefined;
         }
 
         if ("role" in updates && updates.role) {
@@ -387,16 +387,16 @@ export const createUserService = (config: UserServiceConfig): UserService => {
     /**
      * Regenerates API password for a user
      * @param username - Username to regenerate API password for
-     * @returns New API password or null if user not found
+     * @returns New API password or undefined if user not found
      */
     regenerateApiPassword: async (
       username: string,
-    ): Promise<RegenerateApiPasswordResponse | null> => {
+    ): Promise<RegenerateApiPasswordResponse | undefined> => {
       const handle = await fileLock.writeLock();
       try {
         const user = users.get(username);
         if (!user) {
-          return null;
+          return undefined;
         }
 
         const newApiPassword = generateApiPassword();
@@ -425,34 +425,34 @@ export const createUserService = (config: UserServiceConfig): UserService => {
      * Validates user credentials for UI login
      * @param username - Username
      * @param password - Password
-     * @returns User data if valid, null otherwise
+     * @returns User data if valid, undefined otherwise
      */
     validateCredentials: async (
       username: string,
       password: string,
-    ): Promise<User | null> => {
+    ): Promise<User | undefined> => {
       const user = users.get(username);
       if (!user) {
-        return null;
+        return undefined;
       }
 
       const isValid = verifyPassword(password, user.passwordHash, user.salt);
-      return isValid ? user : null;
+      return isValid ? user : undefined;
     },
 
     /**
      * Validates API password for API access
      * @param username - Username
      * @param apiPassword - API password
-     * @returns User data if valid, null otherwise
+     * @returns User data if valid, undefined otherwise
      */
     validateApiPassword: async (
       username: string,
       apiPassword: string,
-    ): Promise<User | null> => {
+    ): Promise<User | undefined> => {
       const user = users.get(username);
       if (!user) {
-        return null;
+        return undefined;
       }
 
       const isValid = verifyPassword(
@@ -460,7 +460,7 @@ export const createUserService = (config: UserServiceConfig): UserService => {
         user.apiPasswordHash,
         user.apiPasswordSalt,
       );
-      return isValid ? user : null;
+      return isValid ? user : undefined;
     },
 
     /**

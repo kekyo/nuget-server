@@ -74,10 +74,10 @@ export const sortVersions = (
 /**
  * Gets the latest version from an array of version strings
  * @param versions - Array of version strings
- * @returns The latest version string, or null if array is empty
+ * @returns The latest version string, or undefined if array is empty
  */
-export const getLatestVersion = (versions: string[]): string | null => {
-  if (versions.length === 0) return null;
+export const getLatestVersion = (versions: string[]): string | undefined => {
+  if (versions.length === 0) return undefined;
   const sorted = sortVersions(versions, "desc");
-  return sorted[0] ?? null;
+  return sorted[0];
 };

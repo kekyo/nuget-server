@@ -192,7 +192,7 @@ const requireRole = (
   if (!request.user || !roles.includes(request.user.role)) {
     return reply.status(403).send({ error: "Insufficient permissions" });
   }
-  return null;
+  return undefined;
 };
 
 /**

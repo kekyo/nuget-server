@@ -42,8 +42,8 @@ export interface SessionService {
   readonly initialize: () => void;
   readonly destroy: () => void;
   readonly createSession: (request: CreateSessionRequest) => Session;
-  readonly getSession: (token: string) => Session | null;
-  readonly validateSession: (token: string) => Session | null;
+  readonly getSession: (token: string) => Session | undefined;
+  readonly validateSession: (token: string) => Session | undefined;
   readonly deleteSession: (token: string) => boolean;
   readonly deleteAllUserSessions: (userId: string) => number;
   readonly getActiveSessions: () => Session[];
@@ -61,7 +61,7 @@ export const createSessionService = (
 ): SessionService => {
   const { logger, cleanupIntervalMinutes = 60 } = config;
   const sessions: Map<string, Session> = new Map();
-  let cleanupInterval: NodeJS.Timeout | null = null;
+  let cleanupInterval: NodeJS.Timeout | undefined = undefined;
 
   /**
    * Removes expired sessions from memory
@@ -110,7 +110,7 @@ export const createSessionService = (
   const stopCleanupTimer = (): void => {
     if (cleanupInterval) {
       clearInterval(cleanupInterval);
-      cleanupInterval = null;
+      cleanupInterval = undefined;
       logger.debug("Stopped session cleanup timer");
     }
   };
@@ -188,28 +188,28 @@ export const createSessionService = (
     /**
      * Gets a session by token (without validation)
      * @param token - Session token
-     * @returns Session or null if not found
+     * @returns Session or undefined if not found
      */
-    getSession: (token: string): Session | null => {
-      return sessions.get(token) || null;
+    getSession: (token: string): Session | undefined => {
+      return sessions.get(token);
     },
 
     /**
      * Validates and returns a session if it exists and is not expired
      * @param token - Session token
-     * @returns Valid session or null
+     * @returns Valid session or undefined
      */
-    validateSession: (token: string): Session | null => {
+    validateSession: (token: string): Session | undefined => {
       const session = sessions.get(token);
       if (!session) {
-        return null;
+        return undefined;
       }
 
       const now = new Date();
       if (session.expiresAt <= now) {
         sessions.delete(token);
         logger.debug(`Removed expired session for user: ${session.username}`);
-        return null;
+        return undefined;
       }
 
       return session;
