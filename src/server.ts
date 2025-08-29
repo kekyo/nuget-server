@@ -479,7 +479,9 @@ export const createFastifyInstance = async (
     const devPublicPath = path.join(process.cwd(), "src", "ui", "public");
     const prodUiPath = path.join(__dirname, "ui");
 
-    const isDevMode = existsSync(devPublicPath);
+    // Check if production UI build exists
+    const prodUiIndexPath = path.join(prodUiPath, "index.html");
+    const isDevMode = !existsSync(prodUiIndexPath);
     const uiPath = isDevMode ? devUiPath : prodUiPath;
     const publicPath = isDevMode ? devPublicPath : prodUiPath;
     const imagesPath = path.join(__dirname, "..", "images");

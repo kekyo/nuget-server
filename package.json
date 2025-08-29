@@ -43,6 +43,7 @@
     "dev": "./gen-packageMetadata.sh && vite dev",
     "test": "npm run build && vitest run",
     "init": "npm run build && node dist/cli.js -c ./dev --auth-init",
+    "start": "npm run build && node dist/cli.js -c ./dev",
     "dump": "npm run build && screw-up dump",
     "pack": "npm run build && screw-up pack --pack-destination artifacts/"
   },
@@ -54,7 +55,6 @@
     "@fastify/static": "^7.0.4",
     "@mui/icons-material": ">=7.3.1",
     "@mui/material": ">=7.3.1",
-    "@types/zxcvbn": "^4.4.5",
     "adm-zip": ">=0.5.10",
     "async-primitives": ">=1.0.0",
     "commander": ">=11.0.0",
@@ -64,10 +64,12 @@
     "passport-local": "^1.0.0",
     "react": ">=19.1.1",
     "react-dom": ">=19.1.1",
+    "react-infinite-scroll-component": ">=6.1.0",
     "xml2js": ">=0.6.2",
-    "zxcvbn": "^4.4.2"
+    "zxcvbn": ">=4.4.2"
   },
   "devDependencies": {
+    "@types/zxcvbn": ">=4.4.5",
     "@types/adm-zip": ">=0.5.0",
     "@types/fs-extra": ">=11.0.1",
     "@types/node": ">=20.0.0",
