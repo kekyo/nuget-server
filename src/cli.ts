@@ -19,6 +19,7 @@ import {
   getTrustedProxiesFromEnv,
 } from "./utils/urlResolver";
 import { runAuthInit } from "./authInit";
+import { runImportPackages } from "./importPackages";
 import { loadConfigFromFile } from "./utils/configLoader";
 
 const getPortFromEnv = (): number | undefined => {
@@ -105,6 +106,10 @@ program
   .option(
     "--auth-init",
     "initialize authentication with interactive admin user creation",
+  )
+  .option(
+    "--import-packages",
+    "import packages from another NuGet server interactively",
   )
   .action(async (options) => {
     // Determine config directory first
@@ -224,6 +229,12 @@ program
     if (options.authInit) {
       await runAuthInit(config, logger);
       process.exit(0); // Exit after initialization
+    }
+
+    // Handle import-packages mode
+    if (options.importPackages) {
+      await runImportPackages(config, logger);
+      process.exit(0); // Exit after import
     }
 
     try {
