@@ -43,6 +43,7 @@ export default defineConfig(({ mode, command }) => {
       build: {
         outDir: "../../dist/ui",
         emptyOutDir: true,
+        chunkSizeWarningLimit: 10000,
         rollupOptions: {
           input: {
             index: resolve(__dirname, "src/ui/index.html"),
@@ -62,6 +63,7 @@ export default defineConfig(({ mode, command }) => {
       build: {
         outDir: "../../dist/ui",
         emptyOutDir: false, // Don't clean server build files
+        chunkSizeWarningLimit: 10000,
         rollupOptions: {
           input: {
             index: resolve(__dirname, "src/ui/index.html"),
@@ -87,6 +89,7 @@ export default defineConfig(({ mode, command }) => {
     ],
     build: {
       emptyOutDir: true, // Clean on first build
+      chunkSizeWarningLimit: 10000,
       // Build server code as library
       lib: {
         entry: {

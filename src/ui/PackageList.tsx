@@ -170,6 +170,9 @@ const PackageList = forwardRef<PackageListRef, PackageListProps>(
     const [hasMore, setHasMore] = useState(true);
     const [page, setPage] = useState(0);
     const [totalHits, setTotalHits] = useState(0);
+    const [expandedPanels, setExpandedPanels] = useState<Set<string>>(
+      new Set(),
+    );
     const pageSize = 20;
 
     // Helper function to sort SearchResultVersion arrays using the shared semver logic
@@ -276,6 +279,22 @@ const PackageList = forwardRef<PackageListRef, PackageListProps>(
       }
     };
 
+    const handleAccordionChange = useCallback(
+      (packageId: string) =>
+        (_event: React.SyntheticEvent, isExpanded: boolean) => {
+          setExpandedPanels((prev) => {
+            const newSet = new Set(prev);
+            if (isExpanded) {
+              newSet.add(packageId);
+            } else {
+              newSet.delete(packageId);
+            }
+            return newSet;
+          });
+        },
+      [],
+    );
+
     useEffect(() => {
       // Skip if serverConfig is not set
       if (!serverConfig) return;
@@ -359,7 +378,13 @@ const PackageList = forwardRef<PackageListRef, PackageListProps>(
           scrollThreshold={0.9}
         >
           {packages.map((pkg) => (
-            <Accordion key={pkg.id} sx={{ mb: 1 }}>
+            <Accordion
+              key={pkg.id}
+              sx={{ mb: 1 }}
+              expanded={expandedPanels.has(pkg.id)}
+              onChange={handleAccordionChange(pkg.id)}
+              TransitionProps={{ unmountOnExit: true }}
+            >
               <AccordionSummary
                 expandIcon={<ExpandMoreIcon />}
                 aria-controls={`panel-${pkg.id}-content`}
@@ -378,115 +403,119 @@ const PackageList = forwardRef<PackageListRef, PackageListProps>(
                 </Box>
               </AccordionSummary>
               <AccordionDetails>
-                <Box>
-                  {/* Package Description */}
-                  {pkg.description && (
-                    <Box sx={{ mb: 2 }}>
-                      <Typography variant="subtitle2" gutterBottom>
-                        Description:
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        {pkg.description}
-                      </Typography>
-                    </Box>
-                  )}
-
-                  {/* Package Authors */}
-                  {pkg.authors.length > 0 && (
-                    <Box sx={{ mb: 2 }}>
-                      <Typography variant="subtitle2" gutterBottom>
-                        Authors:
-                      </Typography>
-                      <Typography variant="body2" color="text.secondary">
-                        {pkg.authors.join(", ")}
-                      </Typography>
-                    </Box>
-                  )}
-
-                  {/* Package Tags */}
-                  {pkg.tags.length > 0 && (
-                    <Box sx={{ mb: 2 }}>
-                      <Typography variant="subtitle2" gutterBottom>
-                        Tags:
-                      </Typography>
-                      <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}>
-                        {pkg.tags.map((tag) => (
-                          <Chip
-                            key={tag}
-                            label={tag}
-                            size="small"
-                            variant="outlined"
-                          />
-                        ))}
+                {expandedPanels.has(pkg.id) && (
+                  <Box>
+                    {/* Package Description */}
+                    {pkg.description && (
+                      <Box sx={{ mb: 2 }}>
+                        <Typography variant="subtitle2" gutterBottom>
+                          Description:
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          {pkg.description}
+                        </Typography>
                       </Box>
-                    </Box>
-                  )}
+                    )}
 
-                  {/* Package Links */}
-                  {(pkg.projectUrl || pkg.licenseUrl) && (
-                    <Box sx={{ mb: 2 }}>
-                      <Typography variant="subtitle2" gutterBottom>
-                        Links:
-                      </Typography>
-                      <Box sx={{ display: "flex", gap: 1 }}>
-                        {pkg.projectUrl && (
-                          <Chip
-                            label="Project"
-                            component="a"
-                            href={pkg.projectUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            clickable
-                            size="small"
-                            color="primary"
-                          />
-                        )}
-                        {(pkg.licenseUrl || pkg.license) && (
-                          <Chip
-                            label={
-                              pkg.license
-                                ? `License: ${pkg.license}`
-                                : "License"
-                            }
-                            component="a"
-                            href={
-                              pkg.licenseUrl ||
-                              (pkg.license
-                                ? `https://spdx.org/licenses/${pkg.license}`
-                                : undefined)
-                            }
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            clickable
-                            size="small"
-                            color="secondary"
-                          />
-                        )}
+                    {/* Package Authors */}
+                    {pkg.authors.length > 0 && (
+                      <Box sx={{ mb: 2 }}>
+                        <Typography variant="subtitle2" gutterBottom>
+                          Authors:
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary">
+                          {pkg.authors.join(", ")}
+                        </Typography>
                       </Box>
-                    </Box>
-                  )}
+                    )}
 
-                  {/* Versions List */}
-                  <Typography variant="subtitle2" gutterBottom>
-                    Versions ({pkg.versions.length}):
-                  </Typography>
-                  <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
-                    {pkg.versions.map((version) => (
-                      <Button
-                        key={version.version}
-                        variant="outlined"
-                        size="small"
-                        startIcon={<DownloadIcon />}
-                        onClick={() => {
-                          const downloadUrl = `/v3/package/${pkg.id.toLowerCase()}/${version.version}/${pkg.id.toLowerCase()}.${version.version}.nupkg`;
-                          window.open(downloadUrl, "_blank");
-                        }}
-                      >
-                        {version.version}
-                      </Button>
-                    ))}
+                    {/* Package Tags */}
+                    {pkg.tags.length > 0 && (
+                      <Box sx={{ mb: 2 }}>
+                        <Typography variant="subtitle2" gutterBottom>
+                          Tags:
+                        </Typography>
+                        <Box
+                          sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}
+                        >
+                          {pkg.tags.map((tag) => (
+                            <Chip
+                              key={tag}
+                              label={tag}
+                              size="small"
+                              variant="outlined"
+                            />
+                          ))}
+                        </Box>
+                      </Box>
+                    )}
+
+                    {/* Package Links */}
+                    {(pkg.projectUrl || pkg.licenseUrl) && (
+                      <Box sx={{ mb: 2 }}>
+                        <Typography variant="subtitle2" gutterBottom>
+                          Links:
+                        </Typography>
+                        <Box sx={{ display: "flex", gap: 1 }}>
+                          {pkg.projectUrl && (
+                            <Chip
+                              label="Project"
+                              component="a"
+                              href={pkg.projectUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              clickable
+                              size="small"
+                              color="primary"
+                            />
+                          )}
+                          {(pkg.licenseUrl || pkg.license) && (
+                            <Chip
+                              label={
+                                pkg.license
+                                  ? `License: ${pkg.license}`
+                                  : "License"
+                              }
+                              component="a"
+                              href={
+                                pkg.licenseUrl ||
+                                (pkg.license
+                                  ? `https://spdx.org/licenses/${pkg.license}`
+                                  : undefined)
+                              }
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              clickable
+                              size="small"
+                              color="secondary"
+                            />
+                          )}
+                        </Box>
+                      </Box>
+                    )}
+
+                    {/* Versions List */}
+                    <Typography variant="subtitle2" gutterBottom>
+                      Versions ({pkg.versions.length}):
+                    </Typography>
+                    <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
+                      {pkg.versions.map((version) => (
+                        <Button
+                          key={version.version}
+                          variant="outlined"
+                          size="small"
+                          startIcon={<DownloadIcon />}
+                          onClick={() => {
+                            const downloadUrl = `/v3/package/${pkg.id.toLowerCase()}/${version.version}/${pkg.id.toLowerCase()}.${version.version}.nupkg`;
+                            window.open(downloadUrl, "_blank");
+                          }}
+                        >
+                          {version.version}
+                        </Button>
+                      ))}
+                    </Box>
                   </Box>
-                </Box>
+                )}
               </AccordionDetails>
             </Accordion>
           ))}
