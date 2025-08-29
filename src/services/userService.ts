@@ -55,14 +55,6 @@ export interface CreateUserRequest {
 }
 
 /**
- * User creation response (includes generated API password)
- */
-export interface CreateUserResponse {
-  user: User;
-  apiPassword: string; // Only provided once during creation
-}
-
-/**
  * API password regeneration response
  */
 export interface RegenerateApiPasswordResponse {
@@ -111,9 +103,7 @@ export interface UserServiceConfig {
 export interface UserService {
   readonly initialize: () => Promise<void>;
   readonly destroy: () => void;
-  readonly createUser: (
-    request: CreateUserRequest,
-  ) => Promise<CreateUserResponse>;
+  readonly createUser: (request: CreateUserRequest) => Promise<User>;
   readonly getUser: (username: string) => Promise<User | undefined>;
   readonly getAllUsers: () => Promise<User[]>;
   readonly updateUser: (
@@ -309,13 +299,11 @@ export const createUserService = (config: UserServiceConfig): UserService => {
     },
 
     /**
-     * Creates a new user with generated API password
+     * Creates a new user
      * @param request - User creation request
-     * @returns User creation response with API password
+     * @returns Created user
      */
-    createUser: async (
-      request: CreateUserRequest,
-    ): Promise<CreateUserResponse> => {
+    createUser: async (request: CreateUserRequest): Promise<User> => {
       const handle = await fileLock.writeLock();
       try {
         validateUsername(request.username);
@@ -326,26 +314,13 @@ export const createUserService = (config: UserServiceConfig): UserService => {
         const passwordSalt = generateSalt();
         const passwordHash = hashPassword(request.password, passwordSalt);
 
-        const apiPassword = generateApiPassword();
-        const apiPasswordSalt = generateSalt();
-        const apiPasswordHash = hashPassword(apiPassword, apiPasswordSalt);
-
         const now = new Date().toISOString();
         const user: User = {
           id: generateUserId(),
           username: request.username,
           passwordHash,
           salt: passwordSalt,
-          apiPasswordHash, // Keep for backward compatibility
-          apiPasswordSalt, // Keep for backward compatibility
-          apiPasswords: [
-            {
-              label: "default",
-              passwordHash: apiPasswordHash,
-              salt: apiPasswordSalt,
-              createdAt: now,
-            },
-          ],
+          apiPasswords: [], // Start with empty API passwords array
           role: request.role,
           createdAt: now,
           updatedAt: now,
@@ -358,10 +333,7 @@ export const createUserService = (config: UserServiceConfig): UserService => {
           `Created user: ${request.username} with role: ${request.role}`,
         );
 
-        return {
-          user,
-          apiPassword, // Only provided once during creation
-        };
+        return user;
       } finally {
         handle.release();
       }

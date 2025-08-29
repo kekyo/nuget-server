@@ -104,7 +104,6 @@ export interface UserCreateResponse {
     createdAt: string;
     updatedAt: string;
   };
-  apiPassword: string;
 }
 
 /**
@@ -346,7 +345,7 @@ export const registerUiRoutes = async (
               `Creating new user: ${body.username} with role: ${body.role}`,
             );
 
-            const result = await userService.createUser({
+            const user = await userService.createUser({
               username: body.username,
               password: body.password,
               role: body.role,
@@ -356,13 +355,12 @@ export const registerUiRoutes = async (
 
             const response: UserCreateResponse = {
               user: {
-                id: result.user.id,
-                username: result.user.username,
-                role: result.user.role,
-                createdAt: result.user.createdAt,
-                updatedAt: result.user.updatedAt,
+                id: user.id,
+                username: user.username,
+                role: user.role,
+                createdAt: user.createdAt,
+                updatedAt: user.updatedAt,
               },
-              apiPassword: result.apiPassword,
             };
 
             return reply.status(201).send(response);

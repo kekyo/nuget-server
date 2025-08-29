@@ -476,11 +476,10 @@ describe("Fastify UI Backend API - Phase 4 Tests", () => {
       expect(response.status).toBe(201);
       const data = await response.json();
       expect(data).toHaveProperty("user");
-      expect(data).toHaveProperty("apiPassword");
       expect(data.user.username).toBe("newuser");
       expect(data.user.role).toBe("read");
-      expect(typeof data.apiPassword).toBe("string");
-      expect(data.apiPassword.length).toBeGreaterThan(0);
+      // API password is no longer returned on user creation
+      expect(data).not.toHaveProperty("apiPassword");
     } finally {
       await server.close();
     }

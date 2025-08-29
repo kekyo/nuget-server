@@ -82,11 +82,11 @@ export const runAuthInit = async (
     });
 
     try {
-      // Prompt for username
-      const username = await promptInput(rl, "Enter admin username", "admin");
+      // Prompt for username (required, no default)
+      const username = await promptInput(rl, "Enter admin username");
 
-      if (!username) {
-        logger.error("Username cannot be empty");
+      if (!username || username.trim().length === 0) {
+        logger.error("Username is required and cannot be empty");
         process.exit(1);
       }
 
@@ -170,37 +170,25 @@ export const runAuthInit = async (
 
       // Create admin user
       logger.info("Creating admin user...");
-      const result = await userService.createUser({
+      const user = await userService.createUser({
         username,
         password: password!,
         role: "admin",
       });
 
-      // Display success message and API password
+      // Display success message
       console.log("\n" + "=".repeat(60));
       console.log("Admin user created successfully!");
       console.log("=".repeat(60));
-      console.log(`Username: ${result.user.username}`);
-      console.log(`Password: *********************`);
-      console.log(`API password: ${result.apiPassword}`);
+      console.log(`Username: ${user.username}`);
+      console.log(`Role: ${user.role}`);
       console.log("=".repeat(60));
       console.log(
-        "\nIMPORTANT: Save this API password securely. It cannot be retrieved again.",
+        "\nNote: You need to generate an API password for NuGet client authentication.",
       );
       console.log(
-        "Use this API user/password combination for NuGet client authentication.",
+        "You can do this through the web UI after logging in with your username and password.",
       );
-
-      if (config.baseUrl) {
-        console.log(
-          `Example register: dotnet nuget add source "${config.baseUrl}/v3/index.json" -n ref1 -u ${result.user.username} -p ${result.apiPassword} --store-password-in-clear-text${config.baseUrl.startsWith("https:") ? "" : " --allow-insecure-connections"}`,
-        );
-      } else {
-        console.log(
-          `Example register: dotnet nuget add source "http://localhost:${config.port}/v3/index.json" -n ref1 -u ${result.user.username} -p ${result.apiPassword} --store-password-in-clear-text --allow-insecure-connections`,
-        );
-      }
-
       console.log("=".repeat(60) + "\n");
 
       logger.info("Authentication initialization completed.");
