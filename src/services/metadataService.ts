@@ -373,7 +373,9 @@ export const createMetadataService = (
      * @returns Array of package identifiers
      */
     getAllPackageIds: (): string[] => {
-      return Array.from(packagesCache.keys());
+      return Array.from(packagesCache.keys()).sort((a, b) =>
+        a.localeCompare(b, undefined, { sensitivity: "base" }),
+      );
     },
 
     /**

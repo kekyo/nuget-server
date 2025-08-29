@@ -382,6 +382,11 @@ export const registerV3Routes = async (
           }
         }
 
+        // Sort search results alphabetically for consistent display
+        allSearchResults.sort((a, b) =>
+          a.id.localeCompare(b.id, undefined, { sensitivity: "base" }),
+        );
+
         // Apply pagination
         const searchResults = allSearchResults.slice(skip, skip + take);
 

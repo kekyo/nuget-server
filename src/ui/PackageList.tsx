@@ -240,14 +240,22 @@ const PackageList = forwardRef<PackageListRef, PackageListProps>(
           versions: sortPackageVersions(pkg.versions),
         }));
 
+        // Sort packages alphabetically for consistent display
+        const sortedPackages = packagesWithSortedVersions.sort((a, b) =>
+          a.id.localeCompare(b.id, undefined, { sensitivity: "base" }),
+        );
+
         if (isInitialLoad) {
-          setPackages(packagesWithSortedVersions);
+          setPackages(sortedPackages);
         } else {
-          // Append new packages to existing ones
-          setPackages((prevPackages) => [
-            ...prevPackages,
-            ...packagesWithSortedVersions,
-          ]);
+          // Append new packages to existing ones and re-sort
+          setPackages((prevPackages) => {
+            const combined = [...prevPackages, ...sortedPackages];
+            // Re-sort the combined list to maintain alphabetical order
+            return combined.sort((a, b) =>
+              a.id.localeCompare(b.id, undefined, { sensitivity: "base" }),
+            );
+          });
         }
 
         // Update total hits and check if there are more packages
