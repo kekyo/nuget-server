@@ -8,6 +8,7 @@ import {
   useImperativeHandle,
   forwardRef,
   useCallback,
+  useMemo,
 } from "react";
 import {
   Typography,
@@ -19,6 +20,7 @@ import {
   Chip,
   Box,
   Button,
+  TextField,
 } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import PackageIcon from "@mui/icons-material/Inventory";
@@ -173,6 +175,7 @@ const PackageList = forwardRef<PackageListRef, PackageListProps>(
     const [expandedPanels, setExpandedPanels] = useState<Set<string>>(
       new Set(),
     );
+    const [filterText, setFilterText] = useState("");
     const pageSize = 20;
 
     // Helper function to sort SearchResultVersion arrays using the shared semver logic
@@ -287,6 +290,61 @@ const PackageList = forwardRef<PackageListRef, PackageListProps>(
       }
     };
 
+    // Filter packages based on filter text
+    const filteredPackages = useMemo(() => {
+      if (!filterText.trim()) {
+        return packages;
+      }
+
+      // Split filter text by space or comma and normalize
+      const searchTerms = filterText
+        .split(/[,\s]+/)
+        .map((term) => term.trim().toLowerCase())
+        .filter((term) => term.length > 0);
+
+      if (searchTerms.length === 0) {
+        return packages;
+      }
+
+      return packages.filter((pkg) => {
+        // Check if all search terms match at least one field
+        return searchTerms.every((term) => {
+          // Check package ID
+          if (pkg.id.toLowerCase().includes(term)) {
+            return true;
+          }
+
+          // Check description
+          if (pkg.description && pkg.description.toLowerCase().includes(term)) {
+            return true;
+          }
+
+          // Check tags
+          if (pkg.tags.some((tag) => tag.toLowerCase().includes(term))) {
+            return true;
+          }
+
+          // Check authors
+          if (
+            pkg.authors.some((author) => author.toLowerCase().includes(term))
+          ) {
+            return true;
+          }
+
+          // Check versions
+          if (
+            pkg.versions.some((version) =>
+              version.version.toLowerCase().includes(term),
+            )
+          ) {
+            return true;
+          }
+
+          return false;
+        });
+      });
+    }, [packages, filterText]);
+
     const handleAccordionChange = useCallback(
       (packageId: string) =>
         (_event: React.SyntheticEvent, isExpanded: boolean) => {
@@ -309,6 +367,18 @@ const PackageList = forwardRef<PackageListRef, PackageListProps>(
 
       fetchPackages();
     }, [serverConfig]); // Add serverConfig to dependency array
+
+    // Auto-load more packages when filtered results are below visible threshold
+    useEffect(() => {
+      // Skip if no filter is active or still loading
+      if (!filterText || loading) return;
+
+      // Check if we need to load more packages
+      // Load more if filtered results are less than half the page size and we have more to load
+      if (filteredPackages.length < pageSize / 2 && hasMore) {
+        loadMorePackages();
+      }
+    }, [filteredPackages.length, filterText, loading, hasMore, pageSize]);
 
     useImperativeHandle(ref, () => ({
       refresh: () => fetchPackages(true),
@@ -339,7 +409,7 @@ const PackageList = forwardRef<PackageListRef, PackageListProps>(
       return <Alert severity="error">Error loading packages: {error}</Alert>;
     }
 
-    if (packages.length === 0) {
+    if (packages.length === 0 && !filterText) {
       return (
         <Alert severity="info">No packages found in the repository.</Alert>
       );
@@ -347,187 +417,220 @@ const PackageList = forwardRef<PackageListRef, PackageListProps>(
 
     return (
       <Box>
-        <Typography
-          variant="h4"
-          component="h1"
-          gutterBottom
-          sx={{ display: "flex", alignItems: "center", gap: 1 }}
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            mb: 2,
+          }}
         >
-          <PackageIcon />
-          Packages ({totalHits > 0 ? totalHits : packages.length})
-        </Typography>
+          <Typography
+            variant="h4"
+            component="h1"
+            sx={{ display: "flex", alignItems: "center", gap: 1 }}
+          >
+            <PackageIcon />
+            Packages{" "}
+            {filterText.trim() ? (
+              <>
+                ({filteredPackages.length}/
+                {totalHits > 0 ? totalHits : packages.length})
+              </>
+            ) : (
+              <>({totalHits > 0 ? totalHits : packages.length})</>
+            )}
+          </Typography>
+          <TextField
+            size="small"
+            placeholder="Filter packages..."
+            value={filterText}
+            onChange={(e) => setFilterText(e.target.value)}
+            sx={{ minWidth: 250 }}
+          />
+        </Box>
 
-        <InfiniteScroll
-          dataLength={packages.length}
-          next={loadMorePackages}
-          hasMore={hasMore}
-          loader={
-            <Box
-              display="flex"
-              justifyContent="center"
-              alignItems="center"
-              p={2}
-            >
-              <CircularProgress size={24} />
-              <Typography variant="body2" sx={{ ml: 2 }}>
-                Loading more packages...
-              </Typography>
-            </Box>
-          }
-          endMessage={
-            packages.length > 0 ? (
-              <Typography
-                sx={{ textAlign: "center", p: 2, color: "text.secondary" }}
+        {filteredPackages.length === 0 && filterText ? (
+          <Alert severity="info">No packages match your filter criteria.</Alert>
+        ) : (
+          <InfiniteScroll
+            dataLength={filteredPackages.length}
+            next={loadMorePackages}
+            hasMore={hasMore && !filterText}
+            loader={
+              <Box
+                display="flex"
+                justifyContent="center"
+                alignItems="center"
+                p={2}
               >
-                All {packages.length} packages loaded
-              </Typography>
-            ) : null
-          }
-          scrollThreshold={0.9}
-        >
-          {packages.map((pkg) => (
-            <Accordion
-              key={pkg.id}
-              sx={{ mb: 1 }}
-              expanded={expandedPanels.has(pkg.id)}
-              onChange={handleAccordionChange(pkg.id)}
-              TransitionProps={{ unmountOnExit: true }}
-            >
-              <AccordionSummary
-                expandIcon={<ExpandMoreIcon />}
-                aria-controls={`panel-${pkg.id}-content`}
-                id={`panel-${pkg.id}-header`}
-              >
-                <Box
-                  sx={{ display: "flex", alignItems: "center", width: "100%" }}
+                <CircularProgress size={24} />
+                <Typography variant="body2" sx={{ ml: 2 }}>
+                  Loading more packages...
+                </Typography>
+              </Box>
+            }
+            endMessage={
+              filteredPackages.length > 0 ? (
+                <Typography
+                  sx={{ textAlign: "center", p: 2, color: "text.secondary" }}
                 >
-                  <PackageIconDisplay
-                    packageId={pkg.id}
-                    version={pkg.version}
-                  />
-                  <Typography variant="h6" component="div">
-                    {pkg.id}
-                  </Typography>
-                </Box>
-              </AccordionSummary>
-              <AccordionDetails>
-                {expandedPanels.has(pkg.id) && (
-                  <Box>
-                    {/* Package Description */}
-                    {pkg.description && (
-                      <Box sx={{ mb: 2 }}>
-                        <Typography variant="subtitle2" gutterBottom>
-                          Description:
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary">
-                          {pkg.description}
-                        </Typography>
-                      </Box>
-                    )}
-
-                    {/* Package Authors */}
-                    {pkg.authors.length > 0 && (
-                      <Box sx={{ mb: 2 }}>
-                        <Typography variant="subtitle2" gutterBottom>
-                          Authors:
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary">
-                          {pkg.authors.join(", ")}
-                        </Typography>
-                      </Box>
-                    )}
-
-                    {/* Package Tags */}
-                    {pkg.tags.length > 0 && (
-                      <Box sx={{ mb: 2 }}>
-                        <Typography variant="subtitle2" gutterBottom>
-                          Tags:
-                        </Typography>
-                        <Box
-                          sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}
-                        >
-                          {pkg.tags.map((tag) => (
-                            <Chip
-                              key={tag}
-                              label={tag}
-                              size="small"
-                              variant="outlined"
-                            />
-                          ))}
-                        </Box>
-                      </Box>
-                    )}
-
-                    {/* Package Links */}
-                    {(pkg.projectUrl || pkg.licenseUrl) && (
-                      <Box sx={{ mb: 2 }}>
-                        <Typography variant="subtitle2" gutterBottom>
-                          Links:
-                        </Typography>
-                        <Box sx={{ display: "flex", gap: 1 }}>
-                          {pkg.projectUrl && (
-                            <Chip
-                              label="Project"
-                              component="a"
-                              href={pkg.projectUrl}
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              clickable
-                              size="small"
-                              color="primary"
-                            />
-                          )}
-                          {(pkg.licenseUrl || pkg.license) && (
-                            <Chip
-                              label={
-                                pkg.license
-                                  ? `License: ${pkg.license}`
-                                  : "License"
-                              }
-                              component="a"
-                              href={
-                                pkg.licenseUrl ||
-                                (pkg.license
-                                  ? `https://spdx.org/licenses/${pkg.license}`
-                                  : undefined)
-                              }
-                              target="_blank"
-                              rel="noopener noreferrer"
-                              clickable
-                              size="small"
-                              color="secondary"
-                            />
-                          )}
-                        </Box>
-                      </Box>
-                    )}
-
-                    {/* Versions List */}
-                    <Typography variant="subtitle2" gutterBottom>
-                      Versions ({pkg.versions.length}):
+                  {filterText
+                    ? `Showing ${filteredPackages.length} of ${packages.length} packages`
+                    : `All ${packages.length} packages loaded`}
+                </Typography>
+              ) : null
+            }
+            scrollThreshold={0.9}
+          >
+            {filteredPackages.map((pkg) => (
+              <Accordion
+                key={pkg.id}
+                sx={{ mb: 1 }}
+                expanded={expandedPanels.has(pkg.id)}
+                onChange={handleAccordionChange(pkg.id)}
+                TransitionProps={{ unmountOnExit: true }}
+              >
+                <AccordionSummary
+                  expandIcon={<ExpandMoreIcon />}
+                  aria-controls={`panel-${pkg.id}-content`}
+                  id={`panel-${pkg.id}-header`}
+                >
+                  <Box
+                    sx={{
+                      display: "flex",
+                      alignItems: "center",
+                      width: "100%",
+                    }}
+                  >
+                    <PackageIconDisplay
+                      packageId={pkg.id}
+                      version={pkg.version}
+                    />
+                    <Typography variant="h6" component="div">
+                      {pkg.id}
                     </Typography>
-                    <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
-                      {pkg.versions.map((version) => (
-                        <Button
-                          key={version.version}
-                          variant="outlined"
-                          size="small"
-                          startIcon={<DownloadIcon />}
-                          onClick={() => {
-                            const downloadUrl = `/v3/package/${pkg.id.toLowerCase()}/${version.version}/${pkg.id.toLowerCase()}.${version.version}.nupkg`;
-                            window.open(downloadUrl, "_blank");
-                          }}
-                        >
-                          {version.version}
-                        </Button>
-                      ))}
-                    </Box>
                   </Box>
-                )}
-              </AccordionDetails>
-            </Accordion>
-          ))}
-        </InfiniteScroll>
+                </AccordionSummary>
+                <AccordionDetails>
+                  {expandedPanels.has(pkg.id) && (
+                    <Box>
+                      {/* Package Description */}
+                      {pkg.description && (
+                        <Box sx={{ mb: 2 }}>
+                          <Typography variant="subtitle2" gutterBottom>
+                            Description:
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            {pkg.description}
+                          </Typography>
+                        </Box>
+                      )}
+
+                      {/* Package Authors */}
+                      {pkg.authors.length > 0 && (
+                        <Box sx={{ mb: 2 }}>
+                          <Typography variant="subtitle2" gutterBottom>
+                            Authors:
+                          </Typography>
+                          <Typography variant="body2" color="text.secondary">
+                            {pkg.authors.join(", ")}
+                          </Typography>
+                        </Box>
+                      )}
+
+                      {/* Package Tags */}
+                      {pkg.tags.length > 0 && (
+                        <Box sx={{ mb: 2 }}>
+                          <Typography variant="subtitle2" gutterBottom>
+                            Tags:
+                          </Typography>
+                          <Box
+                            sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}
+                          >
+                            {pkg.tags.map((tag) => (
+                              <Chip
+                                key={tag}
+                                label={tag}
+                                size="small"
+                                variant="outlined"
+                              />
+                            ))}
+                          </Box>
+                        </Box>
+                      )}
+
+                      {/* Package Links */}
+                      {(pkg.projectUrl || pkg.licenseUrl) && (
+                        <Box sx={{ mb: 2 }}>
+                          <Typography variant="subtitle2" gutterBottom>
+                            Links:
+                          </Typography>
+                          <Box sx={{ display: "flex", gap: 1 }}>
+                            {pkg.projectUrl && (
+                              <Chip
+                                label="Project"
+                                component="a"
+                                href={pkg.projectUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                clickable
+                                size="small"
+                                color="primary"
+                              />
+                            )}
+                            {(pkg.licenseUrl || pkg.license) && (
+                              <Chip
+                                label={
+                                  pkg.license
+                                    ? `License: ${pkg.license}`
+                                    : "License"
+                                }
+                                component="a"
+                                href={
+                                  pkg.licenseUrl ||
+                                  (pkg.license
+                                    ? `https://spdx.org/licenses/${pkg.license}`
+                                    : undefined)
+                                }
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                clickable
+                                size="small"
+                                color="secondary"
+                              />
+                            )}
+                          </Box>
+                        </Box>
+                      )}
+
+                      {/* Versions List */}
+                      <Typography variant="subtitle2" gutterBottom>
+                        Versions ({pkg.versions.length}):
+                      </Typography>
+                      <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
+                        {pkg.versions.map((version) => (
+                          <Button
+                            key={version.version}
+                            variant="outlined"
+                            size="small"
+                            startIcon={<DownloadIcon />}
+                            onClick={() => {
+                              const downloadUrl = `/v3/package/${pkg.id.toLowerCase()}/${version.version}/${pkg.id.toLowerCase()}.${version.version}.nupkg`;
+                              window.open(downloadUrl, "_blank");
+                            }}
+                          >
+                            {version.version}
+                          </Button>
+                        ))}
+                      </Box>
+                    </Box>
+                  )}
+                </AccordionDetails>
+              </Accordion>
+            ))}
+          </InfiniteScroll>
+        )}
       </Box>
     );
   },
