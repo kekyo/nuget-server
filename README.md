@@ -201,7 +201,6 @@ Create a `config.json` file in your configuration directory:
   "packageDir": "./packages",
   "realm": "Awsome nuget-server",
   "logLevel": "info",
-  "noUi": false,
   "trustedProxies": ["127.0.0.1", "::1"],
   "authMode": "none",
   "sessionSecret": "<your-secret-here>",

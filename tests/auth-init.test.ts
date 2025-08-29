@@ -41,7 +41,6 @@ describe("Auth Init", () => {
         configDir: configDir,
         realm: "Test Fastify UI Server - Publish",
         logLevel: testGlobalLogLevel,
-        noUi: false,
         authMode: "publish",
         passwordStrengthCheck: false,
       };

@@ -46,11 +46,6 @@ const getLogLevelFromEnv = (): LogLevel | undefined => {
     : undefined;
 };
 
-const getNoUiFromEnv = (): boolean | undefined => {
-  const noUi = process.env.NUGET_SERVER_NO_UI;
-  return noUi === "true" ? true : noUi === "false" ? false : undefined;
-};
-
 const getAuthModeFromEnv = (): AuthMode | undefined => {
   const authMode = process.env.NUGET_SERVER_AUTH_MODE;
   if (authMode === "publish" || authMode === "full" || authMode === "none") {
@@ -102,7 +97,6 @@ program
     "-l, --log-level <level>",
     "log level (debug, info, warn, error, ignore)",
   )
-  .option("--no-ui", "disable UI serving")
   .option(
     "--trusted-proxies <ips>",
     "comma-separated list of trusted proxy IPs",
@@ -142,8 +136,6 @@ program
       `${packageName} ${version}`;
     const logLevel =
       options.logLevel || getLogLevelFromEnv() || configFile.logLevel || "info";
-    const noUi =
-      options.ui === false || getNoUiFromEnv() || configFile.noUi || false;
     const trustedProxies = options.trustedProxies
       ? options.trustedProxies.split(",").map((ip: string) => ip.trim())
       : getTrustedProxiesFromEnv() || configFile.trustedProxies;
@@ -207,7 +199,6 @@ program
     logger.info(`Realm: ${realm}`);
     logger.info(`Authentication mode: ${authMode}`);
     logger.info(`Log level: ${logLevel}`);
-    logger.info(`UI enabled: ${!noUi ? "yes" : "no"}`);
     if (trustedProxies && trustedProxies.length > 0) {
       logger.info(`Trusted proxies: ${trustedProxies.join(", ")}`);
     }
@@ -224,7 +215,6 @@ program
       authMode: authMode as AuthMode,
       trustedProxies,
       logLevel: logLevel as LogLevel,
-      noUi,
       sessionSecret,
       passwordMinScore,
       passwordStrengthCheck,

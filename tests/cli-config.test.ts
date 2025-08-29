@@ -23,7 +23,6 @@ describe("CLI configuration priority", () => {
     delete process.env.NUGET_SERVER_PACKAGE_DIR;
     delete process.env.NUGET_SERVER_LOG_LEVEL;
     delete process.env.NUGET_SERVER_AUTH_MODE;
-    delete process.env.NUGET_SERVER_NO_UI;
   });
 
   const runCli = async (
@@ -104,7 +103,6 @@ describe("CLI configuration priority", () => {
         packageDir: "./json-packages",
         logLevel: "debug",
         authMode: "publish",
-        noUi: true,
       }),
     );
 
@@ -119,7 +117,6 @@ describe("CLI configuration priority", () => {
     expect(output).toContain("Package directory: ./json-packages");
     expect(output).toContain("Log level: debug");
     expect(output).toContain("Authentication mode: publish");
-    expect(output).toContain("UI enabled: no");
     expect(output).toContain(
       `Loaded configuration from ${testDir}/config.json`,
     );
@@ -137,7 +134,6 @@ describe("CLI configuration priority", () => {
     expect(output).toContain("Package directory: ./packages");
     expect(output).toContain("Log level: info");
     expect(output).toContain("Authentication mode: none");
-    expect(output).toContain("UI enabled: yes");
   }, 10000);
 
   it("should handle mixed configuration sources", async () => {
@@ -172,21 +168,6 @@ describe("CLI configuration priority", () => {
     expect(stdout).toContain("Trusted proxies: 192.168.1.1"); // from config.json
   }, 10000);
 
-  it("should handle boolean noUi from environment correctly", async () => {
-    const env = {
-      NUGET_SERVER_PORT: String(testPort),
-      NUGET_SERVER_NO_UI: "true",
-    };
-
-    const { stdout } = await runCli(`-c ${testDir}`, env);
-    expect(stdout).toContain("UI enabled: no");
-
-    // Test with false
-    env.NUGET_SERVER_NO_UI = "false";
-    const { stdout: stdout2 } = await runCli(`-c ${testDir}`, env);
-    expect(stdout2).toContain("UI enabled: yes");
-  }, 15000);
-
   it("should handle array trustedProxies from config.json", async () => {
     await writeFile(
       join(testDir, "config.json"),
@@ -217,11 +198,6 @@ describe("CLI configuration priority", () => {
     expect(stdout).toContain(`Port: ${testPort}`); // valid from config
     expect(stdout).toContain("Log level: info"); // default (invalid in config)
     expect(stdout).toContain("Authentication mode: none"); // default (invalid in config)
-  }, 10000);
-
-  it("should respect --no-ui CLI option", async () => {
-    const { stdout } = await runCli(`--no-ui --port ${testPort} -c ${testDir}`);
-    expect(stdout).toContain("UI enabled: no");
   }, 10000);
 
   it("should handle sessionSecret from environment only", async () => {

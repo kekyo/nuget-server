@@ -96,7 +96,6 @@ describe("Fastify Authentication - Phase 2 Tests", () => {
       configDir: testConfigDir,
       realm: "Test Fastify Auth Server",
       logLevel: testGlobalLogLevel,
-      noUi: false,
       authMode: "full",
       passwordStrengthCheck: false,
     };

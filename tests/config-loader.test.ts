@@ -23,7 +23,6 @@ describe("config-loader", () => {
       packageDir: "./my-packages",
       realm: "My NuGet Server",
       logLevel: "debug",
-      noUi: true,
       trustedProxies: ["192.168.1.1", "10.0.0.1"],
       authMode: "publish",
       sessionSecret: "test-secret",
@@ -44,7 +43,6 @@ describe("config-loader", () => {
       baseUrl: "http://example.com",
       logLevel: "invalid-level", // invalid value
       authMode: "invalid-mode", // invalid value
-      noUi: "not-boolean", // invalid type
       trustedProxies: ["192.168.1.1", 123, "10.0.0.1"], // mixed types
     };
 

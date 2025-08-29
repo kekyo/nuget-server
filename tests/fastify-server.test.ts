@@ -50,7 +50,6 @@ describe("Fastify Server - Phase 1 Basic Tests", () => {
       configDir: testConfigDir,
       realm: "Test Fastify Server",
       logLevel: testGlobalLogLevel,
-      noUi: false,
       authMode: "none",
       passwordStrengthCheck: false,
     };
@@ -72,7 +71,6 @@ describe("Fastify Server - Phase 1 Basic Tests", () => {
       configDir: testConfigDir,
       realm: "Test Fastify Server",
       logLevel: testGlobalLogLevel,
-      noUi: false,
       authMode: "none",
       passwordStrengthCheck: false,
     };
@@ -100,7 +98,6 @@ describe("Fastify Server - Phase 1 Basic Tests", () => {
       configDir: testConfigDir,
       realm: "Test Fastify Server",
       logLevel: testGlobalLogLevel,
-      noUi: false,
       authMode: "none",
       passwordStrengthCheck: false,
     };
@@ -119,32 +116,6 @@ describe("Fastify Server - Phase 1 Basic Tests", () => {
     }
   }, 30000);
 
-  test("should respond to root endpoint with JSON when UI disabled", async () => {
-    const logger = createConsoleLogger("fastify-server", testGlobalLogLevel);
-    const testConfig: ServerConfig = {
-      port: serverPort,
-      packageDir: testPackagesDir,
-      configDir: testConfigDir,
-      realm: "Test Fastify Server",
-      logLevel: testGlobalLogLevel,
-      noUi: true,
-      authMode: "none",
-      passwordStrengthCheck: false,
-    };
-
-    const server = await startFastifyServer(testConfig, logger);
-    try {
-      const response = await fetch(`http://localhost:${serverPort}/`);
-      expect(response.status).toBe(200);
-
-      const data = await response.json();
-      expect(data).toHaveProperty("message");
-      expect(data).toHaveProperty("apiEndpoint", "/api");
-    } finally {
-      await server.close();
-    }
-  }, 30000);
-
   test("should respond to config endpoint when UI is enabled", async () => {
     const logger = createConsoleLogger("fastify-server", testGlobalLogLevel);
     const testConfig: ServerConfig = {
@@ -153,7 +124,6 @@ describe("Fastify Server - Phase 1 Basic Tests", () => {
       configDir: testConfigDir,
       realm: "Test Fastify Server",
       logLevel: testGlobalLogLevel,
-      noUi: false,
       authMode: "none",
       passwordStrengthCheck: false,
     };
@@ -181,7 +151,6 @@ describe("Fastify Server - Phase 1 Basic Tests", () => {
       configDir: testConfigDir,
       realm: "Test Fastify Server",
       logLevel: testGlobalLogLevel,
-      noUi: false,
       authMode: "none",
       passwordStrengthCheck: false,
     };

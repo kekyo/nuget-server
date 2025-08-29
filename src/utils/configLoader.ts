@@ -15,7 +15,6 @@ export interface ConfigFile {
   packageDir?: string;
   realm?: string;
   logLevel?: LogLevel;
-  noUi?: boolean;
   trustedProxies?: string[];
   authMode?: AuthMode;
   sessionSecret?: string;
@@ -69,11 +68,6 @@ const validateConfig = (config: any, logger?: Logger): ConfigFile => {
     } else {
       logger?.warn(`Invalid logLevel in config.json: ${config.logLevel}`);
     }
-  }
-
-  // Validate noUi
-  if (typeof config.noUi === "boolean") {
-    validated.noUi = config.noUi;
   }
 
   // Validate trustedProxies
