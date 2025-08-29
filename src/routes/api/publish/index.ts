@@ -83,17 +83,15 @@ export const registerPublishRoutes = async (
     {
       preHandler:
         authPreHandler.length > 0
-          ? [
+          ? ([
               ...authPreHandler,
-              async (
-                request: AuthenticatedFastifyRequest,
-                reply: FastifyReply,
-              ) => {
+              async (request: FastifyRequest, reply: FastifyReply) => {
                 // Check role permissions for non-none auth modes
+                const authRequest = request as AuthenticatedFastifyRequest;
                 if (authService.getAuthMode() !== "none") {
                   if (
-                    !request.user ||
-                    !["publish", "admin"].includes(request.user.role)
+                    !authRequest.user ||
+                    !["publish", "admin"].includes(authRequest.user.role)
                   ) {
                     return reply
                       .status(403)
@@ -101,7 +99,7 @@ export const registerPublishRoutes = async (
                   }
                 }
               },
-            ]
+            ] as any)
           : [],
     },
     async (request: FastifyRequest, reply: FastifyReply) => {

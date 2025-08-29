@@ -29,7 +29,7 @@ export const checkPasswordStrength = (
 
   return {
     score: result.score,
-    strength: strengthLabels[result.score],
+    strength: strengthLabels[result.score] ?? "Weak",
     feedback: {
       warning: result.feedback.warning,
       suggestions: result.feedback.suggestions,

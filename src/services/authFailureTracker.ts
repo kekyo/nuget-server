@@ -230,7 +230,7 @@ export const createAuthFailureTracker = (
 
       // Calculate delay based on failure count
       const delayIndex = Math.min(failureCount - 1, delays.length - 1);
-      const delayMs = Math.min(delays[delayIndex], maxDelay);
+      const delayMs = Math.min(delays[delayIndex] ?? 0, maxDelay);
 
       if (delayMs > 0) {
         logger.info(

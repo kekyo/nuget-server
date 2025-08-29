@@ -298,7 +298,7 @@ export const createConditionalHybridAuthMiddleware = (
   if (skipAuth) {
     return async (
       request: AuthenticatedFastifyRequest,
-      reply: FastifyReply,
+      _reply: FastifyReply,
     ) => {
       config.logger.debug(
         `Hybrid auth skipped for ${request.method} ${request.url} - disabled by configuration`,

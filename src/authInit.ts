@@ -154,6 +154,10 @@ export const runAuthInit = async (
 
   try {
     // Check if users.json already exists
+    if (!configDir) {
+      logger.error("Config directory is not defined");
+      process.exit(1);
+    }
     if (await checkUsersFileExists(configDir)) {
       logger.error(
         "users.json already exists. Please remove it first to initialize authentication.",
@@ -252,7 +256,7 @@ export const runAuthInit = async (
 
       // Create user service
       const userService = createUserService({
-        configDir,
+        configDir: configDir!,
         logger,
         serverConfig: config,
       });

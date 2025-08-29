@@ -384,7 +384,7 @@ export const createMetadataService = (
     getLatestPackageEntry: (packageId: string): PackageEntry | null => {
       const entries = packagesCache.get(packageId.toLowerCase()) || [];
       // Entries are already sorted in descending order (newest first)
-      return entries.length > 0 ? entries[0] : null;
+      return entries.length > 0 ? entries[0]! : null;
     },
 
     /**
