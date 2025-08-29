@@ -162,10 +162,12 @@ const UserPasswordChangeDrawer = ({
       anchor="right"
       open={open}
       onClose={handleClose}
-      PaperProps={{
-        sx: {
-          width: 500,
-          p: 3,
+      slotProps={{
+        paper: {
+          sx: {
+            width: 500,
+            p: 3,
+          },
         },
       }}
     >
@@ -201,24 +203,30 @@ const UserPasswordChangeDrawer = ({
               type={showCurrentPassword ? "text" : "password"}
               value={currentPassword}
               onChange={(e) => setCurrentPassword(e.target.value)}
-              onKeyPress={handleKeyPress}
+              onKeyDown={handleKeyPress}
               disabled={loading}
               required
               fullWidth
               autoFocus
-              InputProps={{
-                endAdornment: (
-                  <InputAdornment position="end">
-                    <IconButton
-                      onClick={() =>
-                        setShowCurrentPassword(!showCurrentPassword)
-                      }
-                      edge="end"
-                    >
-                      {showCurrentPassword ? <VisibilityOff /> : <Visibility />}
-                    </IconButton>
-                  </InputAdornment>
-                ),
+              slotProps={{
+                input: {
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton
+                        onClick={() =>
+                          setShowCurrentPassword(!showCurrentPassword)
+                        }
+                        edge="end"
+                      >
+                        {showCurrentPassword ? (
+                          <VisibilityOff />
+                        ) : (
+                          <Visibility />
+                        )}
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                },
               }}
             />
 
@@ -227,22 +235,24 @@ const UserPasswordChangeDrawer = ({
               type={showNewPassword ? "text" : "password"}
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
-              onKeyPress={handleKeyPress}
+              onKeyDown={handleKeyPress}
               disabled={loading}
               required
               fullWidth
               helperText={newPassword ? undefined : "Minimum 4 characters"}
-              InputProps={{
-                endAdornment: (
-                  <InputAdornment position="end">
-                    <IconButton
-                      onClick={() => setShowNewPassword(!showNewPassword)}
-                      edge="end"
-                    >
-                      {showNewPassword ? <VisibilityOff /> : <Visibility />}
-                    </IconButton>
-                  </InputAdornment>
-                ),
+              slotProps={{
+                input: {
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton
+                        onClick={() => setShowNewPassword(!showNewPassword)}
+                        edge="end"
+                      >
+                        {showNewPassword ? <VisibilityOff /> : <Visibility />}
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                },
               }}
             />
             {newPassword && (
@@ -254,23 +264,29 @@ const UserPasswordChangeDrawer = ({
               type={showConfirmPassword ? "text" : "password"}
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
-              onKeyPress={handleKeyPress}
+              onKeyDown={handleKeyPress}
               disabled={loading}
               required
               fullWidth
-              InputProps={{
-                endAdornment: (
-                  <InputAdornment position="end">
-                    <IconButton
-                      onClick={() =>
-                        setShowConfirmPassword(!showConfirmPassword)
-                      }
-                      edge="end"
-                    >
-                      {showConfirmPassword ? <VisibilityOff /> : <Visibility />}
-                    </IconButton>
-                  </InputAdornment>
-                ),
+              slotProps={{
+                input: {
+                  endAdornment: (
+                    <InputAdornment position="end">
+                      <IconButton
+                        onClick={() =>
+                          setShowConfirmPassword(!showConfirmPassword)
+                        }
+                        edge="end"
+                      >
+                        {showConfirmPassword ? (
+                          <VisibilityOff />
+                        ) : (
+                          <Visibility />
+                        )}
+                      </IconButton>
+                    </InputAdornment>
+                  ),
+                },
               }}
             />
 

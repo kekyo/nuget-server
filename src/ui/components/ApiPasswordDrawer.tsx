@@ -191,7 +191,7 @@ const ApiPasswordDrawer = ({
     try {
       await navigator.clipboard.writeText(text);
     } catch (err) {
-      // Fallback for older browsers
+      // Fallback for browsers without Clipboard API support
       const textArea = document.createElement("textarea");
       textArea.value = text;
       document.body.appendChild(textArea);
