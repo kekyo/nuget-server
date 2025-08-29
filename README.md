@@ -48,6 +48,7 @@ A modern browser-based UI is also provided:
   - User account management: Add/delete users, reset passwords (admin only)
   - API password regeneration: Self-service API password updates
   - Password change: Users can change their own passwords
+- Package importer: Included package importer from existing NuGet server
 - Docker image available
 
 ## Installation
@@ -231,7 +232,7 @@ This command will:
 4. Create `users.json` in the config directory
 5. Exit after initialization (server does not start)
 
-#### Non-interactive mode (CI/CD)
+### Non-interactive mode (CI/CD)
 
 For automated deployments, you can provide credentials via environment variables:
 
@@ -243,7 +244,7 @@ nuget-server --auth-init --config-dir ./config
 
 This allows initialization in CI/CD pipelines without user interaction.
 
-Example session:
+### Example session
 
 ```
 Initializing authentication...
@@ -267,7 +268,84 @@ Example register: dotnet nuget add source "http://localhost:5963/v3/index.json"
 ============================================================
 ```
 
-### Authentication modes
+## Import packages from another NuGet server with --import-packages
+
+Import all packages from another NuGet server to your local nuget-server instance.
+
+### Initialize package import
+
+Import packages interactively:
+
+```bash
+nuget-server --import-packages --package-dir ./packages
+```
+
+This command will:
+
+1. Prompt for source NuGet server URL
+2. Ask if authentication is required
+3. If needed, prompt for username and password (masked input)
+4. Discover all packages from the source server
+5. Download and import all packages to local storage
+6. Display progress for each package (1% intervals)
+7. Exit after import (server does not start)
+
+### Non-interactive mode (CI/CD)
+
+For automated deployments, you can provide parameters via environment variables:
+
+```bash
+export NUGET_SERVER_IMPORT_SOURCE_URL=https://source.example.com/repository/nuget/
+export NUGET_SERVER_IMPORT_USERNAME=reader
+export NUGET_SERVER_IMPORT_PASSWORD=MyPassword123
+nuget-server --import-packages --package-dir ./packages
+```
+
+This allows package import in CI/CD pipelines without user interaction.
+
+### Example session
+
+```
+Starting package import...
+Enter source NuGet server URL [http://host.example.com/repository/nuget/]: https://nexus.example.com/repository/nuget/
+Does the server require authentication? [y/N]: y
+Enter username: reader
+Enter password: ****
+
+============================================================
+Import Configuration:
+Source: https://nexus.example.com/repository/nuget/
+Target: ./packages
+Authentication: reader (password hidden)
+============================================================
+
+Start importing packages? (existing packages will be overwritten) [y/N]: y
+
+Discovering packages from source server...
+Found 125 packages with 563 versions total.
+Starting package import...
+Progress: 100/563 packages (17%) - MyPackage.Core@1.2.3
+Progress: 563/563 packages (100%) - AnotherPackage@2.0.0
+
+============================================================
+Import Complete!
+============================================================
+Total packages: 125
+Total versions: 563
+Successfully imported: 563
+Failed: 0
+Time elapsed: 125.3 seconds
+============================================================
+```
+
+### Import behavior
+
+- Existing packages with the same version will be overwritten
+- Failed imports are logged with error details
+- Progress is reported at 1% intervals to reduce log noise
+- Package icons are preserved during import
+
+## Authentication modes
 
 When using JSON-based authentication, configure the mode with `--auth-mode`:
 
