@@ -20,6 +20,16 @@ import {
 } from "../utils/passwordStrength";
 
 /**
+ * API password data structure
+ */
+export interface ApiPassword {
+  label: string;
+  passwordHash: string;
+  salt: string;
+  createdAt: string;
+}
+
+/**
  * User data structure
  */
 export interface User {
@@ -27,8 +37,9 @@ export interface User {
   username: string;
   passwordHash: string;
   salt: string;
-  apiPasswordHash: string;
-  apiPasswordSalt: string;
+  apiPasswordHash?: string; // Deprecated - for backward compatibility
+  apiPasswordSalt?: string; // Deprecated - for backward compatibility
+  apiPasswords?: ApiPassword[]; // New field for multiple API passwords
   role: "read" | "publish" | "admin";
   createdAt: string;
   updatedAt: string;
@@ -56,6 +67,33 @@ export interface CreateUserResponse {
  */
 export interface RegenerateApiPasswordResponse {
   apiPassword: string;
+}
+
+/**
+ * API password list response
+ */
+export interface ApiPasswordListResponse {
+  apiPasswords: Array<{
+    label: string;
+    createdAt: string;
+  }>;
+}
+
+/**
+ * API password add response
+ */
+export interface ApiPasswordAddResponse {
+  label: string;
+  apiPassword: string;
+  createdAt: string;
+}
+
+/**
+ * API password delete response
+ */
+export interface ApiPasswordDeleteResponse {
+  success: boolean;
+  message: string;
 }
 
 /**
@@ -96,6 +134,22 @@ export interface UserService {
   ) => Promise<User | undefined>;
   readonly getUserCount: () => Promise<number>;
   readonly isReady: () => boolean;
+  // New methods for multiple API passwords
+  readonly listApiPasswords: (
+    username: string,
+  ) => Promise<ApiPasswordListResponse | undefined>;
+  readonly addApiPassword: (
+    username: string,
+    label: string,
+  ) => Promise<ApiPasswordAddResponse | undefined>;
+  readonly deleteApiPassword: (
+    username: string,
+    label: string,
+  ) => Promise<ApiPasswordDeleteResponse>;
+  readonly validateAnyApiPassword: (
+    username: string,
+    apiPassword: string,
+  ) => Promise<User | undefined>;
 }
 
 /**
@@ -225,7 +279,7 @@ export const createUserService = (config: UserServiceConfig): UserService => {
     }
   };
 
-  return {
+  const service: UserService = {
     /**
      * Initializes the user service and loads user data
      */
@@ -282,8 +336,16 @@ export const createUserService = (config: UserServiceConfig): UserService => {
           username: request.username,
           passwordHash,
           salt: passwordSalt,
-          apiPasswordHash,
-          apiPasswordSalt,
+          apiPasswordHash, // Keep for backward compatibility
+          apiPasswordSalt, // Keep for backward compatibility
+          apiPasswords: [
+            {
+              label: "default",
+              passwordHash: apiPasswordHash,
+              salt: apiPasswordSalt,
+              createdAt: now,
+            },
+          ],
           role: request.role,
           createdAt: now,
           updatedAt: now,
@@ -455,12 +517,31 @@ export const createUserService = (config: UserServiceConfig): UserService => {
         return undefined;
       }
 
-      const isValid = verifyPassword(
-        apiPassword,
-        user.apiPasswordHash,
-        user.apiPasswordSalt,
-      );
-      return isValid ? user : undefined;
+      // First check new apiPasswords array
+      if (user.apiPasswords && user.apiPasswords.length > 0) {
+        for (const apiPwd of user.apiPasswords) {
+          const isValid = verifyPassword(
+            apiPassword,
+            apiPwd.passwordHash,
+            apiPwd.salt,
+          );
+          if (isValid) {
+            return user;
+          }
+        }
+      } else if (user.apiPasswordHash && user.apiPasswordSalt) {
+        // Fallback to old single API password for backward compatibility
+        const isValid = verifyPassword(
+          apiPassword,
+          user.apiPasswordHash,
+          user.apiPasswordSalt,
+        );
+        if (isValid) {
+          return user;
+        }
+      }
+
+      return undefined;
     },
 
     /**
@@ -478,5 +559,195 @@ export const createUserService = (config: UserServiceConfig): UserService => {
     isReady: (): boolean => {
       return isInitialized;
     },
+
+    /**
+     * Lists all API passwords for a user
+     * @param username - Username
+     * @returns API password list or undefined if user not found
+     */
+    listApiPasswords: async (
+      username: string,
+    ): Promise<ApiPasswordListResponse | undefined> => {
+      const user = users.get(username);
+      if (!user) {
+        return undefined;
+      }
+
+      // Initialize apiPasswords array if it doesn't exist (backward compatibility)
+      if (!user.apiPasswords) {
+        user.apiPasswords = [];
+        // Migrate old single API password if it exists
+        if (user.apiPasswordHash && user.apiPasswordSalt) {
+          user.apiPasswords.push({
+            label: "default",
+            passwordHash: user.apiPasswordHash,
+            salt: user.apiPasswordSalt,
+            createdAt: user.createdAt,
+          });
+        }
+      }
+
+      // Sort by createdAt in descending order (newest first)
+      const sortedPasswords = [...user.apiPasswords].sort(
+        (a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+      );
+
+      return {
+        apiPasswords: sortedPasswords.map((p) => ({
+          label: p.label,
+          createdAt: p.createdAt,
+        })),
+      };
+    },
+
+    /**
+     * Adds a new API password for a user
+     * @param username - Username
+     * @param label - Label for the API password
+     * @returns New API password or undefined if user not found
+     */
+    addApiPassword: async (
+      username: string,
+      label: string,
+    ): Promise<ApiPasswordAddResponse | undefined> => {
+      const handle = await fileLock.writeLock();
+      try {
+        const user = users.get(username);
+        if (!user) {
+          return undefined;
+        }
+
+        // Validate label
+        if (!label || label.trim().length === 0) {
+          throw new Error("Label cannot be empty");
+        }
+
+        if (label.length > 50) {
+          throw new Error("Label cannot exceed 50 characters");
+        }
+
+        // Initialize apiPasswords array if it doesn't exist
+        if (!user.apiPasswords) {
+          user.apiPasswords = [];
+          // Migrate old single API password if it exists
+          if (user.apiPasswordHash && user.apiPasswordSalt) {
+            user.apiPasswords.push({
+              label: "default",
+              passwordHash: user.apiPasswordHash,
+              salt: user.apiPasswordSalt,
+              createdAt: user.createdAt,
+            });
+          }
+        }
+
+        // Check for duplicate label
+        if (user.apiPasswords.some((p) => p.label === label)) {
+          throw new Error(`API password with label "${label}" already exists`);
+        }
+
+        // Check maximum limit (10 API passwords)
+        if (user.apiPasswords.length >= 10) {
+          throw new Error("Maximum of 10 API passwords allowed per user");
+        }
+
+        // Generate new API password
+        const apiPassword = generateApiPassword();
+        const salt = generateSalt();
+        const passwordHash = hashPassword(apiPassword, salt);
+        const now = new Date().toISOString();
+
+        // Add new API password
+        user.apiPasswords.push({
+          label,
+          passwordHash,
+          salt,
+          createdAt: now,
+        });
+
+        user.updatedAt = now;
+        await saveUsersInternal();
+
+        logger.info(
+          `Added API password with label "${label}" for user: ${username}`,
+        );
+
+        return {
+          label,
+          apiPassword,
+          createdAt: now,
+        };
+      } finally {
+        handle.release();
+      }
+    },
+
+    /**
+     * Deletes an API password for a user
+     * @param username - Username
+     * @param label - Label of the API password to delete
+     * @returns Delete response
+     */
+    deleteApiPassword: async (
+      username: string,
+      label: string,
+    ): Promise<ApiPasswordDeleteResponse> => {
+      const handle = await fileLock.writeLock();
+      try {
+        const user = users.get(username);
+        if (!user) {
+          return {
+            success: false,
+            message: "User not found",
+          };
+        }
+
+        // Initialize apiPasswords array if it doesn't exist
+        if (!user.apiPasswords) {
+          user.apiPasswords = [];
+        }
+
+        // Find and remove the API password with the specified label
+        const initialLength = user.apiPasswords.length;
+        user.apiPasswords = user.apiPasswords.filter((p) => p.label !== label);
+
+        if (user.apiPasswords.length === initialLength) {
+          return {
+            success: false,
+            message: `API password with label "${label}" not found`,
+          };
+        }
+
+        user.updatedAt = new Date().toISOString();
+        await saveUsersInternal();
+
+        logger.info(
+          `Deleted API password with label "${label}" for user: ${username}`,
+        );
+
+        return {
+          success: true,
+          message: `API password "${label}" deleted successfully`,
+        };
+      } finally {
+        handle.release();
+      }
+    },
+
+    /**
+     * Validates any API password for a user (for authentication)
+     * @param username - Username
+     * @param apiPassword - API password to validate
+     * @returns User data if valid, undefined otherwise
+     */
+    validateAnyApiPassword: async (
+      username: string,
+      apiPassword: string,
+    ): Promise<User | undefined> => {
+      // This is essentially the same as validateApiPassword now
+      return service.validateApiPassword(username, apiPassword);
+    },
   };
+
+  return service;
 };

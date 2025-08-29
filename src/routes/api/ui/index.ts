@@ -443,6 +443,7 @@ export const registerUiRoutes = async (
   );
 
   // POST /api/ui/apipassword - Regenerate API password for current user (session auth required)
+  // DEPRECATED: Use /api/ui/apipasswords instead
   fastify.post(
     "/apipassword",
     {
@@ -452,7 +453,7 @@ export const registerUiRoutes = async (
       const authRequest = request as AuthenticatedFastifyRequest;
       try {
         logger.info(
-          `Regenerating API password for user: ${authRequest.user?.username}`,
+          `[DEPRECATED] Regenerating API password for user: ${authRequest.user?.username}`,
         );
 
         const result = await userService.regenerateApiPassword(
@@ -477,6 +478,109 @@ export const registerUiRoutes = async (
           throw error; // Re-throw HTTP errors
         }
         logger.error(`Error in /api/ui/apipassword: ${error}`);
+        return reply.status(500).send({ error: "Internal server error" });
+      }
+    },
+  );
+
+  // POST /api/ui/apipasswords - Manage multiple API passwords (session auth required)
+  fastify.post(
+    "/apipasswords",
+    {
+      preHandler: [sessionOnlyAuth],
+    },
+    async (request: FastifyRequest, reply: FastifyReply) => {
+      const authRequest = request as AuthenticatedFastifyRequest;
+      try {
+        const body = request.body as {
+          action: "list" | "add" | "delete";
+          label?: string;
+        };
+
+        const username = authRequest.user?.username;
+        if (!username) {
+          return reply.status(401).send({ error: "User not authenticated" });
+        }
+
+        switch (body.action) {
+          case "list": {
+            logger.info(`Listing API passwords for user: ${username}`);
+
+            const result = await userService.listApiPasswords(username);
+            if (!result) {
+              return reply.status(404).send({ error: "User not found" });
+            }
+
+            return reply.send(result);
+          }
+
+          case "add": {
+            if (!body.label) {
+              return reply
+                .status(400)
+                .send({ error: "Label is required for adding API password" });
+            }
+
+            logger.info(
+              `Adding API password with label "${body.label}" for user: ${username}`,
+            );
+
+            try {
+              const result = await userService.addApiPassword(
+                username,
+                body.label,
+              );
+              if (!result) {
+                return reply.status(404).send({ error: "User not found" });
+              }
+
+              logger.info(
+                `API password added successfully with label "${body.label}" for user: ${username}`,
+              );
+              return reply.send(result);
+            } catch (error: any) {
+              logger.warn(`Failed to add API password: ${error.message}`);
+              return reply.status(400).send({ error: error.message });
+            }
+          }
+
+          case "delete": {
+            if (!body.label) {
+              return reply
+                .status(400)
+                .send({ error: "Label is required for deleting API password" });
+            }
+
+            logger.info(
+              `Deleting API password with label "${body.label}" for user: ${username}`,
+            );
+
+            const result = await userService.deleteApiPassword(
+              username,
+              body.label,
+            );
+
+            if (!result.success) {
+              logger.warn(`Failed to delete API password: ${result.message}`);
+              return reply.status(404).send({ error: result.message });
+            }
+
+            logger.info(
+              `API password deleted successfully with label "${body.label}" for user: ${username}`,
+            );
+            return reply.send(result);
+          }
+
+          default:
+            return reply
+              .status(400)
+              .send({ error: `Unknown action: ${body.action}` });
+        }
+      } catch (error: any) {
+        if (error.statusCode) {
+          throw error; // Re-throw HTTP errors
+        }
+        logger.error(`Error in /api/ui/apipasswords: ${error}`);
         return reply.status(500).send({ error: "Internal server error" });
       }
     },
