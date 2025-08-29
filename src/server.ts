@@ -16,7 +16,6 @@ import fastifySecureSession from "@fastify/secure-session";
 import fastifyStatic from "@fastify/static";
 import { IncomingMessage, ServerResponse } from "http";
 import path from "path";
-import { existsSync } from "fs";
 import { fileURLToPath } from "url";
 import {
   name as packageName,
@@ -201,14 +200,14 @@ export const createFastifyInstance = async (
 
   // Add AbortSignal to every request for handling client disconnections
   fastify.decorateRequest("abortSignal", null);
-  fastify.addHook("onRequest", async (request, reply) => {
+  fastify.addHook("onRequest", async (request, _reply) => {
     const controller = new AbortController();
 
     // Listen for client disconnect
     request.raw.once("close", () => {
-      // Check if connection was aborted (deprecated but still the most reliable method)
-      // @ts-ignore - aborted is deprecated but still works
-      if (request.raw.aborted) {
+      // Check if connection was closed
+      // Using destroyed as a replacement for deprecated aborted property
+      if (request.raw.destroyed || (request.raw as any).aborted) {
         controller.abort();
         logger.debug(`Request aborted: ${request.url}`);
       }
@@ -473,18 +472,13 @@ export const createFastifyInstance = async (
   }
 
   // Serve UI files with custom handler
-  // Check if we're in development mode
-  const devUiPath = path.join(process.cwd(), "src", "ui");
-  const devPublicPath = path.join(process.cwd(), "src", "ui", "public");
-  const prodUiPath = path.join(__dirname, "ui");
-
-  // Check if production UI build exists
-  const prodUiIndexPath = path.join(prodUiPath, "index.html");
-  const isDevMode =
-    process.env.VITEST === "true" || !existsSync(prodUiIndexPath);
-  const uiPath = isDevMode ? devUiPath : prodUiPath;
-  const publicPath = isDevMode ? devPublicPath : prodUiPath;
-  const imagesPath = path.join(__dirname, "..", "images");
+  // Determine environment based on __dirname
+  const isDevelopment =
+    __dirname.includes("/src") || __dirname.includes("\\src");
+  const uiPath = path.join(__dirname, "ui");
+  const publicPath = isDevelopment
+    ? path.join(__dirname, "ui", "public")
+    : path.join(__dirname, "ui");
 
   // Helper function to serve static files using streaming
   const serveStaticFile = (
@@ -512,13 +506,6 @@ export const createFastifyInstance = async (
   fastify.get("/assets/*", (request, reply: GetReply) => {
     const assetPath = (request.params as any)["*"];
     const fullPath = path.join(uiPath, "assets", assetPath);
-    return serveStaticFile(fullPath, reply, request.abortSignal);
-  });
-
-  // Serve images
-  fastify.get("/images/*", (request, reply: GetReply) => {
-    const imagePath = (request.params as any)["*"];
-    const fullPath = path.join(imagesPath, imagePath);
     return serveStaticFile(fullPath, reply, request.abortSignal);
   });
 

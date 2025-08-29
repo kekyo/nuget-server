@@ -31,7 +31,9 @@ export default defineConfig(({ mode, command }) => {
       root: "src/ui",
       plugins: [
         react(),
-        prettierMax(),
+        prettierMax({
+          failOnError: true,
+        }),
         // Add Fastify plugin for development
         fastifyHost(devConfig),
       ],
@@ -58,7 +60,12 @@ export default defineConfig(({ mode, command }) => {
     // UI build mode
     return {
       root: "src/ui",
-      plugins: [react(), prettierMax()],
+      plugins: [
+        react(),
+        prettierMax({
+          failOnError: true,
+        }),
+      ],
       build: {
         outDir: "../../dist/ui",
         emptyOutDir: false, // Don't clean server build files
@@ -84,7 +91,9 @@ export default defineConfig(({ mode, command }) => {
       screwUp({
         outputMetadataFile: true,
       }),
-      prettierMax(),
+      prettierMax({
+        failOnError: true,
+      }),
     ],
     build: {
       emptyOutDir: true, // Clean on first build
