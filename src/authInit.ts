@@ -12,6 +12,7 @@ import {
   checkPasswordStrength,
   getMinPasswordScore,
 } from "./utils/passwordStrength";
+import { promptInput, promptPassword } from "./utils/prompt";
 
 /**
  * Options for auth initialization
@@ -20,101 +21,6 @@ export interface AuthInitOptions {
   configDir: string;
   logger: Logger;
 }
-
-/**
- * Prompts for user input with optional default value
- */
-const promptInput = (
-  rl: readline.Interface,
-  prompt: string,
-  defaultValue?: string,
-): Promise<string> => {
-  return new Promise((resolve) => {
-    const displayPrompt = defaultValue
-      ? `${prompt} [${defaultValue}]: `
-      : `${prompt}: `;
-    rl.question(displayPrompt, (answer) => {
-      resolve(answer.trim() || defaultValue || "");
-    });
-  });
-};
-
-/**
- * Prompts for password input (hidden)
- */
-const promptPassword = (prompt: string): Promise<string> => {
-  return new Promise((resolve, reject) => {
-    // Check if we're in an interactive terminal
-    if (!process.stdin.isTTY) {
-      // Non-interactive mode: read from stdin without masking
-      const rl = readline.createInterface({
-        input: process.stdin,
-        output: process.stdout,
-        terminal: false,
-      });
-
-      process.stdout.write(`${prompt}: `);
-
-      rl.once("line", (input) => {
-        process.stdout.write("\n");
-        rl.close();
-        resolve(input);
-      });
-
-      return;
-    }
-
-    // Interactive mode: mask password input
-    // Don't create readline interface to avoid echo conflicts
-    process.stdout.write(`${prompt}: `);
-
-    // Set raw mode to hide input completely
-    process.stdin.setRawMode(true);
-    process.stdin.resume();
-
-    let password = "";
-
-    const onData = (char: Buffer) => {
-      const str = char.toString();
-
-      switch (str) {
-        case "\u0003": // Ctrl+C
-          process.stdout.write("\n");
-          process.stdin.setRawMode(false);
-          process.stdin.pause();
-          process.stdin.removeListener("data", onData);
-          reject(new Error("Cancelled by user"));
-          break;
-
-        case "\r":
-        case "\n": // Enter
-          process.stdout.write("\n");
-          process.stdin.setRawMode(false);
-          process.stdin.pause();
-          process.stdin.removeListener("data", onData);
-          resolve(password);
-          break;
-
-        case "\u007F": // Backspace
-          if (password.length > 0) {
-            password = password.slice(0, -1);
-            process.stdout.write("\b \b"); // Move back, write space, move back again
-          }
-          break;
-
-        default:
-          // Only accept printable characters
-          if (str.charCodeAt(0) >= 32 && str.charCodeAt(0) < 127) {
-            password += str;
-            process.stdout.write("*");
-          }
-          break;
-      }
-    };
-
-    process.stdin.on("data", onData);
-  });
-};
 
 /**
  * Check if users.json already exists
@@ -154,6 +60,10 @@ export const runAuthInit = async (
 
   try {
     // Check if users.json already exists
+    if (!configDir) {
+      logger.error("Config directory is not defined");
+      process.exit(1);
+    }
     if (await checkUsersFileExists(configDir)) {
       logger.error(
         "users.json already exists. Please remove it first to initialize authentication.",
@@ -172,11 +82,11 @@ export const runAuthInit = async (
     });
 
     try {
-      // Prompt for username
-      const username = await promptInput(rl, "Enter admin username", "admin");
+      // Prompt for username (required, no default)
+      const username = await promptInput(rl, "Enter admin username");
 
-      if (!username) {
-        logger.error("Username cannot be empty");
+      if (!username || username.trim().length === 0) {
+        logger.error("Username is required and cannot be empty");
         process.exit(1);
       }
 
@@ -252,7 +162,7 @@ export const runAuthInit = async (
 
       // Create user service
       const userService = createUserService({
-        configDir,
+        configDir: configDir!,
         logger,
         serverConfig: config,
       });
@@ -260,37 +170,25 @@ export const runAuthInit = async (
 
       // Create admin user
       logger.info("Creating admin user...");
-      const result = await userService.createUser({
+      const user = await userService.createUser({
         username,
         password: password!,
         role: "admin",
       });
 
-      // Display success message and API password
+      // Display success message
       console.log("\n" + "=".repeat(60));
       console.log("Admin user created successfully!");
       console.log("=".repeat(60));
-      console.log(`Username: ${result.user.username}`);
-      console.log(`Password: *********************`);
-      console.log(`API password: ${result.apiPassword}`);
+      console.log(`Username: ${user.username}`);
+      console.log(`Role: ${user.role}`);
       console.log("=".repeat(60));
       console.log(
-        "\nIMPORTANT: Save this API password securely. It cannot be retrieved again.",
+        "\nNote: You need to generate an API password for NuGet client authentication.",
       );
       console.log(
-        "Use this API user/password combination for NuGet client authentication.",
+        "You can do this through the web UI after logging in with your username and password.",
       );
-
-      if (config.baseUrl) {
-        console.log(
-          `Example register: dotnet nuget add source "${config.baseUrl}/v3/index.json" -n ref1 -u ${result.user.username} -p ${result.apiPassword} --store-password-in-clear-text${config.baseUrl.startsWith("https:") ? "" : " --allow-insecure-connections"}`,
-        );
-      } else {
-        console.log(
-          `Example register: dotnet nuget add source "http://localhost:${config.port}/v3/index.json" -n ref1 -u ${result.user.username} -p ${result.apiPassword} --store-password-in-clear-text --allow-insecure-connections`,
-        );
-      }
-
       console.log("=".repeat(60) + "\n");
 
       logger.info("Authentication initialization completed.");

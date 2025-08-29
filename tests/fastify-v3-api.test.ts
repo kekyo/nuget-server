@@ -83,7 +83,6 @@ describe("Fastify NuGet V3 API - Phase 3 Tests", () => {
         configDir: testConfigDir,
         realm: "Test Fastify V3 Server - None",
         logLevel: testGlobalLogLevel,
-        noUi: false,
         authMode: "none",
         passwordStrengthCheck: false,
       };
@@ -188,7 +187,6 @@ describe("Fastify NuGet V3 API - Phase 3 Tests", () => {
         configDir: testConfigDir,
         realm: "Test Fastify V3 Server - Publish",
         logLevel: testGlobalLogLevel,
-        noUi: false,
         authMode: "publish",
         passwordStrengthCheck: false,
       };
@@ -258,7 +256,6 @@ describe("Fastify NuGet V3 API - Phase 3 Tests", () => {
         configDir: testConfigDir,
         realm: "Test Fastify V3 Server - Full",
         logLevel: testGlobalLogLevel,
-        noUi: false,
         authMode: "full",
         passwordStrengthCheck: false,
       };

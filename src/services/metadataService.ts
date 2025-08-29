@@ -71,13 +71,15 @@ export interface MetadataService {
   readonly getPackageVersion: (
     packageId: string,
     version: string,
-  ) => PackageMetadata | null;
+  ) => PackageMetadata | undefined;
   readonly getPackageEntry: (
     packageId: string,
     version: string,
-  ) => PackageEntry | null;
+  ) => PackageEntry | undefined;
   readonly getAllPackageIds: () => string[];
-  readonly getLatestPackageEntry: (packageId: string) => PackageEntry | null;
+  readonly getLatestPackageEntry: (
+    packageId: string,
+  ) => PackageEntry | undefined;
   readonly updateBaseUrl: (baseUrl: string) => void;
   readonly addPackage: (metadata: PackageMetadata) => void;
   readonly addPackageEntry: (entry: PackageEntry) => void;
@@ -166,13 +168,13 @@ export const createMetadataService = (
    * @param packageId - Package identifier
    * @param version - Package version
    * @param versionPath - File system path to the version directory
-   * @returns Package entry with metadata and storage info, or null if loading fails
+   * @returns Package entry with metadata and storage info, or undefined if loading fails
    */
   const loadPackageMetadata = async (
     packageId: string,
     version: string,
     versionPath: string,
-  ): Promise<PackageEntry | null> => {
+  ): Promise<PackageEntry | undefined> => {
     try {
       const nuspecPath = path.join(versionPath, `${packageId}.nuspec`);
       const nuspecContent = await fs.readFile(nuspecPath, "utf-8");
@@ -183,7 +185,7 @@ export const createMetadataService = (
       const metadata = result.package?.metadata;
       if (!metadata) {
         logger.warn(`Invalid nuspec format in ${nuspecPath}`);
-        return null;
+        return undefined;
       }
 
       // Extract dependencies
@@ -237,7 +239,7 @@ export const createMetadataService = (
       logger.warn(
         `Failed to load metadata for ${packageId} ${version}: ${error}`,
       );
-      return null;
+      return undefined;
     }
   };
 
@@ -341,31 +343,29 @@ export const createMetadataService = (
      * Gets metadata for a specific package version
      * @param packageId - Package identifier
      * @param version - Package version
-     * @returns Package metadata or null if not found
+     * @returns Package metadata or undefined if not found
      */
     getPackageVersion: (
       packageId: string,
       version: string,
-    ): PackageMetadata | null => {
+    ): PackageMetadata | undefined => {
       const entries = packagesCache.get(packageId.toLowerCase()) || [];
       const metadata = entries.map((entry) => entry.metadata);
-      return metadata.find((v) => v.version === version) || null;
+      return metadata.find((v) => v.version === version);
     },
 
     /**
      * Gets complete package entry (metadata + storage info) for a specific version
      * @param packageId - Package identifier
      * @param version - Package version
-     * @returns Package entry or null if not found
+     * @returns Package entry or undefined if not found
      */
     getPackageEntry: (
       packageId: string,
       version: string,
-    ): PackageEntry | null => {
+    ): PackageEntry | undefined => {
       const entries = packagesCache.get(packageId.toLowerCase()) || [];
-      return (
-        entries.find((entry) => entry.metadata.version === version) || null
-      );
+      return entries.find((entry) => entry.metadata.version === version);
     },
 
     /**
@@ -373,18 +373,20 @@ export const createMetadataService = (
      * @returns Array of package identifiers
      */
     getAllPackageIds: (): string[] => {
-      return Array.from(packagesCache.keys());
+      return Array.from(packagesCache.keys()).sort((a, b) =>
+        a.localeCompare(b, undefined, { sensitivity: "base" }),
+      );
     },
 
     /**
      * Gets the latest package entry (metadata + storage info) for a package
      * @param packageId - Package identifier
-     * @returns Latest package entry or null if package not found
+     * @returns Latest package entry or undefined if package not found
      */
-    getLatestPackageEntry: (packageId: string): PackageEntry | null => {
+    getLatestPackageEntry: (packageId: string): PackageEntry | undefined => {
       const entries = packagesCache.get(packageId.toLowerCase()) || [];
       // Entries are already sorted in descending order (newest first)
-      return entries.length > 0 ? entries[0] : null;
+      return entries.length > 0 ? entries[0]! : undefined;
     },
 
     /**

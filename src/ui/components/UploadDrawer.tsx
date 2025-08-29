@@ -94,6 +94,8 @@ const UploadDrawer = ({
 
     for (let i = 0; i < selectedFiles.length; i++) {
       const file = selectedFiles[i];
+      if (!file) continue;
+
       setCurrentUploadIndex(i);
 
       const result: UploadResult = {
@@ -357,7 +359,7 @@ const UploadDrawer = ({
                   sx={{ mb: 1 }}
                 >
                   Uploading {currentUploadIndex + 1} of {selectedFiles.length}:{" "}
-                  {selectedFiles[currentUploadIndex].name}
+                  {selectedFiles[currentUploadIndex]?.name || ""}
                 </Typography>
                 <LinearProgress
                   variant="determinate"

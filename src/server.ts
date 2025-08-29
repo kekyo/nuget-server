@@ -16,7 +16,6 @@ import fastifySecureSession from "@fastify/secure-session";
 import fastifyStatic from "@fastify/static";
 import { IncomingMessage, ServerResponse } from "http";
 import path from "path";
-import { existsSync } from "fs";
 import { fileURLToPath } from "url";
 import {
   name as packageName,
@@ -201,14 +200,14 @@ export const createFastifyInstance = async (
 
   // Add AbortSignal to every request for handling client disconnections
   fastify.decorateRequest("abortSignal", null);
-  fastify.addHook("onRequest", async (request, reply) => {
+  fastify.addHook("onRequest", async (request, _reply) => {
     const controller = new AbortController();
 
     // Listen for client disconnect
     request.raw.once("close", () => {
-      // Check if connection was aborted (deprecated but still the most reliable method)
-      // @ts-ignore - aborted is deprecated but still works
-      if (request.raw.aborted) {
+      // Check if connection was closed
+      // Using destroyed as a replacement for deprecated aborted property
+      if (request.raw.destroyed || (request.raw as any).aborted) {
         controller.abort();
         logger.debug(`Request aborted: ${request.url}`);
       }
@@ -253,68 +252,93 @@ export const createFastifyInstance = async (
     isHttps: config.baseUrl ? config.baseUrl.startsWith("https:") : false,
   };
 
-  if (!config.noUi) {
-    // Authentication endpoints (must be accessible without authentication for login)
-    fastify.post("/api/auth/login", async (request, reply) => {
-      const { username, password, rememberMe } = request.body as any;
+  // Authentication endpoints (must be accessible without authentication for login)
+  fastify.post("/api/auth/login", async (request, reply) => {
+    const { username, password, rememberMe } = request.body as any;
 
-      try {
-        const user = await userService.validateCredentials(username, password);
-        if (!user) {
-          // Record failure and apply delay before responding
-          authFailureTracker.recordFailure(request, username);
-          await authFailureTracker.applyDelay(request, username);
+    try {
+      const user = await userService.validateCredentials(username, password);
+      if (!user) {
+        // Record failure and apply delay before responding
+        authFailureTracker.recordFailure(request, username);
+        await authFailureTracker.applyDelay(request, username);
 
-          return reply.status(401).send({
-            success: false,
-            message: "Invalid credentials",
-          });
-        }
+        return reply.status(401).send({
+          success: false,
+          message: "Invalid credentials",
+        });
+      }
 
-        // Clear failures on successful authentication
-        authFailureTracker.clearFailures(request, username);
+      // Clear failures on successful authentication
+      authFailureTracker.clearFailures(request, username);
 
-        // Create session
-        const expirationHours = rememberMe ? 7 * 24 : 24; // 7 days or 24 hours
-        const session = sessionService.createSession({
-          userId: user.id,
+      // Create session
+      const expirationHours = rememberMe ? 7 * 24 : 24; // 7 days or 24 hours
+      const session = sessionService.createSession({
+        userId: user.id,
+        username: user.username,
+        role: user.role,
+        expirationHours: expirationHours,
+      });
+
+      // Set session cookie
+      reply.setCookie("sessionToken", session.token, {
+        httpOnly: true,
+        secure: request.protocol === "https",
+        sameSite: "strict" as const,
+        maxAge: expirationHours * 60 * 60 * 1000,
+        path: "/",
+      });
+
+      return {
+        success: true,
+        user: {
           username: user.username,
           role: user.role,
-          expirationHours: expirationHours,
-        });
+        },
+      };
+    } catch (error) {
+      logger.error(`Login error: ${error}`);
+      return reply.status(500).send({
+        success: false,
+        message: "Internal server error",
+      });
+    }
+  });
 
-        // Set session cookie
-        reply.setCookie("sessionToken", session.token, {
-          httpOnly: true,
-          secure: request.protocol === "https",
-          sameSite: "strict" as const,
-          maxAge: expirationHours * 60 * 60 * 1000,
-          path: "/",
-        });
+  fastify.post("/api/auth/logout", async (request, reply) => {
+    const sessionToken = request.cookies?.sessionToken;
 
-        return {
-          success: true,
-          user: {
-            username: user.username,
-            role: user.role,
-          },
-        };
-      } catch (error) {
-        logger.error(`Login error: ${error}`);
-        return reply.status(500).send({
-          success: false,
-          message: "Internal server error",
-        });
-      }
+    if (sessionToken) {
+      sessionService.deleteSession(sessionToken);
+    }
+
+    reply.clearCookie("sessionToken", {
+      httpOnly: true,
+      secure: request.protocol === "https",
+      sameSite: "strict" as const,
+      path: "/",
     });
 
-    fastify.post("/api/auth/logout", async (request, reply) => {
-      const sessionToken = request.cookies?.sessionToken;
+    return {
+      success: true,
+      message: "Logged out successfully",
+    };
+  });
 
-      if (sessionToken) {
-        sessionService.deleteSession(sessionToken);
-      }
+  fastify.get("/api/auth/session", async (request, reply) => {
+    const sessionToken = request.cookies?.sessionToken;
 
+    if (!sessionToken) {
+      return {
+        authenticated: false,
+        user: null,
+      };
+    }
+
+    const session = sessionService.validateSession(sessionToken);
+    if (!session) {
+      // Clear invalid session cookie
       reply.clearCookie("sessionToken", {
         httpOnly: true,
         secure: request.protocol === "https",
@@ -323,223 +347,179 @@ export const createFastifyInstance = async (
       });
 
       return {
-        success: true,
-        message: "Logged out successfully",
+        authenticated: false,
+        user: null,
       };
-    });
+    }
 
-    fastify.get("/api/auth/session", async (request, reply) => {
-      const sessionToken = request.cookies?.sessionToken;
+    return {
+      authenticated: true,
+      user: {
+        username: session.username,
+        role: session.role,
+      },
+    };
+  });
 
-      if (!sessionToken) {
-        return {
-          authenticated: false,
-          user: null,
-        };
-      }
+  // Serve config endpoint without authentication (public endpoint per CLAUDE.md spec)
+  fastify.get("/api/config", async (request: FastifyRequest, _reply) => {
+    // Get current user from session if available
+    let currentUser = null;
 
-      const session = sessionService.validateSession(sessionToken);
-      if (!session) {
-        // Clear invalid session cookie
-        reply.clearCookie("sessionToken", {
-          httpOnly: true,
-          secure: request.protocol === "https",
-          sameSite: "strict" as const,
-          path: "/",
-        });
-
-        return {
-          authenticated: false,
-          user: null,
-        };
-      }
-
-      return {
-        authenticated: true,
-        user: {
-          username: session.username,
-          role: session.role,
-        },
-      };
-    });
-
-    // Serve config endpoint without authentication (public endpoint per CLAUDE.md spec)
-    fastify.get("/api/config", async (request: FastifyRequest, _reply) => {
-      // Get current user from session if available
-      let currentUser = null;
-
-      // Check session for current user (but don't require authentication)
-      try {
-        const sessionToken = request.cookies?.sessionToken;
-        if (sessionToken) {
-          const session = sessionService.validateSession(sessionToken);
-          if (session) {
-            currentUser = {
-              username: session.username,
-              role: session.role,
-              authenticated: true,
-            };
-          }
-        }
-      } catch (error) {
-        logger.error(`Error checking authentication for /api/config: ${error}`);
-      }
-
-      return {
-        realm: config.realm || `${packageName} ${version}`,
-        name: packageName,
-        version: version,
-        git_commit_hash: git_commit_hash,
-        serverUrl: serverUrl,
-        authMode: authService.getAuthMode(),
-        authEnabled: {
-          general: authService.isAuthRequired("general"),
-          publish: authService.isAuthRequired("publish"),
-          admin: authService.isAuthRequired("admin"),
-        },
-        currentUser: currentUser,
-      };
-    });
-
-    // Register V3 API routes
+    // Check session for current user (but don't require authentication)
     try {
-      await registerV3Routes(
-        fastify,
-        {
-          metadataService,
+      const sessionToken = request.cookies?.sessionToken;
+      if (sessionToken) {
+        const session = sessionService.validateSession(sessionToken);
+        if (session) {
+          currentUser = {
+            username: session.username,
+            role: session.role,
+            authenticated: true,
+          };
+        }
+      }
+    } catch (error) {
+      logger.error(`Error checking authentication for /api/config: ${error}`);
+    }
+
+    return {
+      realm: config.realm || `${packageName} ${version}`,
+      name: packageName,
+      version: version,
+      git_commit_hash: git_commit_hash,
+      serverUrl: serverUrl,
+      authMode: authService.getAuthMode(),
+      authEnabled: {
+        general: authService.isAuthRequired("general"),
+        publish: authService.isAuthRequired("publish"),
+        admin: authService.isAuthRequired("admin"),
+      },
+      currentUser: currentUser,
+    };
+  });
+
+  // Register V3 API routes
+  try {
+    await registerV3Routes(
+      fastify,
+      {
+        metadataService,
+        authService,
+        authConfig,
+        packagesRoot,
+        logger,
+        urlResolver,
+      },
+      locker,
+    );
+  } catch (error) {
+    logger.error(`Failed to register V3 routes: ${error}`);
+    throw error;
+  }
+
+  // Register UI Backend API routes
+  try {
+    await fastify.register(
+      async (fastify) => {
+        await registerUiRoutes(
+          fastify,
+          {
+            userService,
+            sessionService,
+            authService,
+            packagesRoot,
+            logger,
+            realm: config.realm || `${packageName} ${version}`,
+            serverUrl,
+            metadataService,
+          },
+          locker,
+        );
+      },
+      { prefix: "/api/ui" },
+    );
+  } catch (error) {
+    logger.error(`Failed to register UI routes: ${error}`);
+    throw error;
+  }
+
+  // Register Publish API routes
+  try {
+    let publishServiceSetter: any;
+    await fastify.register(
+      async (fastify) => {
+        const config: PublishRoutesConfig = {
+          packagesRoot,
           authService,
           authConfig,
-          packagesRoot,
           logger,
           urlResolver,
-        },
-        locker,
-      );
-    } catch (error) {
-      logger.error(`Failed to register V3 routes: ${error}`);
-      throw error;
+        };
+        const publishRoutes = await registerPublishRoutes(fastify, config);
+        publishServiceSetter = publishRoutes.setPackageUploadService;
+      },
+      { prefix: "/api" },
+    );
+
+    // Set package upload service for publish functionality
+    if (publishServiceSetter) {
+      publishServiceSetter(metadataService);
     }
-
-    // Register UI Backend API routes
-    try {
-      await fastify.register(
-        async (fastify) => {
-          await registerUiRoutes(
-            fastify,
-            {
-              userService,
-              sessionService,
-              authService,
-              packagesRoot,
-              logger,
-              realm: config.realm || `${packageName} ${version}`,
-              serverUrl,
-              metadataService,
-            },
-            locker,
-          );
-        },
-        { prefix: "/api/ui" },
-      );
-    } catch (error) {
-      logger.error(`Failed to register UI routes: ${error}`);
-      throw error;
-    }
-
-    // Register Publish API routes
-    try {
-      let publishServiceSetter: any;
-      await fastify.register(
-        async (fastify) => {
-          const config: PublishRoutesConfig = {
-            packagesRoot,
-            authService,
-            authConfig,
-            logger,
-            urlResolver,
-          };
-          const publishRoutes = await registerPublishRoutes(fastify, config);
-          publishServiceSetter = publishRoutes.setPackageUploadService;
-        },
-        { prefix: "/api" },
-      );
-
-      // Set package upload service for publish functionality
-      if (publishServiceSetter) {
-        publishServiceSetter(metadataService);
-      }
-    } catch (error) {
-      logger.error(`Failed to register Publish routes: ${error}`);
-      throw error;
-    }
-
-    // Serve UI files with custom handler
-    // Check if we're in development mode
-    const devUiPath = path.join(process.cwd(), "src", "ui");
-    const devPublicPath = path.join(process.cwd(), "src", "ui", "public");
-    const prodUiPath = path.join(__dirname, "ui");
-
-    const isDevMode = existsSync(devPublicPath);
-    const uiPath = isDevMode ? devUiPath : prodUiPath;
-    const publicPath = isDevMode ? devPublicPath : prodUiPath;
-    const imagesPath = path.join(__dirname, "..", "images");
-
-    // Helper function to serve static files using streaming
-    const serveStaticFile = (
-      filePath: string,
-      reply: GetReply,
-      signal?: AbortSignal,
-    ) => {
-      // Use the unified file streaming helper
-      return streamFile(logger, locker, filePath, reply, {}, signal);
-    };
-
-    // Serve UI at root path
-    fastify.get("/", (request, reply: GetReply) => {
-      const indexPath = path.join(uiPath, "index.html");
-      return serveStaticFile(indexPath, reply, request.abortSignal);
-    });
-
-    // Serve login page
-    fastify.get("/login", (request, reply: GetReply) => {
-      const loginPath = path.join(uiPath, "login.html");
-      return serveStaticFile(loginPath, reply, request.abortSignal);
-    });
-
-    // Serve other UI assets
-    fastify.get("/assets/*", (request, reply: GetReply) => {
-      const assetPath = (request.params as any)["*"];
-      const fullPath = path.join(uiPath, "assets", assetPath);
-      return serveStaticFile(fullPath, reply, request.abortSignal);
-    });
-
-    // Serve images
-    fastify.get("/images/*", (request, reply: GetReply) => {
-      const imagePath = (request.params as any)["*"];
-      const fullPath = path.join(imagesPath, imagePath);
-      return serveStaticFile(fullPath, reply, request.abortSignal);
-    });
-
-    // Serve favicon
-    fastify.get("/favicon.ico", (request, reply: GetReply) => {
-      const faviconPath = path.join(publicPath, "favicon.ico");
-      return serveStaticFile(faviconPath, reply, request.abortSignal);
-    });
-
-    // Serve icon
-    fastify.get("/icon.png", (request, reply: GetReply) => {
-      const iconPath = path.join(publicPath, "icon.png");
-      return serveStaticFile(iconPath, reply, request.abortSignal);
-    });
-  } else {
-    // When UI is disabled, return JSON at root path
-    fastify.get("/", async (_request, _reply: GetReply) => {
-      return {
-        message: config.realm || `${packageName} ${version}`,
-        apiEndpoint: "/api",
-      };
-    });
+  } catch (error) {
+    logger.error(`Failed to register Publish routes: ${error}`);
+    throw error;
   }
+
+  // Serve UI files with custom handler
+  // Determine environment based on __dirname
+  const isDevelopment =
+    __dirname.includes("/src") || __dirname.includes("\\src");
+  const uiPath = path.join(__dirname, "ui");
+  const publicPath = isDevelopment
+    ? path.join(__dirname, "ui", "public")
+    : path.join(__dirname, "ui");
+
+  // Helper function to serve static files using streaming
+  const serveStaticFile = (
+    filePath: string,
+    reply: GetReply,
+    signal?: AbortSignal,
+  ) => {
+    // Use the unified file streaming helper
+    return streamFile(logger, locker, filePath, reply, {}, signal);
+  };
+
+  // Serve UI at root path
+  fastify.get("/", (request, reply: GetReply) => {
+    const indexPath = path.join(uiPath, "index.html");
+    return serveStaticFile(indexPath, reply, request.abortSignal);
+  });
+
+  // Serve login page
+  fastify.get("/login", (request, reply: GetReply) => {
+    const loginPath = path.join(uiPath, "login.html");
+    return serveStaticFile(loginPath, reply, request.abortSignal);
+  });
+
+  // Serve other UI assets
+  fastify.get("/assets/*", (request, reply: GetReply) => {
+    const assetPath = (request.params as any)["*"];
+    const fullPath = path.join(uiPath, "assets", assetPath);
+    return serveStaticFile(fullPath, reply, request.abortSignal);
+  });
+
+  // Serve favicon
+  fastify.get("/favicon.ico", (request, reply: GetReply) => {
+    const faviconPath = path.join(publicPath, "favicon.ico");
+    return serveStaticFile(faviconPath, reply, request.abortSignal);
+  });
+
+  // Serve icon
+  fastify.get("/icon.png", (request, reply: GetReply) => {
+    const iconPath = path.join(publicPath, "icon.png");
+    return serveStaticFile(iconPath, reply, request.abortSignal);
+  });
 
   // Store services on fastify instance for cleanup
   fastify.decorate("userService", userService);

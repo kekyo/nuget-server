@@ -3,7 +3,7 @@
 // License under MIT.
 
 import { readFile } from "fs/promises";
-import { join } from "path";
+import { join, resolve } from "path";
 import { LogLevel, AuthMode, Logger } from "../types";
 
 /**
@@ -15,7 +15,6 @@ export interface ConfigFile {
   packageDir?: string;
   realm?: string;
   logLevel?: LogLevel;
-  noUi?: boolean;
   trustedProxies?: string[];
   authMode?: AuthMode;
   sessionSecret?: string;
@@ -26,7 +25,11 @@ export interface ConfigFile {
 /**
  * Validates and sanitizes a config file object
  */
-const validateConfig = (config: any, logger?: Logger): ConfigFile => {
+const validateConfig = (
+  config: any,
+  configDir: string,
+  logger?: Logger,
+): ConfigFile => {
   const validated: ConfigFile = {};
 
   // Validate port
@@ -45,9 +48,11 @@ const validateConfig = (config: any, logger?: Logger): ConfigFile => {
     validated.baseUrl = config.baseUrl;
   }
 
-  // Validate packageDir
+  // Validate packageDir and resolve relative paths from config directory
   if (typeof config.packageDir === "string") {
-    validated.packageDir = config.packageDir;
+    // path.resolve handles both absolute and relative paths correctly
+    // If absolute: returns as-is, if relative: resolves from configDir
+    validated.packageDir = resolve(configDir, config.packageDir);
   }
 
   // Validate realm
@@ -69,11 +74,6 @@ const validateConfig = (config: any, logger?: Logger): ConfigFile => {
     } else {
       logger?.warn(`Invalid logLevel in config.json: ${config.logLevel}`);
     }
-  }
-
-  // Validate noUi
-  if (typeof config.noUi === "boolean") {
-    validated.noUi = config.noUi;
   }
 
   // Validate trustedProxies
@@ -150,7 +150,7 @@ export const loadConfigFromFile = async (
 
     logger?.debug(`Loaded configuration from ${configPath}`);
 
-    return validateConfig(config, logger);
+    return validateConfig(config, configDir, logger);
   } catch (error: any) {
     if (error.code === "ENOENT") {
       // File doesn't exist - this is normal, return empty config

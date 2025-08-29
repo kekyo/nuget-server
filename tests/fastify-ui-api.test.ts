@@ -43,7 +43,6 @@ describe("Fastify UI Backend API - Phase 4 Tests", () => {
       configDir: testConfigDir,
       realm: `Test Fastify UI Server - ${authMode}`,
       logLevel: testGlobalLogLevel,
-      noUi: false,
       authMode,
       passwordStrengthCheck: false, // Disable password strength check for testing
     };
@@ -188,7 +187,6 @@ describe("Fastify UI Backend API - Phase 4 Tests", () => {
       configDir: testConfigDir,
       realm: "Test Fastify UI Server - None",
       logLevel: testGlobalLogLevel,
-      noUi: false,
       authMode: "none",
       passwordStrengthCheck: false,
     };
@@ -230,7 +228,6 @@ describe("Fastify UI Backend API - Phase 4 Tests", () => {
       configDir: testConfigDir,
       realm: "Test Fastify UI Server - Full",
       logLevel: testGlobalLogLevel,
-      noUi: false,
       authMode: "full",
       passwordStrengthCheck: false,
     };
@@ -287,7 +284,6 @@ describe("Fastify UI Backend API - Phase 4 Tests", () => {
       configDir: testConfigDir,
       realm: "Test Fastify UI Server - Full",
       logLevel: testGlobalLogLevel,
-      noUi: false,
       authMode: "full",
       passwordStrengthCheck: false,
     };
@@ -328,7 +324,6 @@ describe("Fastify UI Backend API - Phase 4 Tests", () => {
       configDir: testConfigDir,
       realm: "Test Fastify UI Server - Full Auth",
       logLevel: testGlobalLogLevel,
-      noUi: false,
       authMode: "full",
       passwordStrengthCheck: false,
     };
@@ -365,7 +360,6 @@ describe("Fastify UI Backend API - Phase 4 Tests", () => {
       configDir: testConfigDir,
       realm: "Test Fastify UI Server - Full Auth",
       logLevel: testGlobalLogLevel,
-      noUi: false,
       authMode: "full",
       passwordStrengthCheck: false,
     };
@@ -482,11 +476,10 @@ describe("Fastify UI Backend API - Phase 4 Tests", () => {
       expect(response.status).toBe(201);
       const data = await response.json();
       expect(data).toHaveProperty("user");
-      expect(data).toHaveProperty("apiPassword");
       expect(data.user.username).toBe("newuser");
       expect(data.user.role).toBe("read");
-      expect(typeof data.apiPassword).toBe("string");
-      expect(data.apiPassword.length).toBeGreaterThan(0);
+      // API password is no longer returned on user creation
+      expect(data).not.toHaveProperty("apiPassword");
     } finally {
       await server.close();
     }
@@ -608,7 +601,6 @@ describe("Fastify UI API - POST /api/ui/apipassword (session required)", () => {
       configDir: testConfigDir,
       realm: "Test Fastify UI Server - Full",
       logLevel: testGlobalLogLevel,
-      noUi: false,
       authMode: "full",
       passwordStrengthCheck: false,
     };
@@ -814,7 +806,6 @@ describe("Fastify UI API - POST /api/ui/password (session required)", () => {
       configDir: testConfigDir,
       realm: "Test Fastify UI Server - Full",
       logLevel: testGlobalLogLevel,
-      noUi: false,
       authMode: "full",
       passwordStrengthCheck: false,
     };
@@ -1204,7 +1195,6 @@ describe("Fastify UI API - GET /api/ui/icon/{id}/{version} (auth based on mode)"
       configDir: testConfigDir,
       realm: "Test Fastify UI Server - None",
       logLevel: testGlobalLogLevel,
-      noUi: false,
       authMode: "none",
       passwordStrengthCheck: false,
     };
@@ -1233,7 +1223,6 @@ describe("Fastify UI API - GET /api/ui/icon/{id}/{version} (auth based on mode)"
       configDir: testConfigDir,
       realm: "Test Fastify UI Server - Publish",
       logLevel: testGlobalLogLevel,
-      noUi: false,
       authMode: "publish",
       passwordStrengthCheck: false,
     };
@@ -1263,7 +1252,6 @@ describe("Fastify UI API - GET /api/ui/icon/{id}/{version} (auth based on mode)"
       configDir: testConfigDir,
       realm: "Test Fastify UI Server - Full",
       logLevel: testGlobalLogLevel,
-      noUi: false,
       authMode: "full",
       passwordStrengthCheck: false,
     };
@@ -1323,7 +1311,6 @@ describe("Fastify UI API - GET /api/ui/icon/{id}/{version} (auth based on mode)"
       configDir: testConfigDir,
       realm: "Test Fastify UI Server - None",
       logLevel: testGlobalLogLevel,
-      noUi: false,
       authMode: "none",
       passwordStrengthCheck: false,
     };
@@ -1466,7 +1453,6 @@ describe("Fastify UI API - POST /api/publish (hybrid auth based on mode)", () =>
       configDir: testConfigDir,
       realm: "Test Fastify UI Server - None",
       logLevel: testGlobalLogLevel,
-      noUi: false,
       authMode: "none",
       passwordStrengthCheck: false,
     };
@@ -1510,7 +1496,6 @@ describe("Fastify UI API - POST /api/publish (hybrid auth based on mode)", () =>
       configDir: testConfigDir,
       realm: "Test Fastify UI Server - Publish",
       logLevel: testGlobalLogLevel,
-      noUi: false,
       authMode: "publish",
       passwordStrengthCheck: false,
     };
@@ -1551,7 +1536,6 @@ describe("Fastify UI API - POST /api/publish (hybrid auth based on mode)", () =>
       configDir: testConfigDir,
       realm: "Test Fastify UI Server - Publish",
       logLevel: testGlobalLogLevel,
-      noUi: false,
       authMode: "publish",
       passwordStrengthCheck: false,
     };
@@ -1615,7 +1599,6 @@ describe("Fastify UI API - POST /api/publish (hybrid auth based on mode)", () =>
       configDir: testConfigDir,
       realm: "Test Fastify UI Server - Publish",
       logLevel: testGlobalLogLevel,
-      noUi: false,
       authMode: "publish",
       passwordStrengthCheck: false,
     };
@@ -1664,7 +1647,6 @@ describe("Fastify UI API - POST /api/publish (hybrid auth based on mode)", () =>
       configDir: testConfigDir,
       realm: "Test Fastify UI Server - Publish",
       logLevel: testGlobalLogLevel,
-      noUi: false,
       authMode: "publish",
       passwordStrengthCheck: false,
     };

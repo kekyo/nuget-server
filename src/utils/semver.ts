@@ -17,7 +17,7 @@ interface ParsedVersion {
  */
 const parseVersion = (version: string): ParsedVersion => {
   const [main, prerelease] = version.split("-");
-  const parts = main.split(".").map(Number);
+  const parts = main?.split(".").map(Number) ?? [];
   return { parts, prerelease };
 };
 
@@ -74,10 +74,10 @@ export const sortVersions = (
 /**
  * Gets the latest version from an array of version strings
  * @param versions - Array of version strings
- * @returns The latest version string, or null if array is empty
+ * @returns The latest version string, or undefined if array is empty
  */
-export const getLatestVersion = (versions: string[]): string | null => {
-  if (versions.length === 0) return null;
+export const getLatestVersion = (versions: string[]): string | undefined => {
+  if (versions.length === 0) return undefined;
   const sorted = sortVersions(versions, "desc");
   return sorted[0];
 };

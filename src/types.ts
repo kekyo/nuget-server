@@ -49,7 +49,6 @@ export interface ServerConfig {
   trustedProxies?: string[];
   realm?: string;
   logLevel?: LogLevel;
-  noUi?: boolean;
   authMode?: AuthMode;
   sessionSecret?: string;
   passwordMinScore?: number; // 0-4, default: 2 (Good)

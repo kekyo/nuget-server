@@ -18,10 +18,9 @@ export default defineConfig(({ mode, command }) => {
   // Development server configuration
   const devConfig: ServerConfig = {
     port: 5963,
-    packageDir: "./dev/packages",
     configDir: "./dev",
+    packageDir: "./dev/packages",
     realm: "nuget-server dev",
-    noUi: false,
     authMode: "publish",
     trustedProxies: [],
   };
@@ -32,7 +31,9 @@ export default defineConfig(({ mode, command }) => {
       root: "src/ui",
       plugins: [
         react(),
-        prettierMax(),
+        prettierMax({
+          failOnError: true,
+        }),
         // Add Fastify plugin for development
         fastifyHost(devConfig),
       ],
@@ -43,6 +44,7 @@ export default defineConfig(({ mode, command }) => {
       build: {
         outDir: "../../dist/ui",
         emptyOutDir: true,
+        chunkSizeWarningLimit: 10000,
         rollupOptions: {
           input: {
             index: resolve(__dirname, "src/ui/index.html"),
@@ -58,10 +60,16 @@ export default defineConfig(({ mode, command }) => {
     // UI build mode
     return {
       root: "src/ui",
-      plugins: [react(), prettierMax()],
+      plugins: [
+        react(),
+        prettierMax({
+          failOnError: true,
+        }),
+      ],
       build: {
         outDir: "../../dist/ui",
         emptyOutDir: false, // Don't clean server build files
+        chunkSizeWarningLimit: 10000,
         rollupOptions: {
           input: {
             index: resolve(__dirname, "src/ui/index.html"),
@@ -83,10 +91,13 @@ export default defineConfig(({ mode, command }) => {
       screwUp({
         outputMetadataFile: true,
       }),
-      prettierMax(),
+      prettierMax({
+        failOnError: true,
+      }),
     ],
     build: {
       emptyOutDir: true, // Clean on first build
+      chunkSizeWarningLimit: 10000,
       // Build server code as library
       lib: {
         entry: {

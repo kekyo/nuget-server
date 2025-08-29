@@ -13,7 +13,6 @@ import { AuthService } from "../../services/authService";
 import {
   createConditionalHybridAuthMiddleware,
   FastifyAuthConfig,
-  AuthenticatedFastifyRequest,
 } from "../../middleware/fastifyAuth";
 import { createPackageService } from "../../services/packageService";
 import { createUrlResolver } from "../../utils/urlResolver";
@@ -202,7 +201,7 @@ const createSearchResult = (
   }
 
   // Use the latest version for main package info (first element since sorted in descending order)
-  const latestVersion = versions[0];
+  const latestVersion = versions[0]!;
 
   // Create version entries
   const versionEntries: SearchResultVersion[] = versions.map((version) => ({
@@ -308,7 +307,7 @@ export const registerV3Routes = async (
   const authHandler = createAuthHandler();
 
   // Apply authentication middleware conditionally
-  const authPreHandler = authHandler ? [authHandler] : [];
+  const authPreHandler = authHandler ? ([authHandler] as any) : [];
 
   // V3 Service Index - GET /v3/index.json
   fastify.get(
@@ -316,7 +315,7 @@ export const registerV3Routes = async (
     {
       preHandler: authPreHandler,
     },
-    async (request: AuthenticatedFastifyRequest, reply: FastifyReply) => {
+    async (request: FastifyRequest, reply: FastifyReply) => {
       try {
         const baseUrl = getBaseUrl(request);
         const serviceIndex = createServiceIndex(baseUrl);
@@ -334,7 +333,7 @@ export const registerV3Routes = async (
     {
       preHandler: authPreHandler,
     },
-    async (request: AuthenticatedFastifyRequest, reply: FastifyReply) => {
+    async (request: FastifyRequest, reply: FastifyReply) => {
       try {
         const baseUrl = getBaseUrl(request);
 
@@ -348,8 +347,8 @@ export const registerV3Routes = async (
         const q = ((query.q as string) || "").toLowerCase();
         const skip = parseInt((query.skip as string) || "0", 10);
         const take = parseInt((query.take as string) || "20", 10);
-        const prerelease = query.prerelease !== "false"; // Default to true
-        const semVerLevel = query.semVerLevel || "2.0.0";
+        // const _prerelease = query.prerelease !== "false"; // Default to true
+        // const _semVerLevel = query.semVerLevel || "2.0.0";
 
         // Get all package IDs
         const packageIds = metadataService.getAllPackageIds();
@@ -361,7 +360,7 @@ export const registerV3Routes = async (
           const versions = metadataService.getPackageMetadata(packageId);
           if (versions.length > 0) {
             // Use actual package ID from metadata (not lowercase cache key)
-            const actualPackageId = versions[0].id;
+            const actualPackageId = versions[0]!.id;
 
             // Filter by search query if provided
             if (q && !actualPackageId.toLowerCase().includes(q)) {
@@ -382,6 +381,11 @@ export const registerV3Routes = async (
             allSearchResults.push(searchResult);
           }
         }
+
+        // Sort search results alphabetically for consistent display
+        allSearchResults.sort((a, b) =>
+          a.id.localeCompare(b.id, undefined, { sensitivity: "base" }),
+        );
 
         // Apply pagination
         const searchResults = allSearchResults.slice(skip, skip + take);
@@ -412,7 +416,7 @@ export const registerV3Routes = async (
     {
       preHandler: authPreHandler,
     },
-    async (request: AuthenticatedFastifyRequest, reply: FastifyReply) => {
+    async (request: FastifyRequest, reply: FastifyReply) => {
       const { id: packageId } = request.params as { id: string };
       const lowerId = packageId.toLowerCase();
 
@@ -449,7 +453,7 @@ export const registerV3Routes = async (
     {
       preHandler: authPreHandler,
     },
-    async (request: AuthenticatedFastifyRequest, reply: FastifyReply) => {
+    async (request: FastifyRequest, reply: FastifyReply) => {
       const {
         id: packageId,
         version,
@@ -524,7 +528,7 @@ export const registerV3Routes = async (
     {
       preHandler: authPreHandler,
     },
-    async (request: AuthenticatedFastifyRequest, reply: FastifyReply) => {
+    async (request: FastifyRequest, reply: FastifyReply) => {
       const { id: packageId } = request.params as { id: string };
       const lowerId = packageId.toLowerCase();
 
@@ -551,12 +555,12 @@ export const registerV3Routes = async (
         // Create a single page containing all versions
         // Since versions are sorted in descending order: first = newest (upper), last = oldest (lower)
         const page: RegistrationPage = {
-          "@id": `${baseUrl}/v3/registrations/${lowerId}/index.json#page/${versions[versions.length - 1].version}/${versions[0].version}`,
+          "@id": `${baseUrl}/v3/registrations/${lowerId}/index.json#page/${versions[versions.length - 1]!.version}/${versions[0]!.version}`,
           "@type": "catalog:CatalogPage",
           count: versions.length,
           items: registrationLeaves,
-          lower: versions[versions.length - 1].version, // oldest version
-          upper: versions[0].version, // newest version
+          lower: versions[versions.length - 1]!.version, // oldest version
+          upper: versions[0]!.version, // newest version
         };
 
         const registrationIndex: RegistrationIndex = {

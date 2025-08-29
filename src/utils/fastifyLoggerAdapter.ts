@@ -7,7 +7,7 @@ import { Logger, LogLevel } from "../types";
 /**
  * Format log message from various input types
  */
-const formatMessage = (obj: any, msg?: string, ...args: any[]): string => {
+const formatMessage = (obj: any, msg?: string, ..._args: any[]): string => {
   // String only case
   if (typeof obj === "string") {
     return obj;
@@ -86,7 +86,7 @@ export const createFastifyLoggerAdapter = (
 
     // Child logger factory - returns same adapter for simplicity
     // In future, could add request context bindings here
-    child: (bindings?: any) => {
+    child: (_bindings?: any) => {
       // For now, return the same adapter
       // Could enhance to include bindings in future
       return adapter;

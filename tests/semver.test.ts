@@ -100,8 +100,8 @@ describe("Semantic Version Utilities", () => {
       expect(getLatestVersion(versions)).toBe("1.0.0");
     });
 
-    it("should return null for empty array", () => {
-      expect(getLatestVersion([])).toBeNull();
+    it("should return undefined for empty array", () => {
+      expect(getLatestVersion([])).toBeUndefined();
     });
 
     it("should handle single version", () => {

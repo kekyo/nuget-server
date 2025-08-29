@@ -104,7 +104,6 @@ export interface UserCreateResponse {
     createdAt: string;
     updatedAt: string;
   };
-  apiPassword: string;
 }
 
 /**
@@ -192,6 +191,7 @@ const requireRole = (
   if (!request.user || !roles.includes(request.user.role)) {
     return reply.status(403).send({ error: "Insufficient permissions" });
   }
+  return undefined;
 };
 
 /**
@@ -308,10 +308,11 @@ export const registerUiRoutes = async (
     {
       preHandler: [sessionOnlyAuth],
     },
-    async (request: AuthenticatedFastifyRequest, reply: FastifyReply) => {
+    async (request: FastifyRequest, reply: FastifyReply) => {
+      const authRequest = request as AuthenticatedFastifyRequest;
       try {
         // All user management operations require admin role
-        const roleCheck = requireRole(request, reply, ["admin"]);
+        const roleCheck = requireRole(authRequest, reply, ["admin"]);
         if (roleCheck) return roleCheck;
 
         const body = request.body as UserManagementRequest;
@@ -344,7 +345,7 @@ export const registerUiRoutes = async (
               `Creating new user: ${body.username} with role: ${body.role}`,
             );
 
-            const result = await userService.createUser({
+            const user = await userService.createUser({
               username: body.username,
               password: body.password,
               role: body.role,
@@ -354,13 +355,12 @@ export const registerUiRoutes = async (
 
             const response: UserCreateResponse = {
               user: {
-                id: result.user.id,
-                username: result.user.username,
-                role: result.user.role,
-                createdAt: result.user.createdAt,
-                updatedAt: result.user.updatedAt,
+                id: user.id,
+                username: user.username,
+                role: user.role,
+                createdAt: user.createdAt,
+                updatedAt: user.updatedAt,
               },
-              apiPassword: result.apiPassword,
             };
 
             return reply.status(201).send(response);
@@ -397,7 +397,10 @@ export const registerUiRoutes = async (
 
             // Prevent users from changing their own password via this endpoint
             // Users should use the separate password change endpoint
-            if (request.user && request.user.username === body.username) {
+            if (
+              authRequest.user &&
+              authRequest.user.username === body.username
+            ) {
               return reply.status(403).send({
                 error: "Cannot change your own password via this endpoint",
               });
@@ -427,7 +430,7 @@ export const registerUiRoutes = async (
               .status(400)
               .send({ error: `Unknown action: ${body.action}` });
         }
-      } catch (error) {
+      } catch (error: any) {
         if (error.statusCode) {
           throw error; // Re-throw HTTP errors
         }
@@ -438,39 +441,144 @@ export const registerUiRoutes = async (
   );
 
   // POST /api/ui/apipassword - Regenerate API password for current user (session auth required)
+  // DEPRECATED: Use /api/ui/apipasswords instead
   fastify.post(
     "/apipassword",
     {
       preHandler: [sessionOnlyAuth],
     },
-    async (request: AuthenticatedFastifyRequest, reply: FastifyReply) => {
+    async (request: FastifyRequest, reply: FastifyReply) => {
+      const authRequest = request as AuthenticatedFastifyRequest;
       try {
         logger.info(
-          `Regenerating API password for user: ${request.user.username}`,
+          `[DEPRECATED] Regenerating API password for user: ${authRequest.user?.username}`,
         );
 
         const result = await userService.regenerateApiPassword(
-          request.user.username,
+          authRequest.user?.username || "",
         );
         if (!result) {
           return reply.status(404).send({ error: "User not found" });
         }
 
         logger.info(
-          `API password regenerated successfully for user: ${request.user.username}`,
+          `API password regenerated successfully for user: ${authRequest.user?.username}`,
         );
 
         const response: ApiPasswordRegenerateResponse = {
           apiPassword: result.apiPassword,
-          username: request.user.username,
+          username: authRequest.user?.username || "",
         };
 
         return reply.send(response);
-      } catch (error) {
+      } catch (error: any) {
         if (error.statusCode) {
           throw error; // Re-throw HTTP errors
         }
         logger.error(`Error in /api/ui/apipassword: ${error}`);
+        return reply.status(500).send({ error: "Internal server error" });
+      }
+    },
+  );
+
+  // POST /api/ui/apipasswords - Manage multiple API passwords (session auth required)
+  fastify.post(
+    "/apipasswords",
+    {
+      preHandler: [sessionOnlyAuth],
+    },
+    async (request: FastifyRequest, reply: FastifyReply) => {
+      const authRequest = request as AuthenticatedFastifyRequest;
+      try {
+        const body = request.body as {
+          action: "list" | "add" | "delete";
+          label?: string;
+        };
+
+        const username = authRequest.user?.username;
+        if (!username) {
+          return reply.status(401).send({ error: "User not authenticated" });
+        }
+
+        switch (body.action) {
+          case "list": {
+            logger.info(`Listing API passwords for user: ${username}`);
+
+            const result = await userService.listApiPasswords(username);
+            if (!result) {
+              return reply.status(404).send({ error: "User not found" });
+            }
+
+            return reply.send(result);
+          }
+
+          case "add": {
+            if (!body.label) {
+              return reply
+                .status(400)
+                .send({ error: "Label is required for adding API password" });
+            }
+
+            logger.info(
+              `Adding API password with label "${body.label}" for user: ${username}`,
+            );
+
+            try {
+              const result = await userService.addApiPassword(
+                username,
+                body.label,
+              );
+              if (!result) {
+                return reply.status(404).send({ error: "User not found" });
+              }
+
+              logger.info(
+                `API password added successfully with label "${body.label}" for user: ${username}`,
+              );
+              return reply.send(result);
+            } catch (error: any) {
+              logger.warn(`Failed to add API password: ${error.message}`);
+              return reply.status(400).send({ error: error.message });
+            }
+          }
+
+          case "delete": {
+            if (!body.label) {
+              return reply
+                .status(400)
+                .send({ error: "Label is required for deleting API password" });
+            }
+
+            logger.info(
+              `Deleting API password with label "${body.label}" for user: ${username}`,
+            );
+
+            const result = await userService.deleteApiPassword(
+              username,
+              body.label,
+            );
+
+            if (!result.success) {
+              logger.warn(`Failed to delete API password: ${result.message}`);
+              return reply.status(404).send({ error: result.message });
+            }
+
+            logger.info(
+              `API password deleted successfully with label "${body.label}" for user: ${username}`,
+            );
+            return reply.send(result);
+          }
+
+          default:
+            return reply
+              .status(400)
+              .send({ error: `Unknown action: ${body.action}` });
+        }
+      } catch (error: any) {
+        if (error.statusCode) {
+          throw error; // Re-throw HTTP errors
+        }
+        logger.error(`Error in /api/ui/apipasswords: ${error}`);
         return reply.status(500).send({ error: "Internal server error" });
       }
     },
@@ -482,7 +590,8 @@ export const registerUiRoutes = async (
     {
       preHandler: [sessionOnlyAuth],
     },
-    async (request: AuthenticatedFastifyRequest, reply: FastifyReply) => {
+    async (request: FastifyRequest, reply: FastifyReply) => {
+      const authRequest = request as AuthenticatedFastifyRequest;
       try {
         const body = request.body as PasswordChangeRequest;
 
@@ -492,11 +601,11 @@ export const registerUiRoutes = async (
 
         if (body.username) {
           // Admin changing another user's password
-          const roleCheck = requireRole(request, reply, ["admin"]);
+          const roleCheck = requireRole(authRequest, reply, ["admin"]);
           if (roleCheck) return roleCheck;
 
           logger.info(
-            `Admin ${request.user.username} changing password for user: ${body.username}`,
+            `Admin ${authRequest.user?.username} changing password for user: ${body.username}`,
           );
 
           const updated = await userService.updateUser(body.username, {
@@ -519,7 +628,7 @@ export const registerUiRoutes = async (
 
           // Validate current password
           const user = await userService.validateCredentials(
-            request.user.username,
+            authRequest.user?.username || "",
             body.currentPassword,
           );
           if (!user) {
@@ -529,18 +638,21 @@ export const registerUiRoutes = async (
           }
 
           logger.info(
-            `User ${request.user.username} changing their own password`,
+            `User ${authRequest.user?.username} changing their own password`,
           );
 
-          const updated = await userService.updateUser(request.user.username, {
-            password: body.newPassword,
-          });
+          const updated = await userService.updateUser(
+            authRequest.user?.username || "",
+            {
+              password: body.newPassword,
+            },
+          );
           if (!updated) {
             return reply.status(404).send({ error: "User not found" });
           }
 
           logger.info(
-            `Password changed successfully for user: ${request.user.username}`,
+            `Password changed successfully for user: ${authRequest.user?.username}`,
           );
         }
 
@@ -550,7 +662,7 @@ export const registerUiRoutes = async (
         };
 
         return reply.send(response);
-      } catch (error) {
+      } catch (error: any) {
         if (error.statusCode) {
           throw error; // Re-throw HTTP errors
         }
@@ -611,7 +723,7 @@ export const registerUiRoutes = async (
               request.abortSignal,
             );
             return;
-          } catch (error) {
+          } catch (error: any) {
             // Continue to next extension
           }
         }
@@ -657,7 +769,7 @@ export const registerUiRoutes = async (
                 request.abortSignal,
               );
               return;
-            } catch (error) {
+            } catch (error: any) {
               // Continue to next extension
             }
           }

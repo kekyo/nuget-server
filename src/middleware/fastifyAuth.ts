@@ -49,14 +49,14 @@ const isUIRequest = (request: FastifyRequest): boolean => {
 /**
  * Parses Basic authentication header
  * @param authHeader - Authorization header value
- * @returns Parsed credentials or null
+ * @returns Parsed credentials or undefined
  */
 const parseBasicAuth = (
   authHeader: string,
-): { username: string; password: string } | null => {
+): { username: string; password: string } | undefined => {
   try {
     if (!authHeader.startsWith("Basic ")) {
-      return null;
+      return undefined;
     }
 
     const credentials = authHeader.substring(6); // Remove 'Basic ' prefix
@@ -66,7 +66,7 @@ const parseBasicAuth = (
     const colonIndex = decodedCredentials.indexOf(":");
 
     if (colonIndex === -1) {
-      return null;
+      return undefined;
     }
 
     const username = decodedCredentials.substring(0, colonIndex);
@@ -76,7 +76,7 @@ const parseBasicAuth = (
     // Empty username and password is valid but will fail authentication
     return { username, password };
   } catch (error) {
-    return null;
+    return undefined;
   }
 };
 
@@ -298,7 +298,7 @@ export const createConditionalHybridAuthMiddleware = (
   if (skipAuth) {
     return async (
       request: AuthenticatedFastifyRequest,
-      reply: FastifyReply,
+      _reply: FastifyReply,
     ) => {
       config.logger.debug(
         `Hybrid auth skipped for ${request.method} ${request.url} - disabled by configuration`,

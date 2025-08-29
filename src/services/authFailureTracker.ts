@@ -59,7 +59,7 @@ export const createAuthFailureTracker = (
 
   const ipFailures = new Map<string, FailureEntry>();
   const userFailures = new Map<string, FailureEntry>();
-  let cleanupTimer: NodeJS.Timeout | null = null;
+  let cleanupTimer: NodeJS.Timeout | undefined = undefined;
 
   /**
    * Get client IP address from request
@@ -129,7 +129,7 @@ export const createAuthFailureTracker = (
   const stopCleanupTimer = (): void => {
     if (cleanupTimer) {
       clearInterval(cleanupTimer);
-      cleanupTimer = null;
+      cleanupTimer = undefined;
     }
   };
 
@@ -230,7 +230,7 @@ export const createAuthFailureTracker = (
 
       // Calculate delay based on failure count
       const delayIndex = Math.min(failureCount - 1, delays.length - 1);
-      const delayMs = Math.min(delays[delayIndex], maxDelay);
+      const delayMs = Math.min(delays[delayIndex] ?? 0, maxDelay);
 
       if (delayMs > 0) {
         logger.info(

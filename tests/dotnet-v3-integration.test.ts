@@ -65,7 +65,6 @@ describe("dotnet restore V3 API Integration Tests", () => {
       configDir: testConfigDir,
       realm: `Test Dotnet V3 Server - ${authMode}`,
       logLevel: testGlobalLogLevel,
-      noUi: false,
       authMode,
       passwordStrengthCheck: false,
     };
