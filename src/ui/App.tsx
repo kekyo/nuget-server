@@ -41,7 +41,7 @@ import UserPasswordChangeDrawer from "./components/UserPasswordChangeDrawer";
 import LoginDialog from "./components/LoginDialog";
 import { name, repository_url, version } from "../generated/packageMetadata";
 import { buildAddSourceCommand } from "./utils/commandBuilder";
-import { apiFetch, setGlobalPathPrefix } from "./utils/apiClient";
+import { apiFetch } from "./utils/apiClient";
 
 interface ServerConfig {
   realm: string;
@@ -144,7 +144,7 @@ const App = () => {
       ) {
         // Check session status
         try {
-          const sessionResponse = await fetch("/api/auth/session", {
+          const sessionResponse = await apiFetch("api/auth/session", {
             credentials: "same-origin",
           });
 
@@ -221,13 +221,13 @@ const App = () => {
   const fetchServerConfig = async () => {
     try {
       // First try Express endpoint
-      let response = await fetch("/api/config", {
+      let response = await apiFetch("api/config", {
         credentials: "same-origin",
       });
 
       // If Express endpoint fails, try Fastify UI endpoint
       if (!response.ok && response.status === 404) {
-        response = await fetch("/api/ui/config", {
+        response = await apiFetch("api/ui/config", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({}),
@@ -238,8 +238,6 @@ const App = () => {
       if (response.ok) {
         const config = await response.json();
         setServerConfig(config);
-        // Set global path prefix for API calls
-        setGlobalPathPrefix(config.serverUrl?.baseUrl);
         // Update document title with realm
         if (config.realm) {
           document.title = config.realm;
@@ -345,14 +343,10 @@ const App = () => {
 
   const handleLogout = async () => {
     try {
-      const response = await apiFetch(
-        "/api/auth/logout",
-        {
-          method: "POST",
-          credentials: "same-origin",
-        },
-        serverConfig?.serverUrl?.baseUrl,
-      );
+      const response = await apiFetch("api/auth/logout", {
+        method: "POST",
+        credentials: "same-origin",
+      });
 
       if (response.ok) {
         // Clear local state

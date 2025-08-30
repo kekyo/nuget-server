@@ -29,6 +29,7 @@ export default defineConfig(({ mode, command }) => {
   if (isDev && !isBuild) {
     return {
       root: "src/ui",
+      base: "./", // Use relative paths for assets
       plugins: [
         react(),
         prettierMax({
@@ -60,6 +61,7 @@ export default defineConfig(({ mode, command }) => {
     // UI build mode
     return {
       root: "src/ui",
+      base: "./", // Use relative paths for assets
       plugins: [
         react(),
         prettierMax({

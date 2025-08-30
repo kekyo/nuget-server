@@ -71,7 +71,7 @@ const UserDeleteDrawer = ({
   const loadUsers = async () => {
     setLoadingUsers(true);
     try {
-      const response = await apiFetch("/api/ui/users", {
+      const response = await apiFetch("api/ui/users", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -128,7 +128,7 @@ const UserDeleteDrawer = ({
     setResult(null);
 
     try {
-      const response = await apiFetch("/api/ui/users", {
+      const response = await apiFetch("api/ui/users", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

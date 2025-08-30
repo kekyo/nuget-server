@@ -54,7 +54,7 @@ const LoginApp = () => {
   useEffect(() => {
     const fetchServerConfig = async () => {
       try {
-        const response = await apiFetch("/api/config", {
+        const response = await apiFetch("api/config", {
           credentials: "same-origin",
         });
         if (response.ok) {
@@ -76,7 +76,7 @@ const LoginApp = () => {
 
   const handleLoginSuccess = () => {
     // Redirect to main application after successful login
-    window.location.href = "/";
+    window.location.href = ".";
   };
 
   const handleCloseLoginDialog = () => {

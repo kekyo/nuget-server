@@ -67,7 +67,7 @@ const LoginDialog = ({
     setError(null);
 
     try {
-      const response = await apiFetch("/api/auth/login", {
+      const response = await apiFetch("api/auth/login", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
