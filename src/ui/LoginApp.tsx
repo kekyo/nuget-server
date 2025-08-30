@@ -12,6 +12,7 @@ import {
   Container,
 } from "@mui/material";
 import LoginDialog from "./components/LoginDialog";
+import { apiFetch } from "./utils/apiClient";
 
 const LoginApp = () => {
   const prefersDarkMode = useMediaQuery("(prefers-color-scheme: dark)");
@@ -53,7 +54,7 @@ const LoginApp = () => {
   useEffect(() => {
     const fetchServerConfig = async () => {
       try {
-        const response = await fetch("/api/config", {
+        const response = await apiFetch("/api/config", {
           credentials: "same-origin",
         });
         if (response.ok) {

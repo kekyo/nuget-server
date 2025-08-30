@@ -26,6 +26,7 @@ import {
   Error as ErrorIcon,
 } from "@mui/icons-material";
 import { PasswordStrengthIndicator } from "./PasswordStrengthIndicator";
+import { apiFetch } from "../utils/apiClient";
 
 interface UserRegistrationDrawerProps {
   open: boolean;
@@ -103,7 +104,7 @@ const UserRegistrationDrawer = ({
         role,
       };
 
-      const response = await fetch(endpoint, {
+      const response = await apiFetch(endpoint, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

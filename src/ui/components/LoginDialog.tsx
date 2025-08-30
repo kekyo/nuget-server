@@ -20,6 +20,7 @@ import {
   IconButton,
 } from "@mui/material";
 import { Login as LoginIcon, Close as CloseIcon } from "@mui/icons-material";
+import { apiFetch } from "../utils/apiClient";
 
 interface LoginResponse {
   success: boolean;
@@ -66,7 +67,7 @@ const LoginDialog = ({
     setError(null);
 
     try {
-      const response = await fetch("/api/auth/login", {
+      const response = await apiFetch("/api/auth/login", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

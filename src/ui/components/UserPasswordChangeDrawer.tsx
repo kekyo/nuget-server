@@ -21,6 +21,7 @@ import {
   LockReset as LockResetIcon,
 } from "@mui/icons-material";
 import { PasswordStrengthIndicator } from "./PasswordStrengthIndicator";
+import { apiFetch } from "../utils/apiClient";
 
 interface UserPasswordChangeDrawerProps {
   open: boolean;
@@ -105,7 +106,7 @@ const UserPasswordChangeDrawer = ({
       setLoading(true);
       setResult(null);
 
-      const response = await fetch("/api/ui/password", {
+      const response = await apiFetch("/api/ui/password", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

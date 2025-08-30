@@ -32,6 +32,7 @@ import {
   Delete as DeleteIcon,
 } from "@mui/icons-material";
 import { buildAddSourceCommand } from "../utils/commandBuilder";
+import { apiFetch } from "../utils/apiClient";
 
 interface ApiPasswordDrawerProps {
   open: boolean;
@@ -92,7 +93,7 @@ const ApiPasswordDrawer = ({
       setLoading(true);
       setError(null);
 
-      const response = await fetch("/api/ui/apipasswords", {
+      const response = await apiFetch("/api/ui/apipasswords", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -127,7 +128,7 @@ const ApiPasswordDrawer = ({
       setLoading(true);
       setError(null);
 
-      const response = await fetch("/api/ui/apipasswords", {
+      const response = await apiFetch("/api/ui/apipasswords", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -161,7 +162,7 @@ const ApiPasswordDrawer = ({
       setLoading(true);
       setError(null);
 
-      const response = await fetch("/api/ui/apipasswords", {
+      const response = await apiFetch("/api/ui/apipasswords", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

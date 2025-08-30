@@ -41,6 +41,7 @@ import UserPasswordChangeDrawer from "./components/UserPasswordChangeDrawer";
 import LoginDialog from "./components/LoginDialog";
 import { name, repository_url, version } from "../generated/packageMetadata";
 import { buildAddSourceCommand } from "./utils/commandBuilder";
+import { apiFetch, setGlobalPathPrefix } from "./utils/apiClient";
 
 interface ServerConfig {
   realm: string;
@@ -237,6 +238,8 @@ const App = () => {
       if (response.ok) {
         const config = await response.json();
         setServerConfig(config);
+        // Set global path prefix for API calls
+        setGlobalPathPrefix(config.serverUrl?.baseUrl);
         // Update document title with realm
         if (config.realm) {
           document.title = config.realm;
@@ -342,10 +345,14 @@ const App = () => {
 
   const handleLogout = async () => {
     try {
-      const response = await fetch("/api/auth/logout", {
-        method: "POST",
-        credentials: "same-origin",
-      });
+      const response = await apiFetch(
+        "/api/auth/logout",
+        {
+          method: "POST",
+          credentials: "same-origin",
+        },
+        serverConfig?.serverUrl?.baseUrl,
+      );
 
       if (response.ok) {
         // Clear local state

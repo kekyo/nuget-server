@@ -28,6 +28,7 @@ import PackageSourceIcon from "@mui/icons-material/Source";
 import DownloadIcon from "@mui/icons-material/Download";
 import InfiniteScroll from "react-infinite-scroll-component";
 import { sortVersions } from "../utils/semver";
+import { apiFetch } from "./utils/apiClient";
 
 interface SearchResultVersion {
   version: string;
@@ -224,9 +225,13 @@ const PackageList = forwardRef<PackageListRef, PackageListProps>(
         // Use Fastify search endpoint with pagination
         const searchEndpoint = `/v3/search?skip=${skip}&take=${pageSize}`;
 
-        const response = await fetch(searchEndpoint, {
-          credentials: "same-origin",
-        });
+        const response = await apiFetch(
+          searchEndpoint,
+          {
+            credentials: "same-origin",
+          },
+          serverConfig?.serverUrl?.baseUrl,
+        );
         if (response.status === 401) {
           // Authentication required
           setError("Authentication required");
