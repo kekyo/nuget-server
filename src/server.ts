@@ -15,8 +15,10 @@ import fastifyPassport from "@fastify/passport";
 import fastifySecureSession from "@fastify/secure-session";
 import fastifyStatic from "@fastify/static";
 import { IncomingMessage, ServerResponse } from "http";
+import { readFile } from "fs/promises";
 import path from "path";
 import { fileURLToPath } from "url";
+import crypto from "crypto";
 import {
   name as packageName,
   version,
@@ -29,7 +31,7 @@ import { createUserService } from "./services/userService";
 import { createSessionService } from "./services/sessionService";
 import { createAuthFailureTrackerFromEnv } from "./services/authFailureTracker";
 import { Logger, ServerConfig } from "./types";
-import { createUrlResolver } from "./utils/urlResolver";
+import { createUrlResolver, extractPathFromBaseUrl } from "./utils/urlResolver";
 import { createFastifyLoggerAdapter } from "./utils/fastifyLoggerAdapter";
 import {
   createLocalStrategy,
@@ -193,7 +195,6 @@ export const createFastifyInstance = async (
     sessionKey = Buffer.from(secret);
   } else {
     // Generate random secret and log info
-    const crypto = await import("crypto");
     sessionKey = crypto.randomBytes(32);
     logger.info(
       "Session secret was not provided. Generated a random session secret for this instance.",
@@ -518,15 +519,57 @@ export const createFastifyInstance = async (
   };
 
   // Serve UI at root path
-  fastify.get("/", (request, reply: GetReply) => {
+  fastify.get("/", async (_request, reply: GetReply) => {
     const indexPath = path.join(uiPath, "index.html");
-    return serveStaticFile(indexPath, reply, request.abortSignal);
+
+    // Read HTML content
+    let htmlContent = await readFile(indexPath, "utf-8");
+
+    // Get the path prefix from the configuration
+    const pathPrefix = extractPathFromBaseUrl(config.baseUrl);
+
+    // If there's a path prefix, update asset paths in HTML
+    if (pathPrefix) {
+      // Replace absolute paths with prefixed paths
+      htmlContent = htmlContent.replace(
+        /src="\/assets\//g,
+        `src="${pathPrefix}/assets/`,
+      );
+      htmlContent = htmlContent.replace(
+        /href="\/assets\//g,
+        `href="${pathPrefix}/assets/`,
+      );
+    }
+
+    // Send modified HTML
+    reply.type("text/html").send(htmlContent);
   });
 
   // Serve login page
-  fastify.get("/login", (request, reply: GetReply) => {
+  fastify.get("/login", async (_request, reply: GetReply) => {
     const loginPath = path.join(uiPath, "login.html");
-    return serveStaticFile(loginPath, reply, request.abortSignal);
+
+    // Read HTML content
+    let htmlContent = await readFile(loginPath, "utf-8");
+
+    // Get the path prefix from the configuration
+    const pathPrefix = extractPathFromBaseUrl(config.baseUrl);
+
+    // If there's a path prefix, update asset paths in HTML
+    if (pathPrefix) {
+      // Replace absolute paths with prefixed paths
+      htmlContent = htmlContent.replace(
+        /src="\/assets\//g,
+        `src="${pathPrefix}/assets/`,
+      );
+      htmlContent = htmlContent.replace(
+        /href="\/assets\//g,
+        `href="${pathPrefix}/assets/`,
+      );
+    }
+
+    // Send modified HTML
+    reply.type("text/html").send(htmlContent);
   });
 
   // Serve other UI assets
