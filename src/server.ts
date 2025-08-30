@@ -84,11 +84,44 @@ export const createFastifyInstance = async (
     config.logLevel || "info",
   );
 
+  // Initialize URL resolver early to use in rewriteUrl
+  const urlResolver = createUrlResolver(logger, {
+    baseUrl: config.baseUrl,
+    trustedProxies: config.trustedProxies,
+  });
+
   // Create Fastify instance with integrated logging
   const fastify: FastifyInstance = Fastify({
     logger: fastifyLoggerAdapter,
     bodyLimit: 1024 * 1024 * 100, // 100MB limit for package uploads
     disableRequestLogging: true, // Use our custom request logging
+    rewriteUrl: (req) => {
+      // Check if URL exists
+      if (!req.url) {
+        return "/";
+      }
+
+      // Extract path prefix from baseUrl or x-forwarded-path header
+      // Create a simple request object that matches GenericRequest interface
+      const pathPrefix = urlResolver.extractPathPrefix({
+        protocol: "http", // Will be overridden by headers if needed
+        socket: {
+          remoteAddress: req.socket?.remoteAddress,
+        },
+        headers: req.headers as {
+          [key: string]: string | string[] | undefined;
+        },
+      });
+
+      if (pathPrefix && req.url.startsWith(pathPrefix)) {
+        // Remove the path prefix from the URL
+        const newUrl = req.url.slice(pathPrefix.length) || "/";
+        logger.debug(`rewriteUrl: ${req.url} -> ${newUrl}`);
+        return newUrl;
+      }
+
+      return req.url;
+    },
   });
 
   // Add content type parser for binary data (package uploads)
@@ -99,12 +132,6 @@ export const createFastifyInstance = async (
       done(null, body);
     },
   );
-
-  // Initialize URL resolver
-  const urlResolver = createUrlResolver({
-    baseUrl: config.baseUrl,
-    trustedProxies: config.trustedProxies,
-  });
 
   // Initialize metadata service
   const packagesRoot = config.packageDir || process.cwd() + "/packages";

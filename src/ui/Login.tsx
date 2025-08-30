@@ -18,6 +18,7 @@ import {
   useMediaQuery,
 } from "@mui/material";
 import { Login as LoginIcon } from "@mui/icons-material";
+import { apiFetch } from "./utils/apiClient";
 
 interface LoginResponse {
   success: boolean;
@@ -50,7 +51,7 @@ const Login = () => {
     setError(null);
 
     try {
-      const response = await fetch("/api/auth/login", {
+      const response = await apiFetch("/api/auth/login", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

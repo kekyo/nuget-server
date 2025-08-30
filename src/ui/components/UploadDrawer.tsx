@@ -23,6 +23,7 @@ import {
   FileUpload as FileUploadIcon,
   Clear as ClearIcon,
 } from "@mui/icons-material";
+import { apiFetch } from "../utils/apiClient";
 import {
   Chip,
   LinearProgress,
@@ -112,7 +113,7 @@ const UploadDrawer = ({
         // Read file as ArrayBuffer to send as binary data
         const fileBuffer = await file.arrayBuffer();
 
-        const response = await fetch("/api/publish", {
+        const response = await apiFetch("/api/publish", {
           method: "POST",
           headers: {
             "Content-Type": "application/octet-stream",

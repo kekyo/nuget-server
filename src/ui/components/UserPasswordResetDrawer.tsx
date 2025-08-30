@@ -23,6 +23,7 @@ import {
   Error as ErrorIcon,
 } from "@mui/icons-material";
 import { PasswordStrengthIndicator } from "./PasswordStrengthIndicator";
+import { apiFetch } from "../utils/apiClient";
 
 interface UserPasswordResetDrawerProps {
   open: boolean;
@@ -64,7 +65,7 @@ const UserPasswordResetDrawer = ({
   const loadUsers = async () => {
     setLoadingUsers(true);
     try {
-      const response = await fetch("/api/ui/users", {
+      const response = await apiFetch("/api/ui/users", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -133,7 +134,7 @@ const UserPasswordResetDrawer = ({
     setResult(null);
 
     try {
-      const response = await fetch("/api/ui/users", {
+      const response = await apiFetch("/api/ui/users", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
