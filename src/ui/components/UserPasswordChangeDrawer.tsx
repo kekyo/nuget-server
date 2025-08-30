@@ -106,7 +106,7 @@ const UserPasswordChangeDrawer = ({
       setLoading(true);
       setResult(null);
 
-      const response = await apiFetch("/api/ui/password", {
+      const response = await apiFetch("api/ui/password", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

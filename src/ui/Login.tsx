@@ -51,7 +51,7 @@ const Login = () => {
     setError(null);
 
     try {
-      const response = await apiFetch("/api/auth/login", {
+      const response = await apiFetch("api/auth/login", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -68,7 +68,7 @@ const Login = () => {
 
       if (data.success) {
         // Login successful, redirect to main page
-        window.location.href = "/";
+        window.location.href = ".";
       } else {
         setError(data.message || "Login failed");
       }

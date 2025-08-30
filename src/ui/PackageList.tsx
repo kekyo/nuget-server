@@ -223,15 +223,11 @@ const PackageList = forwardRef<PackageListRef, PackageListProps>(
         const skip = isInitialLoad ? 0 : page * pageSize;
 
         // Use Fastify search endpoint with pagination
-        const searchEndpoint = `/v3/search?skip=${skip}&take=${pageSize}`;
+        const searchEndpoint = `v3/search?skip=${skip}&take=${pageSize}`;
 
-        const response = await apiFetch(
-          searchEndpoint,
-          {
-            credentials: "same-origin",
-          },
-          serverConfig?.serverUrl?.baseUrl,
-        );
+        const response = await apiFetch(searchEndpoint, {
+          credentials: "same-origin",
+        });
         if (response.status === 401) {
           // Authentication required
           setError("Authentication required");

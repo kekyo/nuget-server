@@ -93,7 +93,7 @@ const ApiPasswordDrawer = ({
       setLoading(true);
       setError(null);
 
-      const response = await apiFetch("/api/ui/apipasswords", {
+      const response = await apiFetch("api/ui/apipasswords", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -128,7 +128,7 @@ const ApiPasswordDrawer = ({
       setLoading(true);
       setError(null);
 
-      const response = await apiFetch("/api/ui/apipasswords", {
+      const response = await apiFetch("api/ui/apipasswords", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -162,7 +162,7 @@ const ApiPasswordDrawer = ({
       setLoading(true);
       setError(null);
 
-      const response = await apiFetch("/api/ui/apipasswords", {
+      const response = await apiFetch("api/ui/apipasswords", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

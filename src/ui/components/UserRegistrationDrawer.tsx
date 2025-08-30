@@ -94,7 +94,7 @@ const UserRegistrationDrawer = ({
 
     try {
       // Use Fastify user management endpoint
-      const endpoint = "/api/ui/users";
+      const endpoint = "api/ui/users";
 
       // Prepare request body
       const requestBody = {
