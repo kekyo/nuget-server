@@ -5,8 +5,9 @@
 set -e
 
 # Configuration
+OCI_SERVER="docker.io"
 IMAGE_NAME="nuget-server"
-DOCKER_HUB_USER=${DOCKER_HUB_USER:-"yourusername"}
+OCI_SERVER_USER=${OCI_SERVER_USER:-"kekyo"}
 
 # Get version from screw-up dump
 echo "Getting version information..."
@@ -22,8 +23,8 @@ fi
 # Full image names
 LOCAL_IMAGE="${IMAGE_NAME}:${VERSION}"
 LOCAL_LATEST="${IMAGE_NAME}:latest"
-REMOTE_IMAGE="${DOCKER_HUB_USER}/${IMAGE_NAME}:${VERSION}"
-REMOTE_LATEST="${DOCKER_HUB_USER}/${IMAGE_NAME}:latest"
+REMOTE_IMAGE="${OCI_SERVER}/${OCI_SERVER_USER}/${IMAGE_NAME}:${VERSION}"
+REMOTE_LATEST="${OCI_SERVER}/${OCI_SERVER_USER}/${IMAGE_NAME}:latest"
 
 echo "Building Docker image for nuget-server..."
 echo "Local image: ${LOCAL_IMAGE}"
