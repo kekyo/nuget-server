@@ -479,24 +479,72 @@ The server implements a subset of the NuGet V3 API protocol:
 
 ---
 
-## Docker Usage (WIP)
+## Docker usage
 
-### Building the Docker Image
+### Multi-platform support
 
-Use the provided build script (require podman):
+Docker images are available for multiple architectures:
+
+- `linux/amd64` (x86_64)
+- `linux/arm64` (aarch64)
+
+When pulling the image, Docker automatically selects the appropriate architecture for your platform.
+
+### Building the Docker image
+
+#### Multi-platform build with Podman (recommended)
+
+Use the provided multi-platform build script that uses Podman to build for all supported architectures:
 
 ```bash
-./build-docker.sh
+# Build for all platforms (local only, no push)
+./build-multiplatform.sh
+
+# Build and push to Docker Hub
+./build-multiplatform.sh --push
+
+# Build for specific platforms only
+./build-multiplatform.sh --platforms linux/amd64,linux/arm64
+
+# Push with custom Docker Hub username
+OCI_SERVER_USER=yourusername ./build-multiplatform.sh --push
+
+# Inspect existing manifest
+./build-multiplatform.sh --inspect
 ```
 
-Or build manually:
+**Important**: For cross-platform builds, QEMU emulation must be configured first:
 
 ```bash
-# Build the image
-docker build -t nuget-server:latest .
+# Option 1: Use QEMU container (recommended)
+sudo podman run --rm --privileged docker.io/multiarch/qemu-user-static --reset -p yes
+
+# Option 2: Install system packages
+# Ubuntu/Debian:
+sudo apt-get update && sudo apt-get install -y qemu-user-static
+# Fedora/RHEL:
+sudo dnf install -y qemu-user-static
+
+# Verify QEMU is working:
+podman run --rm --platform linux/arm64 alpine:latest uname -m
+# Should output: aarch64
+```
+
+Without QEMU, you can only build for your native architecture.
+
+#### Single-Platform Build
+
+For development or single-architecture builds:
+
+```bash
+# Use the single-platform build script with Podman
+./build-docker.sh
+
+# Or build manually with Podman
+podman build -t nuget-server:latest .
 
 # Tag for Docker Hub (replace with your username)
-docker tag nuget-server:latest yourusername/nuget-server:latest
+podman tag nuget-server:latest docker.io/yourusername/nuget-server:latest
 ```
 
 ### Running with Docker (WIP)
@@ -511,8 +559,8 @@ docker run -p 5963:5963 -v $(pwd)/packages:/packages nuget-server:latest
 
 # With authentication configuration directory
 docker run -p 5963:5963 \
-  -v $(pwd)/packages:/packages \
   -v $(pwd)/config:/config \
+  -v $(pwd)/packages:/packages \
   nuget-server:latest
 ```
 
