@@ -1,6 +1,6 @@
 # nuget-server
 
-Simple modenized NuGet server implementation on Node.js
+Simple modenized NuGet server implementation.
 
 ![nuget-server](images/nuget-server-120.png)
 
@@ -11,11 +11,13 @@ Simple modenized NuGet server implementation on Node.js
 
 ---
 
+[(日本語はこちら)](./README_ja.md)
+
 ## What is this?
 
 A simple NuGet server implementation built on Node.js that provides essential NuGet v3 API endpoints.
 
-Compatible with `dotnet restore` and standard NuGet clients for package publishing, querying, and downloading.
+Compatible with `dotnet restore` and standard NuGet clients for package publishing, querying, and manually downloading.
 
 A modern browser-based UI is also provided:
 
@@ -52,11 +54,15 @@ A modern browser-based UI is also provided:
 - Package importer: Included package importer from existing NuGet server
 - Docker image available
 
+---
+
 ## Installation
 
 ```bash
 npm install -g nuget-server
 ```
+
+For using Docker images, refer to a separate chapter.
 
 ## Usage
 
@@ -68,7 +74,7 @@ nuget-server
 nuget-server --port 3000
 
 # Multiple options
-nuget-server --port 3000 --config-file ./my-config.json --users-file ./data/users.json
+nuget-server --port 3000 --config-file config/config.json --users-file config/users.json
 ```
 
 The NuGet V3 API is served on the `/v3` path.
@@ -76,11 +82,14 @@ The NuGet V3 API is served on the `/v3` path.
 - Default nuget-server served URL (Show UI): `http://localhost:5963`
 - Actual NuGet V3 API endpoint: `http://localhost:5963/v3/index.json`
 
-Default nuget-server served URL can change with `--base-url` option, it shows below section.
+The default URL provided by nuget-server can be changed using the `--base-url` option.
+This is particularly necessary when public endpoint service using a reverse proxy. For details, refer to below chapter.
 
 ## Configure the NuGet client
 
-### Add nuget-server as package source
+nuget-server only supports the NuGet V3 API. Therefore, NuGet clients must always access it using the V3 API.
+
+If you do not explicitly specify to use the V3 API, some implementations may fall back to the V3 API while others may not, potentially causing unstable behavior. Therefore, you must always specify it. Example below.
 
 Add as package source:
 
@@ -121,7 +130,17 @@ curl -X POST http://localhost:5963/api/publish \
   -H "Content-Type: application/octet-stream"
 ```
 
-This methodology uses simply HTTP POST with binary (octet-stream) instead of the standard NuGet V3 publish protocol (`dotnet nuget push` command), because it is gateway,reverse-proxy,load-balancer friendy access.
+You may be dissatisfied with publishing using this method. The dotnet command includes `dotnet nuget push`, which is the standard approach.
+However, in my experience, this protocol uses `multipart/form-data` for transmission, which has caused issues with gateway services, reverse proxies, load balancers, and similar components.
+Therefore, the current nuget-server does not implement this method and instead uses the simplest binary transmission procedure.
+
+Another advantage is that when authentication is enabled, you don't need to manage Basic authentication and V3 API keys separately.
+You might still feel issue with managing read operations and publish operation with the same key,
+but in that case, you can simply separate the users.
+
+For authentication feature, please refer to below chapter.
+
+---
 
 ## Package storage configuration
 
@@ -169,11 +188,22 @@ cd /your/server/base/dir
 tar -cf - ./packages | lz4 > backup-packages.tar.lz4
 ```
 
-Restore is simply extract it and re-run nuget-server with the same package directory configuration.
+Restore is simply extract it and re-run nuget-server with the same package directory configuration, because nuget-server does not use any specialized storage such as databases.
 
 ---
 
-## Configuration file
+## Configuration
+
+nuget-server supports configuration through command-line options, environment variables, and JSON file.
+
+Settings are applied in the following order (highest to lowest priority):
+
+1. Command-line options
+2. Environment variables
+3. `config.json`
+4. Default values
+
+## Configuration file structure
 
 You can specify a custom configuration file:
 
@@ -189,19 +219,6 @@ nuget-server
 ```
 
 If not specified, nuget-server looks for `./config.json` in the current directory.
-
-## Configuration file structure
-
-nuget-server supports configuration through a JSON file. This provides an alternative to command-line options and environment variables.
-
-### Configuration priority
-
-Settings are applied in the following order (highest to lowest priority):
-
-1. Command-line options
-2. Environment variables
-3. config.json
-4. Default values
 
 ### config.json structure
 
@@ -224,78 +241,149 @@ Create a `config.json` file:
 ```
 
 All fields are optional. Only include the settings you want to override.
-Both `packageDir` and `usersFile` paths can be absolute or relative. If relative, they are resolved from the directory containing the config.json file.
+Both `packageDir` and `usersFile` paths can be absolute or relative. If relative, they are resolved from the directory containing the `config.json` file.
 
-## JSON-based authentication with --auth-init
+---
 
-In addition to htpasswd authentication, nuget-server also supports JSON-based authentication with role management.
+## Authentication
 
-### Initialize with --auth-init
+nuget-server also supports authentication.
+
+|Authentication Mode|Details|Auth Initialization|
+|:----|:----|:----|
+|`none`|Default. No authentication required|Not required|
+|`publish`|Authentication required only for package publishing|Required|
+|`full`|Authentication required for all operations (must login first)|Required|
+
+To enable authentication on the NuGet server, first register an initial user using the `--auth-init` option.
+
+### Initialize
 
 Create an initial admin user interactively:
 
 ```bash
-nuget-server --auth-init --config-file ./config.json
+nuget-server --auth-init
 ```
 
 This command will:
 
-1. Prompt for admin username (default: admin)
+1. Prompt for admin username (default: `admin`)
 2. Prompt for password (with strength checking, masked input)
-3. Generate an API password for the admin user
-4. Create `users.json` in the config directory
-5. Exit after initialization (server does not start)
+3. Create `users.json`
+4. Exit after initialization (server does not start)
 
-### Non-interactive mode (CI/CD)
-
-For automated deployments, you can provide credentials via environment variables:
-
-```bash
-export NUGET_SERVER_ADMIN_USERNAME=admin
-export NUGET_SERVER_ADMIN_PASSWORD=MySecurePassword123!
-nuget-server --auth-init --config-file ./config.json
-```
-
-This allows initialization in CI/CD pipelines without user interaction.
+When enabling authentication using a Docker image, use this option to generate the initial user.
 
 ### Example session
 
 ```
 Initializing authentication...
 Enter admin username [admin]:
-Enter password: ****
-Confirm password: ****
+Enter password: ********
+Confirm password: ********
 
 ============================================================
 Admin user created successfully!
 ============================================================
 Username: admin
 Password: *********************
-API password: ngs_xxxxxxxxxxxxxxxxxxxxxx
-============================================================
-
-IMPORTANT: Save this API password securely. It cannot be retrieved again.
-Use this API password for NuGet client authentication:
-
-For HTTP:
-dotnet nuget add source "http://localhost:5963/v3/index.json" \
-  -n ref1 -u admin -p ngs_xxxxxxxxxxxxxxxxxxxxxx \
-  --protocol-version 3 --store-password-in-clear-text --allow-insecure-connections
-
-For HTTPS:
-dotnet nuget add source "https://packages.example.com/v3/index.json" \
-  -n ref1 -u admin -p ngs_xxxxxxxxxxxxxxxxxxxxxx \
-  --protocol-version 3 --store-password-in-clear-text
 ============================================================
 ```
 
-## Import packages from another NuGet server with --import-packages
+### User Management
+
+Users added with `--auth-init` automatically become administrator users.
+Administrator users can add or remove other users via the UI. They can also reset user passwords.
+
+![User administration](images/nuget-server-ss-4.png)
+
+While administrator users can also be assigned API passwords (described later), we recommend separating users for management whenever possible.
+
+### Using the API password
+
+The NuGet server distinguishes between the password used to log in to the UI and the password used by NuGet clients when accessing the server.
+The password used by NuGet clients when accessing the server is called the "API password,"
+and access is granted using the combination of the user and the API password.
+
+Please log in by displaying the UI in the browser.
+Select the “API password” menu from the UI menu to generate an API password.
+Using this API password will enable access from the NuGet client.
+
+![API password](images/nuget-server-ss-5.png)
+
+Here is an example of using the API password:
+
+```bash
+# Add source with API password
+dotnet nuget add source http://localhost:5963/v3/index.json \
+  -n "local" \
+  -u admin \
+  -p xxxxxxxxxxxxxxxxxxxxxx \
+  --protocol-version 3 --store-password-in-clear-text --allow-insecure-connections
+```
+
+Or specify `nuget.config` with credentials:
+
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<configuration>
+  <packageSources>
+    <add key="local" value="http://localhost:5963/v3/index.json"
+      protocolVersion="3" allowInsecureConnections="true" />
+  </packageSources>
+  <packageSourceCredentials>
+    <local>
+      <add key="Username" value="reader" />
+      <add key="ClearTextPassword" value="xxxxxxxxxxxxxxxxxxxxxx" />
+    </local>
+  </packageSourceCredentials>
+</configuration>
+```
+
+For package publishing:
+
+```bash
+# Publish packages with API password
+curl -X POST http://localhost:5963/api/publish \
+  -u admin:xxxxxxxxxxxxxxxxxxxxxx \
+  --data-binary @MyPackage.1.0.0.nupkg \
+  -H "Content-Type: application/octet-stream"
+```
+
+When publishing a package, you can send the package by setting Basic authentication in the `Authorization` header.
+
+### Password strength requirements
+
+nuget-server uses the `zxcvbn` library to enforce strong password requirements:
+
+- Evaluates password strength on a scale of 0-4 (Weak to Very Strong)
+- Default minimum score: 2 (Good)
+- Checks against common passwords, dictionary words, and patterns
+- Provides real-time feedback during password creation
+
+Configure password requirements in `config.json`:
+
+```json
+{
+  "passwordMinScore": 2, // 0-4, default: 2 (Good)
+  "passwordStrengthCheck": true // default: true
+}
+```
+
+The NuGet server stores both "password" and "API password" as SALT hashed information, so no plaintext passwords are ever saved.
+However, if you do not use HTTPS (TLS), be aware that the `Authorization` header will contain the plaintext password, making it vulnerable to sniffing.
+When makes public endpoint, protect communications using HTTPS.
+
+---
+
+## Import packages from another NuGet server
 
 Import all packages from another NuGet server to your local nuget-server instance.
+This feature can be used when migrating the foreign NuGet server to nuget-server.
 
-### Initialize package import
+### Package import from another NuGet server
 
-Import packages interactively:
+Import packages interactively in CLI:
 
 ```bash
 nuget-server --import-packages --package-dir ./packages
@@ -311,18 +399,18 @@ This command will:
 6. Display progress for each package (1% intervals)
 7. Exit after import (server does not start)
 
-### Non-interactive mode (CI/CD)
+### Import behavior
 
-For automated deployments, you can provide parameters via environment variables:
+- Existing packages with the same version will be overwritten
+- Failed imports are logged with error details
+- Progress is reported at 1% intervals to reduce log noise
+- Package icons are preserved during import
 
-```bash
-export NUGET_SERVER_IMPORT_SOURCE_URL=https://source.example.com/repository/nuget/
-export NUGET_SERVER_IMPORT_USERNAME=reader
-export NUGET_SERVER_IMPORT_PASSWORD=MyPassword123
-nuget-server --import-packages --package-dir ./packages
-```
+Parallel downloads are not done. This is to avoid making a large number of requests to the repository.
 
-This allows package import in CI/CD pipelines without user interaction.
+This feature is a type of downloader.
+Therefore, it does not need to be run on the actual host where it will operate.
+You can perform the import process in advance on a separate host and then move the `packages` directory as-is.
 
 ### Example session
 
@@ -331,7 +419,7 @@ Starting package import...
 Enter source NuGet server URL [http://host.example.com/repository/nuget/]: https://nexus.example.com/repository/nuget/
 Does the server require authentication? [y/N]: y
 Enter username: reader
-Enter password: ****
+Enter password: **********
 
 ============================================================
 Import Configuration:
@@ -359,98 +447,22 @@ Time elapsed: 125.3 seconds
 ============================================================
 ```
 
-### Import behavior
-
-- Existing packages with the same version will be overwritten
-- Failed imports are logged with error details
-- Progress is reported at 1% intervals to reduce log noise
-- Package icons are preserved during import
-
-## Authentication modes
-
-When using JSON-based authentication, configure the mode with `--auth-mode`:
-
-- `none`: No authentication required (default)
-- `publish`: Authentication required only for package publishing
-- `full`: Authentication required for all operations
-
-### Using the API password
-
-After initialization, use the generated API password with NuGet clients:
-
-```bash
-# Add source with API password (HTTP)
-dotnet nuget add source http://localhost:5963/v3/index.json \
-  -n "local" \
-  -u admin \
-  -p ngs_xxxxxxxxxxxxxxxxxxxxxx \
-  --protocol-version 3 --store-password-in-clear-text --allow-insecure-connections
-
-# Add source with API password (HTTPS)
-dotnet nuget add source https://packages.example.com/v3/index.json \
-  -n "packages" \
-  -u admin \
-  -p ngs_xxxxxxxxxxxxxxxxxxxxxx \
-  --protocol-version 3 --store-password-in-clear-text
-```
-
-Or specify `nuget.config` with credentials:
-
-```xml
-<?xml version="1.0" encoding="utf-8"?>
-<configuration>
-  <packageSources>
-    <add key="local" value="http://localhost:5963/v3/index.json"
-      protocolVersion="3" allowInsecureConnections="true" />
-  </packageSources>
-  <packageSourceCredentials>
-    <local>
-      <add key="Username" value="reader" />
-      <add key="ClearTextPassword" value="your-password" />
-    </local>
-  </packageSourceCredentials>
-</configuration>
-```
-
-For package publishing:
-
-```bash
-# Publish packages with API password
-curl -X POST http://localhost:5963/api/publish \
-  -u admin:ngs_xxxxxxxxxxxxxxxxxxxxxx \
-  --data-binary @MyPackage.1.0.0.nupkg \
-  -H "Content-Type: application/octet-stream"
-```
-
-Note: The `users.json` file should be protected with appropriate file permissions and never committed to version control.
-
-### Password strength requirements
-
-nuget-server uses the `zxcvbn` library to enforce strong password requirements:
-
-- Evaluates password strength on a scale of 0-4 (Weak to Very Strong)
-- Default minimum score: 2 (Good)
-- Checks against common passwords, dictionary words, and patterns
-- Provides real-time feedback during password creation
-
-Configure password requirements in `config.json`:
-
-```json
-{
-  "passwordMinScore": 2, // 0-4, default: 2 (Good)
-  "passwordStrengthCheck": true // default: true
-}
-```
+---
 
 ## Reverse proxy interoperability
 
-The server supports running behind reverse proxies with proper URL resolution.
+The server supports running behind a reverse proxy.
+For example, when you have a public URL like `https://nuget.example.com` and run nuget-server on a host within your internal network via a gateway.
+
+In such cases, you MUST specify the base URL of the public URL to ensure the NuGet V3 API can provide the correct sub-endpoint address.
+
+### URL resolving
 
 The server resolves URLs using the following priority order:
 
 1. Fixed base URL (highest priority): When `--base-url` option is specified, it always takes precedence
 2. Trusted proxy headers: When trusted proxies are configured with `--trusted-proxies`:
-   - RFC 7239 compliant `Forwarded` header (proto, host, port)
+   - HTTP `Forwarded` header (proto, host, port)
    - Traditional `X-Forwarded-*` headers (`X-Forwarded-Proto`, `X-Forwarded-Host`, `X-Forwarded-Port`)
 3. Standard request information (fallback): Uses `Host` header when proxy headers are not available
 
@@ -460,7 +472,7 @@ For example `--base-url` option:
 - Actual NuGet V3 API endpoint: `https://packages.example.com/v3/index.json`
 
 ```bash
-# Configure served URL (do not include /api path)
+# Configure served base URL (do not include /v3 path)
 nuget-server --base-url https://packages.example.com
 
 # Add as NuGet source (HTTPS - no --allow-insecure-connections needed)
@@ -485,30 +497,6 @@ export NUGET_SERVER_USERS_FILE=/path/to/users.json
 export NUGET_SERVER_SESSION_SECRET=your-secret-key-here
 ```
 
-### Security Configuration
-
-#### Session Security
-
-For production deployments, always set a secure session secret:
-
-```bash
-export NUGET_SERVER_SESSION_SECRET=$(openssl rand -base64 32)
-nuget-server
-```
-
-(Or use `config.json`.)
-
-If not set, a random secret is generated (warning will be logged). The session secret is crucial for securing web UI sessions.
-
-## Supported NuGet V3 API endpoints
-
-The server implements a subset of the NuGet V3 API protocol:
-
-- Service index: `/v3/index.json`
-- Package content: `/v3/package/{id}/index.json`
-- Package downloads: `/v3/package/{id}/{version}/{filename}`
-- Registration index: `/v3/registrations/{id}/index.json`
-
 ---
 
 ## Docker usage
@@ -522,11 +510,24 @@ When pulling the image, Docker automatically selects the appropriate architectur
 
 ### Quick start
 
+Suppose you have configured the following directory structure for persistence (recommended):
+
+```
+docker-instance/
+├── data/
+│   ├── config.json
+│   └── user.json
+└── packages/
+    └── (package files)
+```
+
+Execute as follows:
+
 ```bash
 # Pull and run the latest version
 docker run -d -p 5963:5963 \
-  -v $(pwd)/packages:/packages \
   -v $(pwd)/data:/data \
+  -v $(pwd)/packages:/packages \
   kekyo/nuget-server:latest
 
 # Or with Docker Compose
@@ -538,11 +539,10 @@ services:
     ports:
       - "5963:5963"
     volumes:
-      - ./packages:/packages
       - ./data:/data
+      - ./packages:/packages
     environment:
-      - NUGET_SERVER_AUTH_MODE=none
-      - NUGET_SERVER_USERS_FILE=/data/users.json
+      - NUGET_SERVER_AUTH_MODE=publish
 EOF
 
 docker-compose up -d
@@ -553,113 +553,130 @@ Your NuGet server is now available at:
 - Web UI: `http://localhost:5963`
 - NuGet V3 API: `http://localhost:5963/v3/index.json`
 
+### Permission requirements
+
+The Docker container runs as the `nugetserver` user (UID 1001) for security reasons. You need to ensure that the mounted directories have the appropriate permissions for this user to write files.
+
+**Set proper permissions for mounted directories:**
+
+```bash
+# Create directories if they don't exist
+mkdir -p ./data ./packages
+
+# Set ownership to UID 1001 (matches the container's nugetserver user)
+sudo chown -R 1001:1001 ./data ./packages
+```
+
+**Important**: Without proper permissions, you may encounter `500 Permission Denied` errors when:
+- Creating or updating user accounts
+- Publishing packages
+- Writing configuration files
+
 ### Basic usage
 
 ```bash
 # Run with default settings (port 5963, packages and data stored in mounted volumes)
 docker run -p 5963:5963 \
-  -v $(pwd)/packages:/packages \
   -v $(pwd)/data:/data \
+  -v $(pwd)/packages:/packages \
   kekyo/nuget-server:latest
 
 # With authentication (users.json will be created in /data)
 docker run -p 5963:5963 \
-  -v $(pwd)/packages:/packages \
   -v $(pwd)/data:/data \
+  -v $(pwd)/packages:/packages \
   -e NUGET_SERVER_AUTH_MODE=publish \
   kekyo/nuget-server:latest
 ```
 
-### Custom configuration
+You can also change settings using environment variables or command-line options, but the easiest way to configure settings is to use `config.json`.
 
-```bash
-# Custom port (using Docker port forwarding)
-docker run -p 3000:5963 \
-  -v $(pwd)/packages:/packages \
-  -v $(pwd)/data:/data \
-  kekyo/nuget-server:latest
+Since the Docker image has mount points configured, you can mount `/data` and `/packages` as shown in the example above and place `/data/config.json` there to flexibly configure settings. Below is an example of `config.json`:
 
-# With base URL for reverse proxy (using environment variable)
-docker run -p 5963:5963 \
-  -v $(pwd)/packages:/packages \
-  -v $(pwd)/data:/data \
-  -e NUGET_SERVER_BASE_URL=https://nuget.example.com \
-  kekyo/nuget-server:latest
-
-# Multiple options with command line arguments
-docker run -p 3000:5963 \
-  -v $(pwd)/packages:/packages \
-  -v $(pwd)/data:/data \
-  kekyo/nuget-server:latest \
-  --base-url https://nuget.example.com \
-  --trusted-proxies "10.0.0.1,192.168.1.100"
+```json
+{
+  "port": 5963,
+  "baseUrl": "http://localhost:5963",
+  "realm": "Awsome nuget-server",
+  "logLevel": "info",
+  "authMode": "publish"
+}
 ```
 
-### Using environment variables
+When initializing credentials or importing packages, configure `config.json` and perform the operation via the CLI before launching the Docker image:
 
 ```bash
-# Environment variables override the default command line arguments
-docker run -p 5963:5963 \
-  -v $(pwd)/packages:/packages \
-  -v $(pwd)/data:/data \
-  -e NUGET_SERVER_BASE_URL=https://nuget.example.com \
-  -e NUGET_SERVER_TRUSTED_PROXIES=10.0.0.1 \
-  -e NUGET_SERVER_AUTH_MODE=publish \
-  kekyo/nuget-server:latest
-
-# Use custom package directory with environment variable
-docker run -p 5963:5963 \
-  -v $(pwd)/custom-packages:/custom-packages \
-  -v $(pwd)/data:/data \
-  -e NUGET_SERVER_PACKAGE_DIR=/custom-packages \
-  kekyo/nuget-server:latest
+# Initialize authentication
+nuget-server -c ./data/config.json --auth-init
 ```
 
-### Volume mounts and Configuration
+### Volume mounts and configuration
 
+- `/data`: Default data directory for `config.json`, `users.json` and other persistent data
 - `/packages`: Default package storage directory (mounted to persist packages)
-- `/data`: Default data directory for users.json and other persistent data
 
-**Default behavior**: The Docker image runs with `--package-dir /packages --users-file /data/users.json` by default, ensuring mounted directories are used.
+**Default behavior**: The Docker image runs with `--users-file /data/users.json --package-dir /packages` by default.
 
 **Configuration priority** (highest to lowest):
 
 1. Custom command line arguments (when overriding CMD)
 2. Environment variables (e.g., `NUGET_SERVER_PACKAGE_DIR`)
-3. config.json file (if explicitly specified)
+3. `config.json` file (if explicitly specified)
 4. Default command line arguments in Dockerfile
 
-### Using config.json with Docker
+### Example of Automatic Startup Using systemd
 
-If you want to use a config.json file for configuration:
+Various methods exist for automatically starting containers with systemd.
+Below is a simple example of configuring a systemd service using Podman.
+This is a simple service unit file used before quadlets were introduced to Podman.
+By placing this file and having systemd recognize it, you can automatically start the nuget-server:
 
-```bash
-# Mount config.json and specify its path
-docker run -p 5963:5963 \
-  -v $(pwd)/packages:/packages \
-  -v $(pwd)/data:/data \
-  -v $(pwd)/config.json:/data/config.json:ro \
-  kekyo/nuget-server:latest \
-  --config-file /data/config.json
+`/etc/systemd/system/container-nuget-server.service`:
 
-# Or use environment variable to specify config file
-docker run -p 5963:5963 \
-  -v $(pwd)/packages:/packages \
-  -v $(pwd)/data:/data \
-  -v $(pwd)/config.json:/app/config.json:ro \
-  -e NUGET_SERVER_CONFIG_FILE=/app/config.json \
-  kekyo/nuget-server:latest
+```ini
+# container-nuget-server.service
+
+[Unit]
+Description=Podman container-nuget-server.service
+Documentation=man:podman-generate-systemd(1)
+Wants=network-online.target
+After=network-online.target
+RequiresMountsFor=%t/containers
+
+[Service]
+Environment=PODMAN_SYSTEMD_UNIT=%n
+Restart=always
+RestartSec=30
+TimeoutStopSec=70
+ExecStart=/usr/bin/podman run \
+        --cidfile=%t/%n.ctr-id \
+        --cgroups=no-conmon \
+        --rm \
+        --sdnotify=conmon \
+        --replace \
+        -d \
+        -p 5963:5963 \
+        --name nuget_server \
+        -v /export/data:/data -v /export/packages:/packages docker.io/kekyo/nuget-server:latest
+ExecStop=/usr/bin/podman stop \
+        --ignore -t 10 \
+        --cidfile=%t/%n.ctr-id
+ExecStopPost=/usr/bin/podman rm \
+        -f \
+        --ignore -t 10 \
+        --cidfile=%t/%n.ctr-id
+Type=notify
+NotifyAccess=all
+
+[Install]
+WantedBy=default.target
 ```
-
-**Note**:
-
-- If a config file is specified but doesn't exist, a warning is logged and the server continues with other configuration sources
-- Relative paths in config.json are resolved relative to the config.json location
-- Command line arguments and environment variables take precedence over config.json settings
 
 ---
 
-## Building the Docker image
+## Building the Docker image (Advanced)
+
+The build of the nuget-server Docker image uses Podman.
 
 ### Multi-platform build with Podman (recommended)
 
@@ -700,6 +717,46 @@ podman run --rm --platform linux/arm64 alpine:latest uname -m
 ```
 
 Without QEMU, you can only build for your native architecture.
+
+---
+
+## Note
+
+### Non-interactive mode (CI/CD)
+
+The `--auth-init` and `--import-packages` options require interactive responses from the operator.
+Therefore, attempting to automate these may not work properly.
+In such cases, you can provide credentials via environment variables:
+
+```bash
+export NUGET_SERVER_ADMIN_USERNAME=admin
+export NUGET_SERVER_ADMIN_PASSWORD=MySecurePassword123!
+nuget-server --auth-init --config-file ./config.json
+```
+
+This allows initialization in CI/CD pipelines without user interaction.
+
+### Session Security
+
+For special configurations (or to support persistent sessions), you can set a fixed session secret. Specify a sufficiently long value for the secret:
+
+```bash
+export NUGET_SERVER_SESSION_SECRET=$(openssl rand -base64 32)
+nuget-server
+```
+
+(Or use `config.json`.)
+
+If not set, a random secret is generated (warning will be logged).
+
+### Supported NuGet V3 API endpoints
+
+The server implements a subset of the NuGet V3 API protocol:
+
+- Service index: `/v3/index.json`
+- Package content: `/v3/package/{id}/index.json`
+- Package downloads: `/v3/package/{id}/{version}/{filename}`
+- Registration index: `/v3/registrations/{id}/index.json`
 
 ---
 
