@@ -7,6 +7,7 @@ Simple modenized NuGet server implementation on Node.js
 [![Project Status: WIP – Initial development is in progress, but there has not yet been a stable, usable release suitable for the public.](https://www.repostatus.org/badges/latest/wip.svg)](https://www.repostatus.org/#wip)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![npm version](https://img.shields.io/npm/v/nuget-server.svg)](https://www.npmjs.com/package/nuget-server)
+[![Docker Image Version](https://img.shields.io/docker/v/kekyo/nuget-server.svg?label=docker)](https://hub.docker.com/r/kekyo/nuget-server)
 
 ---
 
@@ -485,8 +486,6 @@ The server implements a subset of the NuGet V3 API protocol:
 
 ## Docker usage
 
-### Multi-platform support
-
 Docker images are available for multiple architectures:
 
 - `linux/amd64` (x86_64)
@@ -494,27 +493,104 @@ Docker images are available for multiple architectures:
 
 When pulling the image, Docker automatically selects the appropriate architecture for your platform.
 
-### Building the Docker image
+### Quick start
 
-#### Multi-platform build with Podman (recommended)
+```bash
+# Pull and run the latest version
+docker run -d -p 5963:5963 -v $(pwd)/packages:/packages kekyo/nuget-server:latest
+
+# Or with Docker Compose
+cat > docker-compose.yml << EOF
+version: '3'
+services:
+  nuget-server:
+    image: kekyo/nuget-server:latest
+    ports:
+      - "5963:5963"
+    volumes:
+      - ./packages:/packages
+      - ./config:/config
+    environment:
+      - NUGET_SERVER_AUTH_MODE=none
+EOF
+
+docker-compose up -d
+```
+
+Your NuGet server is now available at:
+- Web UI: `http://localhost:5963`
+- NuGet V3 API: `http://localhost:5963/v3/index.json`
+
+### Basic usage
+
+```bash
+# Run with default settings (port 5963, packages stored in mounted volume)
+docker run -p 5963:5963 -v $(pwd)/packages:/packages nuget-server:latest
+
+# With authentication configuration directory
+docker run -p 5963:5963 \
+  -v $(pwd)/config:/config \
+  -v $(pwd)/packages:/packages \
+  nuget-server:latest
+```
+
+### Custom configuration
+
+```bash
+# Custom port (using Docker port forwarding)
+docker run -p 3000:5963 -v $(pwd)/packages:/packages nuget-server:latest
+
+# With base URL for reverse proxy
+docker run -p 5963:5963 -v $(pwd)/packages:/packages \
+  nuget-server:latest --base-url https://nuget.example.com
+
+# Multiple options
+docker run -p 3000:5963 -v $(pwd)/packages:/packages \
+  nuget-server:latest \
+  --base-url https://nuget.example.com \
+  --trusted-proxies "10.0.0.1,192.168.1.100"
+```
+
+### Using environment variables
+
+```bash
+docker run -p 5963:5963 \
+  -v $(pwd)/packages:/packages \
+  -e NUGET_SERVER_BASE_URL=https://nuget.example.com \
+  -e NUGET_SERVER_TRUSTED_PROXIES=10.0.0.1 \
+  nuget-server:latest
+```
+
+### Volume mounts
+
+- `/packages`: Package storage directory (should be mounted to persist data)
+- `/config`: Configuration directory for htpasswd files (optional)
+
+The Docker image uses fixed directories internally, but you can mount any host directories to these locations.
+
+---
+
+## Building the Docker image
+
+### Multi-platform build with Podman (recommended)
 
 Use the provided multi-platform build script that uses Podman to build for all supported architectures:
 
 ```bash
 # Build for all platforms (local only, no push)
-./build-multiplatform.sh
+./build-docker-multiplatform.sh
 
 # Build and push to Docker Hub
-./build-multiplatform.sh --push
+./build-docker-multiplatform.sh --push
 
 # Build for specific platforms only
-./build-multiplatform.sh --platforms linux/amd64,linux/arm64
+./build-docker-multiplatform.sh --platforms linux/amd64,linux/arm64
 
 # Push with custom Docker Hub username
-OCI_SERVER_USER=yourusername ./build-multiplatform.sh --push
+OCI_SERVER_USER=yourusername ./build-docker-multiplatform.sh --push
 
 # Inspect existing manifest
-./build-multiplatform.sh --inspect
+./build-docker-multiplatform.sh --inspect
 ```
 
 **Important**: For cross-platform builds, QEMU emulation must be configured first:
@@ -535,72 +611,6 @@ podman run --rm --platform linux/arm64 alpine:latest uname -m
 ```
 
 Without QEMU, you can only build for your native architecture.
-
-#### Single-Platform Build
-
-For development or single-architecture builds:
-
-```bash
-# Use the single-platform build script with Podman
-./build-docker.sh
-
-# Or build manually with Podman
-podman build -t nuget-server:latest .
-
-# Tag for Docker Hub (replace with your username)
-podman tag nuget-server:latest docker.io/yourusername/nuget-server:latest
-```
-
-### Running with Docker (WIP)
-
-TODO: Docker setup is constructing.
-
-#### Basic usage
-
-```bash
-# Run with default settings (port 5963, packages stored in mounted volume)
-docker run -p 5963:5963 -v $(pwd)/packages:/packages nuget-server:latest
-
-# With authentication configuration directory
-docker run -p 5963:5963 \
-  -v $(pwd)/config:/config \
-  -v $(pwd)/packages:/packages \
-  nuget-server:latest
-```
-
-#### Custom configuration
-
-```bash
-# Custom port (using Docker port forwarding)
-docker run -p 3000:5963 -v $(pwd)/packages:/packages nuget-server:latest
-
-# With base URL for reverse proxy
-docker run -p 5963:5963 -v $(pwd)/packages:/packages \
-  nuget-server:latest --base-url https://nuget.example.com
-
-# Multiple options
-docker run -p 3000:5963 -v $(pwd)/packages:/packages \
-  nuget-server:latest \
-  --base-url https://nuget.example.com \
-  --trusted-proxies "10.0.0.1,192.168.1.100"
-```
-
-#### Using environment variables
-
-```bash
-docker run -p 5963:5963 \
-  -v $(pwd)/packages:/packages \
-  -e NUGET_SERVER_BASE_URL=https://nuget.example.com \
-  -e NUGET_SERVER_TRUSTED_PROXIES=10.0.0.1 \
-  nuget-server:latest
-```
-
-### Volume mounts
-
-- `/packages`: Package storage directory (should be mounted to persist data)
-- `/config`: Configuration directory for htpasswd files (optional)
-
-The Docker image uses fixed directories internally, but you can mount any host directories to these locations.
 
 ---
 
