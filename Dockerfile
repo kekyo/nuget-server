@@ -19,11 +19,11 @@ RUN npm ci --only=production && \
 # Copy pre-built application from host
 COPY dist ./dist
 
-# Create packages and config directories and set permissions
-RUN mkdir -p /packages /config && \
+# Create packages and data directories and set permissions
+RUN mkdir -p /packages /data && \
     chown -R nugetserver:nodejs /app && \
     chown -R nugetserver:nodejs /packages && \
-    chown -R nugetserver:nodejs /config
+    chown -R nugetserver:nodejs /data
 
 # Switch to non-root user
 USER nugetserver
@@ -36,7 +36,11 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
   CMD wget --no-verbose --tries=1 --spider http://localhost:5963/api || exit 1
 
 # Default volumes (can be mounted)
-VOLUME ["/packages", "/config"]
+VOLUME ["/packages", "/data"]
+
+# Set default environment variables
+ENV NUGET_SERVER_PACKAGE_DIR=/packages
+ENV NUGET_SERVER_USERS_FILE=/data/users.json
 
 # Default command - can be overridden for custom options
-CMD ["node", "dist/cli.js", "--package-dir", "/packages", "--config-dir", "/config"]
+CMD ["node", "dist/cli.js"]

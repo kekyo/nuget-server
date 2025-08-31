@@ -84,9 +84,18 @@ Default nuget-server served URL can change with `--base-url` option, it shows be
 
 Add as package source:
 
+**For HTTP endpoints:**
+
 ```bash
 dotnet nuget add source http://localhost:5963/v3/index.json \
-  -n "local" --allow-insecure-connections
+  -n "local" --protocol-version 3 --allow-insecure-connections
+```
+
+**For HTTPS endpoints:**
+
+```bash
+dotnet nuget add source https://packages.example.com/v3/index.json \
+  -n "packages" --protocol-version 3
 ```
 
 Or specify in `nuget.config`:
@@ -96,7 +105,7 @@ Or specify in `nuget.config`:
 <configuration>
   <packageSources>
     <add key="local" value="http://localhost:5963/v3/index.json"
-      allowInsecureConnections="true" />
+      protocolVersion="3" allowInsecureConnections="true" />
   </packageSources>
 </configuration>
 ```
@@ -267,9 +276,16 @@ API password: ngs_xxxxxxxxxxxxxxxxxxxxxx
 
 IMPORTANT: Save this API password securely. It cannot be retrieved again.
 Use this API password for NuGet client authentication:
-Example register: dotnet nuget add source "http://localhost:5963/v3/index.json"
-  -n ref1 -u admin -p ngs_xxxxxxxxxxxxxxxxxxxxxx
-  --store-password-in-clear-text --allow-insecure-connections
+
+For HTTP:
+dotnet nuget add source "http://localhost:5963/v3/index.json" \
+  -n ref1 -u admin -p ngs_xxxxxxxxxxxxxxxxxxxxxx \
+  --protocol-version 3 --store-password-in-clear-text --allow-insecure-connections
+
+For HTTPS:
+dotnet nuget add source "https://packages.example.com/v3/index.json" \
+  -n ref1 -u admin -p ngs_xxxxxxxxxxxxxxxxxxxxxx \
+  --protocol-version 3 --store-password-in-clear-text
 ============================================================
 ```
 
@@ -363,12 +379,19 @@ When using JSON-based authentication, configure the mode with `--auth-mode`:
 After initialization, use the generated API password with NuGet clients:
 
 ```bash
-# Add source with API password
+# Add source with API password (HTTP)
 dotnet nuget add source http://localhost:5963/v3/index.json \
   -n "local" \
   -u admin \
   -p ngs_xxxxxxxxxxxxxxxxxxxxxx \
-  --store-password-in-clear-text --allow-insecure-connections
+  --protocol-version 3 --store-password-in-clear-text --allow-insecure-connections
+
+# Add source with API password (HTTPS)
+dotnet nuget add source https://packages.example.com/v3/index.json \
+  -n "packages" \
+  -u admin \
+  -p ngs_xxxxxxxxxxxxxxxxxxxxxx \
+  --protocol-version 3 --store-password-in-clear-text
 ```
 
 Or specify `nuget.config` with credentials:
@@ -378,7 +401,7 @@ Or specify `nuget.config` with credentials:
 <configuration>
   <packageSources>
     <add key="local" value="http://localhost:5963/v3/index.json"
-      allowInsecureConnections="true" />
+      protocolVersion="3" allowInsecureConnections="true" />
   </packageSources>
   <packageSourceCredentials>
     <local>
@@ -439,6 +462,10 @@ For example `--base-url` option:
 ```bash
 # Configure served URL (do not include /api path)
 nuget-server --base-url https://packages.example.com
+
+# Add as NuGet source (HTTPS - no --allow-insecure-connections needed)
+dotnet nuget add source https://packages.example.com/v3/index.json \
+  -n "packages" --protocol-version 3
 ```
 
 Another option, you can configure with trusted proxy addresses:
@@ -497,7 +524,10 @@ When pulling the image, Docker automatically selects the appropriate architectur
 
 ```bash
 # Pull and run the latest version
-docker run -d -p 5963:5963 -v $(pwd)/packages:/packages kekyo/nuget-server:latest
+docker run -d -p 5963:5963 \
+  -v $(pwd)/packages:/packages \
+  -v $(pwd)/data:/data \
+  kekyo/nuget-server:latest
 
 # Or with Docker Compose
 cat > docker-compose.yml << EOF
@@ -509,44 +539,58 @@ services:
       - "5963:5963"
     volumes:
       - ./packages:/packages
-      - ./config:/config
+      - ./data:/data
     environment:
       - NUGET_SERVER_AUTH_MODE=none
+      - NUGET_SERVER_USERS_FILE=/data/users.json
 EOF
 
 docker-compose up -d
 ```
 
 Your NuGet server is now available at:
+
 - Web UI: `http://localhost:5963`
 - NuGet V3 API: `http://localhost:5963/v3/index.json`
 
 ### Basic usage
 
 ```bash
-# Run with default settings (port 5963, packages stored in mounted volume)
-docker run -p 5963:5963 -v $(pwd)/packages:/packages nuget-server:latest
-
-# With authentication configuration directory
+# Run with default settings (port 5963, packages and data stored in mounted volumes)
 docker run -p 5963:5963 \
-  -v $(pwd)/config:/config \
   -v $(pwd)/packages:/packages \
-  nuget-server:latest
+  -v $(pwd)/data:/data \
+  kekyo/nuget-server:latest
+
+# With authentication (users.json will be created in /data)
+docker run -p 5963:5963 \
+  -v $(pwd)/packages:/packages \
+  -v $(pwd)/data:/data \
+  -e NUGET_SERVER_AUTH_MODE=publish \
+  kekyo/nuget-server:latest
 ```
 
 ### Custom configuration
 
 ```bash
 # Custom port (using Docker port forwarding)
-docker run -p 3000:5963 -v $(pwd)/packages:/packages nuget-server:latest
+docker run -p 3000:5963 \
+  -v $(pwd)/packages:/packages \
+  -v $(pwd)/data:/data \
+  kekyo/nuget-server:latest
 
-# With base URL for reverse proxy
-docker run -p 5963:5963 -v $(pwd)/packages:/packages \
-  nuget-server:latest --base-url https://nuget.example.com
+# With base URL for reverse proxy (using environment variable)
+docker run -p 5963:5963 \
+  -v $(pwd)/packages:/packages \
+  -v $(pwd)/data:/data \
+  -e NUGET_SERVER_BASE_URL=https://nuget.example.com \
+  kekyo/nuget-server:latest
 
-# Multiple options
-docker run -p 3000:5963 -v $(pwd)/packages:/packages \
-  nuget-server:latest \
+# Multiple options with command line arguments
+docker run -p 3000:5963 \
+  -v $(pwd)/packages:/packages \
+  -v $(pwd)/data:/data \
+  kekyo/nuget-server:latest \
   --base-url https://nuget.example.com \
   --trusted-proxies "10.0.0.1,192.168.1.100"
 ```
@@ -556,17 +600,36 @@ docker run -p 3000:5963 -v $(pwd)/packages:/packages \
 ```bash
 docker run -p 5963:5963 \
   -v $(pwd)/packages:/packages \
+  -v $(pwd)/data:/data \
   -e NUGET_SERVER_BASE_URL=https://nuget.example.com \
   -e NUGET_SERVER_TRUSTED_PROXIES=10.0.0.1 \
-  nuget-server:latest
+  -e NUGET_SERVER_AUTH_MODE=publish \
+  -e NUGET_SERVER_USERS_FILE=/data/users.json \
+  kekyo/nuget-server:latest
 ```
 
 ### Volume mounts
 
 - `/packages`: Package storage directory (should be mounted to persist data)
-- `/config`: Configuration directory for htpasswd files (optional)
+- `/data`: Data directory for users.json and other persistent data (recommended to mount)
 
 The Docker image uses fixed directories internally, but you can mount any host directories to these locations.
+
+### Using config.json with Docker
+
+If you want to use a config.json file instead of environment variables:
+
+```bash
+# Mount config.json and use it
+docker run -p 5963:5963 \
+  -v $(pwd)/packages:/packages \
+  -v $(pwd)/data:/data \
+  -v $(pwd)/config.json:/app/config.json:ro \
+  -e NUGET_SERVER_CONFIG_FILE=/app/config.json \
+  kekyo/nuget-server:latest
+```
+
+Note: When using config.json, relative paths in the file are resolved relative to the config.json location. For example, if config.json is at `/app/config.json` and contains `"packageDir": "./packages"`, it will resolve to `/app/packages`.
 
 ---
 

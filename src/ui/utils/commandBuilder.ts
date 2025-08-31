@@ -27,14 +27,14 @@ export const buildAddSourceCommand = (options: CommandOptions): string => {
     : `http://localhost:${serverUrl.port}/v3/index.json`;
 
   // Start building the command
-  let command = `dotnet nuget add source "${url}" -n "${sourceName}"`;
+  let command = `dotnet nuget add source "${url}" -n "${sourceName}" --protocol-version 3`;
 
   // Add authentication if provided
   if (username && apiPassword) {
     command += ` -u ${username} -p ${apiPassword} --store-password-in-clear-text`;
   }
 
-  // Add insecure connection flag if needed
+  // Add insecure connection flag if needed (only for HTTP)
   const isInsecure = serverUrl.baseUrl
     ? !serverUrl.baseUrl.startsWith("https:")
     : true;
