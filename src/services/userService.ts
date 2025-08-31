@@ -93,6 +93,7 @@ export interface ApiPasswordDeleteResponse {
  */
 export interface UserServiceConfig {
   configDir: string;
+  usersFile?: string; // Optional custom path to users.json file
   logger: Logger;
   serverConfig?: ServerConfig;
 }
@@ -148,8 +149,9 @@ export interface UserService {
  * @returns User service instance
  */
 export const createUserService = (config: UserServiceConfig): UserService => {
-  const { configDir, logger, serverConfig } = config;
-  const usersFilePath = join(configDir, "users.json");
+  const { configDir, usersFile, logger, serverConfig } = config;
+  // Use custom users file path if provided, otherwise default to configDir/users.json
+  const usersFilePath = usersFile || join(configDir, "users.json");
   let users: Map<string, User> = new Map();
   let isInitialized = false;
   const fileLock = createReaderWriterLock();
@@ -172,13 +174,15 @@ export const createUserService = (config: UserServiceConfig): UserService => {
         users.set(user.username, user);
       }
 
-      logger.info(`Loaded ${usersArray.length} users from users.json`);
+      logger.info(`Loaded ${usersArray.length} users from ${usersFilePath}`);
     } catch (error: any) {
       if (error.code === "ENOENT") {
-        logger.info("users.json not found - starting with empty user database");
+        logger.info(
+          `${usersFilePath} not found - starting with empty user database`,
+        );
         users.clear();
       } else {
-        logger.error(`Failed to load users.json: ${error.message}`);
+        logger.error(`Failed to load ${usersFilePath}: ${error.message}`);
         throw error;
       }
     } finally {
@@ -194,9 +198,9 @@ export const createUserService = (config: UserServiceConfig): UserService => {
       const usersArray = Array.from(users.values());
       const content = JSON.stringify(usersArray, null, 2);
       await writeFile(usersFilePath, content, "utf-8");
-      logger.debug(`Saved ${usersArray.length} users to users.json`);
+      logger.debug(`Saved ${usersArray.length} users to ${usersFilePath}`);
     } catch (error: any) {
-      logger.error(`Failed to save users.json: ${error.message}`);
+      logger.error(`Failed to save ${usersFilePath}: ${error.message}`);
       throw error;
     }
   };

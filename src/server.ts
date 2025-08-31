@@ -6,15 +6,10 @@ import Fastify, {
   FastifyInstance,
   FastifyReply,
   FastifyRequest,
-  FastifySchema,
-  FastifyTypeProviderDefault,
-  RawServerDefault,
-  RouteGenericInterface,
 } from "fastify";
 import fastifyPassport from "@fastify/passport";
 import fastifySecureSession from "@fastify/secure-session";
 import fastifyStatic from "@fastify/static";
-import { IncomingMessage, ServerResponse } from "http";
 import path from "path";
 import { fileURLToPath } from "url";
 import {
@@ -28,9 +23,8 @@ import { createAuthService } from "./services/authService";
 import { createUserService } from "./services/userService";
 import { createSessionService } from "./services/sessionService";
 import { createAuthFailureTrackerFromEnv } from "./services/authFailureTracker";
-import { Logger, ServerConfig } from "./types";
+import { Logger, LogLevel, ServerConfig } from "./types";
 import { createUrlResolver } from "./utils/urlResolver";
-import { createFastifyLoggerAdapter } from "./utils/fastifyLoggerAdapter";
 import {
   createLocalStrategy,
   createBasicStrategy,
@@ -47,23 +41,124 @@ import { createReaderWriterLock, ReaderWriterLock } from "async-primitives";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-type GetReply = FastifyReply<
-  RawServerDefault,
-  IncomingMessage,
-  ServerResponse<IncomingMessage>,
-  RouteGenericInterface,
-  unknown,
-  FastifySchema,
-  FastifyTypeProviderDefault,
-  unknown
->;
-
 /**
  * Server instance with cleanup functionality
  */
 export interface FastifyServerInstance {
   close: () => Promise<void>;
 }
+
+/**
+ * Create Pino logger configuration that forwards to project logger
+ * @param logger - Project logger instance
+ * @param logLevel - Log level from configuration
+ * @returns Pino logger configuration object
+ */
+const createPinoLoggerConfig = (logger: Logger, logLevel?: LogLevel) => {
+  // Convert project log level to Pino log level
+  const pinoLogLevel = (() => {
+    switch (logLevel) {
+      case "debug":
+        return "debug";
+      case "info":
+        return "info";
+      case "warn":
+        return "warn";
+      case "error":
+        return "error";
+      case "ignore":
+        return "silent";
+      default:
+        return "info";
+    }
+  })();
+
+  return {
+    level: pinoLogLevel,
+    hooks: {
+      logMethod(inputArgs: any[], _method: any, level: number) {
+        // Forward Pino logs to project logger instead of using Pino's default output
+        const [msgOrObj] = inputArgs;
+        let message: string;
+
+        if (typeof msgOrObj === "string") {
+          message = msgOrObj;
+        } else if (msgOrObj && typeof msgOrObj === "object") {
+          // Handle object with msg property
+          const obj = msgOrObj as any;
+          if ("msg" in obj && typeof obj.msg === "string") {
+            message = obj.msg;
+          } else {
+            message = JSON.stringify(obj);
+          }
+        } else {
+          message = String(msgOrObj);
+        }
+
+        // Map Pino levels to project logger methods
+        if (level === 10 || level === 20) {
+          // trace(10) and debug(20)
+          logger.debug(message);
+        } else if (level === 30) {
+          // info(30)
+          logger.info(message);
+        } else if (level === 40) {
+          // warn(40)
+          logger.warn(message);
+        } else if (level >= 50) {
+          // error(50) and fatal(60)
+          logger.error(message);
+        }
+
+        // Don't call the original Pino method to avoid duplicate logging
+        // method.apply(this, inputArgs);
+      },
+    },
+  };
+};
+
+/**
+ * Create URL rewrite function for Fastify
+ * @param urlResolver - URL resolver instance
+ * @param logger - Logger instance for debug output
+ * @returns URL rewrite function
+ */
+const createRewriteUrl = (
+  urlResolver: ReturnType<typeof createUrlResolver>,
+  logger: Logger,
+) => {
+  return (req: {
+    url?: string;
+    socket?: { remoteAddress?: string };
+    headers: any;
+  }) => {
+    // Check if URL exists
+    if (!req.url) {
+      return "/";
+    }
+
+    // Extract path prefix from baseUrl or x-forwarded-path header
+    // Create a simple request object that matches GenericRequest interface
+    const pathPrefix = urlResolver.extractPathPrefix({
+      protocol: "http", // Will be overridden by headers if needed
+      socket: {
+        remoteAddress: req.socket?.remoteAddress,
+      },
+      headers: req.headers as {
+        [key: string]: string | string[] | undefined;
+      },
+    });
+
+    if (pathPrefix && req.url.startsWith(pathPrefix)) {
+      // Remove the path prefix from the URL
+      const newUrl = req.url.slice(pathPrefix.length) || "/";
+      logger.debug(`rewriteUrl: ${req.url} -> ${newUrl}`);
+      return newUrl;
+    }
+
+    return req.url;
+  };
+};
 
 /**
  * Creates and configures a Fastify instance without starting the server
@@ -78,50 +173,18 @@ export const createFastifyInstance = async (
   logger: Logger,
   locker: ReaderWriterLock,
 ): Promise<FastifyInstance> => {
-  // Create Fastify logger adapter to integrate with project Logger
-  const fastifyLoggerAdapter = createFastifyLoggerAdapter(
-    logger,
-    config.logLevel || "info",
-  );
-
   // Initialize URL resolver early to use in rewriteUrl
   const urlResolver = createUrlResolver(logger, {
     baseUrl: config.baseUrl,
     trustedProxies: config.trustedProxies,
   });
 
-  // Create Fastify instance with integrated logging
+  // Create Fastify instance with configured logger and URL rewriting
   const fastify: FastifyInstance = Fastify({
-    logger: fastifyLoggerAdapter,
+    logger: createPinoLoggerConfig(logger, config.logLevel),
     bodyLimit: 1024 * 1024 * 100, // 100MB limit for package uploads
     disableRequestLogging: true, // Use our custom request logging
-    rewriteUrl: (req) => {
-      // Check if URL exists
-      if (!req.url) {
-        return "/";
-      }
-
-      // Extract path prefix from baseUrl or x-forwarded-path header
-      // Create a simple request object that matches GenericRequest interface
-      const pathPrefix = urlResolver.extractPathPrefix({
-        protocol: "http", // Will be overridden by headers if needed
-        socket: {
-          remoteAddress: req.socket?.remoteAddress,
-        },
-        headers: req.headers as {
-          [key: string]: string | string[] | undefined;
-        },
-      });
-
-      if (pathPrefix && req.url.startsWith(pathPrefix)) {
-        // Remove the path prefix from the URL
-        const newUrl = req.url.slice(pathPrefix.length) || "/";
-        logger.debug(`rewriteUrl: ${req.url} -> ${newUrl}`);
-        return newUrl;
-      }
-
-      return req.url;
-    },
+    rewriteUrl: createRewriteUrl(urlResolver, logger),
   });
 
   // Add content type parser for binary data (package uploads)
@@ -159,6 +222,7 @@ export const createFastifyInstance = async (
   // Initialize user service (new authentication system)
   const userService = createUserService({
     configDir: config.configDir || "./",
+    usersFile: config.usersFile,
     logger,
     serverConfig: config,
   });
@@ -226,21 +290,32 @@ export const createFastifyInstance = async (
   });
 
   // Add AbortSignal to every request for handling client disconnections
-  fastify.decorateRequest("abortSignal", null);
-  fastify.addHook("onRequest", async (request, _reply) => {
-    const controller = new AbortController();
+  // Store AbortController in a WeakMap to associate with each request
+  const abortControllers = new WeakMap<FastifyRequest, AbortController>();
 
-    // Listen for client disconnect
-    request.raw.once("close", () => {
-      // Check if connection was closed
-      // Using destroyed as a replacement for deprecated aborted property
-      if (request.raw.destroyed || (request.raw as any).aborted) {
-        controller.abort();
-        logger.debug(`Request aborted: ${request.url}`);
+  fastify.decorateRequest("abortSignal", {
+    getter() {
+      let controller = abortControllers.get(this as FastifyRequest);
+
+      // If controller doesn't exist yet, create one and set up the listener
+      if (!controller) {
+        controller = new AbortController();
+        abortControllers.set(this as FastifyRequest, controller);
+
+        const request = this as FastifyRequest;
+        // Listen for client disconnect
+        request.raw.once("close", () => {
+          // Check if connection was closed
+          // Using destroyed as a replacement for deprecated aborted property
+          if (request.raw.destroyed || (request.raw as any).aborted) {
+            controller!.abort();
+            logger.debug(`Request aborted: ${request.url}`);
+          }
+        });
       }
-    });
 
-    request.abortSignal = controller.signal;
+      return controller.signal;
+    },
   });
 
   // Create authentication configuration
@@ -510,7 +585,7 @@ export const createFastifyInstance = async (
   // Helper function to serve static files using streaming
   const serveStaticFile = (
     filePath: string,
-    reply: GetReply,
+    reply: FastifyReply,
     signal?: AbortSignal,
   ) => {
     // Use the unified file streaming helper
@@ -518,32 +593,32 @@ export const createFastifyInstance = async (
   };
 
   // Serve UI at root path
-  fastify.get("/", (request, reply: GetReply) => {
+  fastify.get("/", (request, reply) => {
     const indexPath = path.join(uiPath, "index.html");
     return serveStaticFile(indexPath, reply, request.abortSignal);
   });
 
   // Serve login page
-  fastify.get("/login", (request, reply: GetReply) => {
+  fastify.get("/login", (request, reply) => {
     const loginPath = path.join(uiPath, "login.html");
     return serveStaticFile(loginPath, reply, request.abortSignal);
   });
 
   // Serve other UI assets
-  fastify.get("/assets/*", (request, reply: GetReply) => {
+  fastify.get("/assets/*", (request, reply) => {
     const assetPath = (request.params as any)["*"];
     const fullPath = path.join(uiPath, "assets", assetPath);
     return serveStaticFile(fullPath, reply, request.abortSignal);
   });
 
   // Serve favicon
-  fastify.get("/favicon.ico", (request, reply: GetReply) => {
+  fastify.get("/favicon.ico", (request, reply) => {
     const faviconPath = path.join(publicPath, "favicon.ico");
     return serveStaticFile(faviconPath, reply, request.abortSignal);
   });
 
   // Serve icon
-  fastify.get("/icon.png", (request, reply: GetReply) => {
+  fastify.get("/icon.png", (request, reply) => {
     const iconPath = path.join(publicPath, "icon.png");
     return serveStaticFile(iconPath, reply, request.abortSignal);
   });

@@ -20,7 +20,8 @@ import {
 } from "./utils/urlResolver";
 import { runAuthInit } from "./authInit";
 import { runImportPackages } from "./importPackages";
-import { loadConfigFromFile } from "./utils/configLoader";
+import { loadConfigFromPath } from "./utils/configLoader";
+import { dirname } from "path";
 
 const getPortFromEnv = (): number | undefined => {
   const port = process.env.NUGET_SERVER_PORT;
@@ -31,8 +32,8 @@ const getPackageDirFromEnv = (): string | undefined => {
   return process.env.NUGET_SERVER_PACKAGE_DIR;
 };
 
-const getConfigDirFromEnv = (): string | undefined => {
-  return process.env.NUGET_SERVER_CONFIG_DIR;
+const getConfigFileFromEnv = (): string | undefined => {
+  return process.env.NUGET_SERVER_CONFIG_FILE;
 };
 
 const getRealmFromEnv = (): string | undefined => {
@@ -78,6 +79,10 @@ const getPasswordStrengthCheckFromEnv = (): boolean | undefined => {
   return undefined;
 };
 
+const getUsersFileFromEnv = (): string | undefined => {
+  return process.env.NUGET_SERVER_USERS_FILE;
+};
+
 /////////////////////////////////////////////////////////////////////////
 
 const program = new Command();
@@ -92,7 +97,8 @@ program
     "fixed base URL for API endpoints (overrides auto-detection)",
   )
   .option("-d, --package-dir <dir>", "package storage directory")
-  .option("-c, --config-dir <dir>", "configuration directory")
+  .option("-c, --config-file <path>", "path to config.json file")
+  .option("-u, --users-file <path>", "path to users.json file")
   .option("-r, --realm <realm>", `authentication realm`)
   .option(
     "-l, --log-level <level>",
@@ -112,14 +118,18 @@ program
     "import packages from another NuGet server interactively",
   )
   .action(async (options) => {
-    // Determine config directory first
-    const configDir = options.configDir || getConfigDirFromEnv() || "./";
+    // Determine config file path
+    const configFilePath =
+      options.configFile || getConfigFileFromEnv() || "./config.json";
 
     // Create temporary logger for config loading
     const tempLogger = createConsoleLogger(packageName, "warn");
 
     // Load config.json
-    const configFile = await loadConfigFromFile(configDir, tempLogger);
+    const configFile = await loadConfigFromPath(configFilePath, tempLogger);
+
+    // Extract config directory from config file path for backward compatibility
+    const configDir = dirname(configFilePath);
 
     // Determine values with proper priority: CLI > ENV > config.json > default
     const port =
@@ -153,6 +163,8 @@ program
       getPasswordStrengthCheckFromEnv() ??
       configFile.passwordStrengthCheck ??
       true;
+    const usersFile =
+      options.usersFile || getUsersFileFromEnv() || configFile.usersFile;
 
     // Validate log level
     const validLogLevels: LogLevel[] = [
@@ -200,7 +212,10 @@ program
     }
 
     logger.info(`Package directory: ${packageDir}`);
-    logger.info(`Config directory: ${configDir}`);
+    logger.info(`Config file: ${configFilePath}`);
+    if (usersFile) {
+      logger.info(`Users file: ${usersFile}`);
+    }
     logger.info(`Realm: ${realm}`);
     logger.info(`Authentication mode: ${authMode}`);
     logger.info(`Log level: ${logLevel}`);
@@ -208,7 +223,7 @@ program
       logger.info(`Trusted proxies: ${trustedProxies.join(", ")}`);
     }
     if (configFile && Object.keys(configFile).length > 0) {
-      logger.info(`Loaded configuration from ${configDir}/config.json`);
+      logger.info(`Configuration loaded from ${configFilePath}`);
     }
 
     const config: ServerConfig = {
@@ -216,6 +231,7 @@ program
       baseUrl,
       packageDir,
       configDir,
+      usersFile,
       realm,
       authMode: authMode as AuthMode,
       trustedProxies,

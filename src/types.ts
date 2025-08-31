@@ -46,6 +46,7 @@ export interface ServerConfig {
   baseUrl?: string;
   packageDir?: string;
   configDir?: string;
+  usersFile?: string; // Path to users.json file (absolute or relative to configDir)
   trustedProxies?: string[];
   realm?: string;
   logLevel?: LogLevel;

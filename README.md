@@ -66,8 +66,8 @@ nuget-server
 # Custom port
 nuget-server --port 3000
 
-# Custom log level (debug, info, warn, error, ignore - default: info)
-nuget-server --log-level debug
+# Multiple options
+nuget-server --port 3000 --config-file ./my-config.json --users-file ./data/users.json
 ```
 
 The NuGet V3 API is served on the `/v3` path.
@@ -163,24 +163,26 @@ Restore is simply extract it and re-run nuget-server with the same package direc
 
 ---
 
-## Configuration directory
+## Configuration file
 
-You can specify a custom configuration directory:
+You can specify a custom configuration file:
 
 ```bash
 # Using command line option
-nuget-server --config-dir /path/to/config
+nuget-server --config-file /path/to/config.json
+# or short alias
+nuget-server -c /path/to/config.json
 
 # Using environment variable
-export NUGET_SERVER_CONFIG_DIR=/path/to/config
+export NUGET_SERVER_CONFIG_FILE=/path/to/config.json
 nuget-server
 ```
 
-The configuration directory is used for the following configuration file (`config.json`) and basic authentication file (`users.json`).
+If not specified, nuget-server looks for `./config.json` in the current directory.
 
-## Configuration file (config.json)
+## Configuration file structure
 
-nuget-server supports configuration through a `config.json` file located in the configuration directory. This provides an alternative to command-line options and environment variables.
+nuget-server supports configuration through a JSON file. This provides an alternative to command-line options and environment variables.
 
 ### Configuration priority
 
@@ -193,13 +195,14 @@ Settings are applied in the following order (highest to lowest priority):
 
 ### config.json structure
 
-Create a `config.json` file in your configuration directory:
+Create a `config.json` file:
 
 ```json
 {
   "port": 5963,
   "baseUrl": "http://localhost:5963",
   "packageDir": "./packages",
+  "usersFile": "./users.json",
   "realm": "Awsome nuget-server",
   "logLevel": "info",
   "trustedProxies": ["127.0.0.1", "::1"],
@@ -211,7 +214,7 @@ Create a `config.json` file in your configuration directory:
 ```
 
 All fields are optional. Only include the settings you want to override.
-`packageDir` path is relative from `config.json`.
+Both `packageDir` and `usersFile` paths can be absolute or relative. If relative, they are resolved from the directory containing the config.json file.
 
 ## JSON-based authentication with --auth-init
 
@@ -222,7 +225,7 @@ In addition to htpasswd authentication, nuget-server also supports JSON-based au
 Create an initial admin user interactively:
 
 ```bash
-nuget-server --auth-init --config-dir ./config
+nuget-server --auth-init --config-file ./config.json
 ```
 
 This command will:
@@ -240,7 +243,7 @@ For automated deployments, you can provide credentials via environment variables
 ```bash
 export NUGET_SERVER_ADMIN_USERNAME=admin
 export NUGET_SERVER_ADMIN_PASSWORD=MySecurePassword123!
-nuget-server --auth-init --config-dir ./config
+nuget-server --auth-init --config-file ./config.json
 ```
 
 This allows initialization in CI/CD pipelines without user interaction.
@@ -449,7 +452,8 @@ Environment variables are also supported:
 ```bash
 export NUGET_SERVER_BASE_URL=https://packages.example.com
 export NUGET_SERVER_TRUSTED_PROXIES=10.0.0.1,192.168.1.100
-export NUGET_SERVER_CONFIG_DIR=/path/to/config
+export NUGET_SERVER_CONFIG_FILE=/path/to/config.json
+export NUGET_SERVER_USERS_FILE=/path/to/users.json
 export NUGET_SERVER_SESSION_SECRET=your-secret-key-here
 ```
 
@@ -479,24 +483,72 @@ The server implements a subset of the NuGet V3 API protocol:
 
 ---
 
-## Docker Usage (WIP)
+## Docker usage
 
-### Building the Docker Image
+### Multi-platform support
 
-Use the provided build script (require podman):
+Docker images are available for multiple architectures:
+
+- `linux/amd64` (x86_64)
+- `linux/arm64` (aarch64)
+
+When pulling the image, Docker automatically selects the appropriate architecture for your platform.
+
+### Building the Docker image
+
+#### Multi-platform build with Podman (recommended)
+
+Use the provided multi-platform build script that uses Podman to build for all supported architectures:
 
 ```bash
-./build-docker.sh
+# Build for all platforms (local only, no push)
+./build-multiplatform.sh
+
+# Build and push to Docker Hub
+./build-multiplatform.sh --push
+
+# Build for specific platforms only
+./build-multiplatform.sh --platforms linux/amd64,linux/arm64
+
+# Push with custom Docker Hub username
+OCI_SERVER_USER=yourusername ./build-multiplatform.sh --push
+
+# Inspect existing manifest
+./build-multiplatform.sh --inspect
 ```
 
-Or build manually:
+**Important**: For cross-platform builds, QEMU emulation must be configured first:
 
 ```bash
-# Build the image
-docker build -t nuget-server:latest .
+# Option 1: Use QEMU container (recommended)
+sudo podman run --rm --privileged docker.io/multiarch/qemu-user-static --reset -p yes
+
+# Option 2: Install system packages
+# Ubuntu/Debian:
+sudo apt-get update && sudo apt-get install -y qemu-user-static
+# Fedora/RHEL:
+sudo dnf install -y qemu-user-static
+
+# Verify QEMU is working:
+podman run --rm --platform linux/arm64 alpine:latest uname -m
+# Should output: aarch64
+```
+
+Without QEMU, you can only build for your native architecture.
+
+#### Single-Platform Build
+
+For development or single-architecture builds:
+
+```bash
+# Use the single-platform build script with Podman
+./build-docker.sh
+
+# Or build manually with Podman
+podman build -t nuget-server:latest .
 
 # Tag for Docker Hub (replace with your username)
-docker tag nuget-server:latest yourusername/nuget-server:latest
+podman tag nuget-server:latest docker.io/yourusername/nuget-server:latest
 ```
 
 ### Running with Docker (WIP)
@@ -511,8 +563,8 @@ docker run -p 5963:5963 -v $(pwd)/packages:/packages nuget-server:latest
 
 # With authentication configuration directory
 docker run -p 5963:5963 \
-  -v $(pwd)/packages:/packages \
   -v $(pwd)/config:/config \
+  -v $(pwd)/packages:/packages \
   nuget-server:latest
 ```
 
