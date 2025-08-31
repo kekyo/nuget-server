@@ -66,8 +66,8 @@ nuget-server
 # Custom port
 nuget-server --port 3000
 
-# Read config from
-nuget-server --config-dir ./config
+# Multiple options
+nuget-server --port 3000 --config-file ./my-config.json --users-file ./data/users.json
 ```
 
 The NuGet V3 API is served on the `/v3` path.
@@ -163,24 +163,26 @@ Restore is simply extract it and re-run nuget-server with the same package direc
 
 ---
 
-## Configuration directory
+## Configuration file
 
-You can specify a custom configuration directory:
+You can specify a custom configuration file:
 
 ```bash
 # Using command line option
-nuget-server --config-dir /path/to/config
+nuget-server --config-file /path/to/config.json
+# or short alias
+nuget-server -c /path/to/config.json
 
 # Using environment variable
-export NUGET_SERVER_CONFIG_DIR=/path/to/config
+export NUGET_SERVER_CONFIG_FILE=/path/to/config.json
 nuget-server
 ```
 
-The configuration directory is used for the following configuration file (`config.json`) and basic authentication file (`users.json`).
+If not specified, nuget-server looks for `./config.json` in the current directory.
 
-## Configuration file (config.json)
+## Configuration file structure
 
-nuget-server supports configuration through a `config.json` file located in the configuration directory. This provides an alternative to command-line options and environment variables.
+nuget-server supports configuration through a JSON file. This provides an alternative to command-line options and environment variables.
 
 ### Configuration priority
 
@@ -193,7 +195,7 @@ Settings are applied in the following order (highest to lowest priority):
 
 ### config.json structure
 
-Create a `config.json` file in your configuration directory:
+Create a `config.json` file:
 
 ```json
 {
@@ -212,7 +214,7 @@ Create a `config.json` file in your configuration directory:
 ```
 
 All fields are optional. Only include the settings you want to override.
-Both `packageDir` and `usersFile` paths can be absolute or relative. If relative, they are resolved from the configuration directory.
+Both `packageDir` and `usersFile` paths can be absolute or relative. If relative, they are resolved from the directory containing the config.json file.
 
 ## JSON-based authentication with --auth-init
 
@@ -223,7 +225,7 @@ In addition to htpasswd authentication, nuget-server also supports JSON-based au
 Create an initial admin user interactively:
 
 ```bash
-nuget-server --auth-init --config-dir ./config
+nuget-server --auth-init --config-file ./config.json
 ```
 
 This command will:
@@ -241,7 +243,7 @@ For automated deployments, you can provide credentials via environment variables
 ```bash
 export NUGET_SERVER_ADMIN_USERNAME=admin
 export NUGET_SERVER_ADMIN_PASSWORD=MySecurePassword123!
-nuget-server --auth-init --config-dir ./config
+nuget-server --auth-init --config-file ./config.json
 ```
 
 This allows initialization in CI/CD pipelines without user interaction.
@@ -450,7 +452,7 @@ Environment variables are also supported:
 ```bash
 export NUGET_SERVER_BASE_URL=https://packages.example.com
 export NUGET_SERVER_TRUSTED_PROXIES=10.0.0.1,192.168.1.100
-export NUGET_SERVER_CONFIG_DIR=/path/to/config
+export NUGET_SERVER_CONFIG_FILE=/path/to/config.json
 export NUGET_SERVER_USERS_FILE=/path/to/users.json
 export NUGET_SERVER_SESSION_SECRET=your-secret-key-here
 ```

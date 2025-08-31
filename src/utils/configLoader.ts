@@ -141,37 +141,56 @@ const validateConfig = (
 };
 
 /**
- * Loads configuration from a config.json file in the specified directory
- * @param configDir Directory containing config.json
+ * Loads configuration from a config.json file at the specified path
+ * @param configPath Path to the config.json file
  * @param logger Optional logger for warnings
  * @returns Parsed and validated configuration object, or empty object if file doesn't exist or is invalid
  */
-export const loadConfigFromFile = async (
-  configDir: string,
+export const loadConfigFromPath = async (
+  configPath: string,
   logger?: Logger,
 ): Promise<ConfigFile> => {
-  const configPath = join(configDir, "config.json");
-
   try {
     const content = await readFile(configPath, "utf-8");
     const config = JSON.parse(content);
 
     logger?.debug(`Loaded configuration from ${configPath}`);
 
+    // Extract directory from config file path for relative path resolution
+    const configDir =
+      configPath.substring(0, configPath.lastIndexOf("/")) ||
+      configPath.substring(0, configPath.lastIndexOf("\\")) ||
+      ".";
+
     return validateConfig(config, configDir, logger);
   } catch (error: any) {
     if (error.code === "ENOENT") {
       // File doesn't exist - this is normal, return empty config
-      logger?.debug(`No config.json found at ${configPath}`);
+      logger?.debug(`No config file found at ${configPath}`);
       return {};
     } else if (error instanceof SyntaxError) {
       // JSON parse error
-      logger?.warn(`Failed to parse config.json: ${error.message}`);
+      logger?.warn(`Failed to parse config file: ${error.message}`);
       return {};
     } else {
       // Other errors (permissions, etc.)
-      logger?.warn(`Failed to load config.json: ${error.message}`);
+      logger?.warn(`Failed to load config file: ${error.message}`);
       return {};
     }
   }
+};
+
+/**
+ * Loads configuration from a config.json file in the specified directory
+ * @param configDir Directory containing config.json
+ * @param logger Optional logger for warnings
+ * @returns Parsed and validated configuration object, or empty object if file doesn't exist or is invalid
+ * @deprecated Use loadConfigFromPath instead
+ */
+export const loadConfigFromFile = async (
+  configDir: string,
+  logger?: Logger,
+): Promise<ConfigFile> => {
+  const configPath = join(configDir, "config.json");
+  return loadConfigFromPath(configPath, logger);
 };
