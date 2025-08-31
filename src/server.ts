@@ -662,8 +662,8 @@ export const startFastifyServer = async (
     logger.info(`Fastify server listening on port ${config.port}`);
     // Build example command for logging
     const exampleCommand = serverUrlInfo.baseUrl
-      ? `dotnet nuget add source "${serverUrlInfo.baseUrl}/v3/index.json" -n "ref1"${!serverUrlInfo.isHttps ? " --allow-insecure-connections" : ""}`
-      : `dotnet nuget add source "http://localhost:${serverUrlInfo.port}/v3/index.json" -n "ref1" --allow-insecure-connections`;
+      ? `dotnet nuget add source "${serverUrlInfo.baseUrl}/v3/index.json" -n "ref1" --protocol-version 3${!serverUrlInfo.isHttps ? " --allow-insecure-connections" : ""}`
+      : `dotnet nuget add source "http://localhost:${serverUrlInfo.port}/v3/index.json" -n "ref1" --protocol-version 3 --allow-insecure-connections`;
     logger.info(`Example register command: ${exampleCommand}`);
     logger.info(`Authentication mode: ${authService.getAuthMode()}`);
 
