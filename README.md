@@ -598,29 +598,51 @@ docker run -p 3000:5963 \
 ### Using environment variables
 
 ```bash
+# Environment variables override the default command line arguments
 docker run -p 5963:5963 \
   -v $(pwd)/packages:/packages \
   -v $(pwd)/data:/data \
   -e NUGET_SERVER_BASE_URL=https://nuget.example.com \
   -e NUGET_SERVER_TRUSTED_PROXIES=10.0.0.1 \
   -e NUGET_SERVER_AUTH_MODE=publish \
-  -e NUGET_SERVER_USERS_FILE=/data/users.json \
+  kekyo/nuget-server:latest
+
+# Use custom package directory with environment variable
+docker run -p 5963:5963 \
+  -v $(pwd)/custom-packages:/custom-packages \
+  -v $(pwd)/data:/data \
+  -e NUGET_SERVER_PACKAGE_DIR=/custom-packages \
   kekyo/nuget-server:latest
 ```
 
-### Volume mounts
+### Volume mounts and Configuration
 
-- `/packages`: Package storage directory (should be mounted to persist data)
-- `/data`: Data directory for users.json and other persistent data (recommended to mount)
+- `/packages`: Default package storage directory (mounted to persist packages)
+- `/data`: Default data directory for users.json and other persistent data
 
-The Docker image uses fixed directories internally, but you can mount any host directories to these locations.
+**Default behavior**: The Docker image runs with `--package-dir /packages --users-file /data/users.json` by default, ensuring mounted directories are used.
+
+**Configuration priority** (highest to lowest):
+
+1. Custom command line arguments (when overriding CMD)
+2. Environment variables (e.g., `NUGET_SERVER_PACKAGE_DIR`)
+3. config.json file (if explicitly specified)
+4. Default command line arguments in Dockerfile
 
 ### Using config.json with Docker
 
-If you want to use a config.json file instead of environment variables:
+If you want to use a config.json file for configuration:
 
 ```bash
-# Mount config.json and use it
+# Mount config.json and specify its path
+docker run -p 5963:5963 \
+  -v $(pwd)/packages:/packages \
+  -v $(pwd)/data:/data \
+  -v $(pwd)/config.json:/data/config.json:ro \
+  kekyo/nuget-server:latest \
+  --config-file /data/config.json
+
+# Or use environment variable to specify config file
 docker run -p 5963:5963 \
   -v $(pwd)/packages:/packages \
   -v $(pwd)/data:/data \
@@ -629,7 +651,11 @@ docker run -p 5963:5963 \
   kekyo/nuget-server:latest
 ```
 
-Note: When using config.json, relative paths in the file are resolved relative to the config.json location. For example, if config.json is at `/app/config.json` and contains `"packageDir": "./packages"`, it will resolve to `/app/packages`.
+**Note**:
+
+- If a config file is specified but doesn't exist, a warning is logged and the server continues with other configuration sources
+- Relative paths in config.json are resolved relative to the config.json location
+- Command line arguments and environment variables take precedence over config.json settings
 
 ---
 
