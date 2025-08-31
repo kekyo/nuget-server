@@ -38,9 +38,5 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
 # Default volumes (can be mounted)
 VOLUME ["/packages", "/data"]
 
-# Set default environment variables
-ENV NUGET_SERVER_PACKAGE_DIR=/packages
-ENV NUGET_SERVER_USERS_FILE=/data/users.json
-
-# Default command - can be overridden for custom options
-CMD ["node", "dist/cli.js"]
+# Default command with explicit arguments - can be overridden for custom options
+CMD ["node", "dist/cli.js", "--package-dir", "/packages", "--users-file", "/data/users.json"]
