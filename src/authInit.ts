@@ -25,8 +25,9 @@ export interface AuthInitOptions {
 /**
  * Check if users.json already exists
  */
-const checkUsersFileExists = async (configDir: string): Promise<boolean> => {
-  const usersFilePath = join(configDir, "users.json");
+const checkUsersFileExists = async (
+  usersFilePath: string,
+): Promise<boolean> => {
   try {
     await access(usersFilePath, constants.F_OK);
     return true;
@@ -36,14 +37,18 @@ const checkUsersFileExists = async (configDir: string): Promise<boolean> => {
 };
 
 /**
- * Ensure config directory exists
+ * Ensure directory exists for a file path
  */
-const ensureConfigDir = async (configDir: string): Promise<void> => {
+const ensureDirectoryForFile = async (filePath: string): Promise<void> => {
+  const dirPath =
+    filePath.substring(0, filePath.lastIndexOf("/")) ||
+    filePath.substring(0, filePath.lastIndexOf("\\")) ||
+    ".";
   try {
-    await access(configDir, constants.F_OK);
+    await access(dirPath, constants.F_OK);
   } catch {
     // Directory doesn't exist, create it
-    await mkdir(configDir, { recursive: true });
+    await mkdir(dirPath, { recursive: true });
   }
 };
 
@@ -54,26 +59,25 @@ export const runAuthInit = async (
   config: ServerConfig,
   logger: Logger,
 ): Promise<void> => {
-  const { configDir } = config;
+  const { configDir, usersFile } = config;
 
   logger.info("Initializing authentication...");
 
   try {
+    // Determine users file path
+    const usersFilePath = usersFile || join(configDir || "./", "users.json");
+
     // Check if users.json already exists
-    if (!configDir) {
-      logger.error("Config directory is not defined");
-      process.exit(1);
-    }
-    if (await checkUsersFileExists(configDir)) {
+    if (await checkUsersFileExists(usersFilePath)) {
       logger.error(
-        "users.json already exists. Please remove it first to initialize authentication.",
+        `${usersFilePath} already exists. Please remove it first to initialize authentication.`,
       );
       process.exit(1);
     }
 
-    // Ensure config directory exists
-    await ensureConfigDir(configDir);
-    logger.debug(`Using config directory: ${configDir}`);
+    // Ensure directory exists for users file
+    await ensureDirectoryForFile(usersFilePath);
+    logger.debug(`Using users file: ${usersFilePath}`);
 
     // Create readline interface for regular input
     const rl = readline.createInterface({
@@ -162,7 +166,8 @@ export const runAuthInit = async (
 
       // Create user service
       const userService = createUserService({
-        configDir: configDir!,
+        configDir: configDir || "./",
+        usersFile: config.usersFile,
         logger,
         serverConfig: config,
       });

@@ -248,4 +248,68 @@ describe("config-loader", () => {
       expect(config.packageDir).toBeDefined();
     });
   });
+
+  describe("usersFile path resolution", () => {
+    it("should resolve relative usersFile from config directory", async () => {
+      const configData = {
+        usersFile: "./users.json",
+      };
+
+      await writeFile(join(testDir, "config.json"), JSON.stringify(configData));
+
+      const config = await loadConfigFromFile(testDir);
+      expect(config.usersFile).toBe(resolve(testDir, "./users.json"));
+    });
+
+    it("should resolve parent relative usersFile from config directory", async () => {
+      const configData = {
+        usersFile: "../data/users.json",
+      };
+
+      await writeFile(join(testDir, "config.json"), JSON.stringify(configData));
+
+      const config = await loadConfigFromFile(testDir);
+      expect(config.usersFile).toBe(resolve(testDir, "../data/users.json"));
+    });
+
+    it("should preserve absolute usersFile path", async () => {
+      const absolutePath = "/absolute/path/to/users.json";
+      const configData = {
+        usersFile: absolutePath,
+      };
+
+      await writeFile(join(testDir, "config.json"), JSON.stringify(configData));
+
+      const config = await loadConfigFromFile(testDir);
+      expect(config.usersFile).toBe(absolutePath);
+    });
+
+    it("should resolve complex relative usersFile path", async () => {
+      const configData = {
+        usersFile: "./config/../data/users.json",
+      };
+
+      await writeFile(join(testDir, "config.json"), JSON.stringify(configData));
+
+      const config = await loadConfigFromFile(testDir);
+      expect(config.usersFile).toBe(
+        resolve(testDir, "./config/../data/users.json"),
+      );
+      // This should normalize to testDir/data/users.json
+      expect(config.usersFile).toBe(join(testDir, "data", "users.json"));
+    });
+
+    it("should handle both packageDir and usersFile in same config", async () => {
+      const configData = {
+        packageDir: "./packages",
+        usersFile: "./data/users.json",
+      };
+
+      await writeFile(join(testDir, "config.json"), JSON.stringify(configData));
+
+      const config = await loadConfigFromFile(testDir);
+      expect(config.packageDir).toBe(resolve(testDir, "./packages"));
+      expect(config.usersFile).toBe(resolve(testDir, "./data/users.json"));
+    });
+  });
 });

@@ -78,6 +78,10 @@ const getPasswordStrengthCheckFromEnv = (): boolean | undefined => {
   return undefined;
 };
 
+const getUsersFileFromEnv = (): string | undefined => {
+  return process.env.NUGET_SERVER_USERS_FILE;
+};
+
 /////////////////////////////////////////////////////////////////////////
 
 const program = new Command();
@@ -93,6 +97,7 @@ program
   )
   .option("-d, --package-dir <dir>", "package storage directory")
   .option("-c, --config-dir <dir>", "configuration directory")
+  .option("-u, --users-file <path>", "path to users.json file")
   .option("-r, --realm <realm>", `authentication realm`)
   .option(
     "-l, --log-level <level>",
@@ -153,6 +158,8 @@ program
       getPasswordStrengthCheckFromEnv() ??
       configFile.passwordStrengthCheck ??
       true;
+    const usersFile =
+      options.usersFile || getUsersFileFromEnv() || configFile.usersFile;
 
     // Validate log level
     const validLogLevels: LogLevel[] = [
@@ -201,6 +208,9 @@ program
 
     logger.info(`Package directory: ${packageDir}`);
     logger.info(`Config directory: ${configDir}`);
+    if (usersFile) {
+      logger.info(`Users file: ${usersFile}`);
+    }
     logger.info(`Realm: ${realm}`);
     logger.info(`Authentication mode: ${authMode}`);
     logger.info(`Log level: ${logLevel}`);
@@ -216,6 +226,7 @@ program
       baseUrl,
       packageDir,
       configDir,
+      usersFile,
       realm,
       authMode: authMode as AuthMode,
       trustedProxies,

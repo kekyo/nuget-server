@@ -13,6 +13,7 @@ export interface ConfigFile {
   port?: number;
   baseUrl?: string;
   packageDir?: string;
+  usersFile?: string;
   realm?: string;
   logLevel?: LogLevel;
   trustedProxies?: string[];
@@ -53,6 +54,13 @@ const validateConfig = (
     // path.resolve handles both absolute and relative paths correctly
     // If absolute: returns as-is, if relative: resolves from configDir
     validated.packageDir = resolve(configDir, config.packageDir);
+  }
+
+  // Validate usersFile and resolve relative paths from config directory
+  if (typeof config.usersFile === "string") {
+    // path.resolve handles both absolute and relative paths correctly
+    // If absolute: returns as-is, if relative: resolves from configDir
+    validated.usersFile = resolve(configDir, config.usersFile);
   }
 
   // Validate realm

@@ -23,6 +23,7 @@ describe("CLI configuration priority", () => {
     delete process.env.NUGET_SERVER_PACKAGE_DIR;
     delete process.env.NUGET_SERVER_LOG_LEVEL;
     delete process.env.NUGET_SERVER_AUTH_MODE;
+    delete process.env.NUGET_SERVER_USERS_FILE;
   });
 
   const runCli = async (
@@ -221,5 +222,75 @@ describe("CLI configuration priority", () => {
     // Note: We can't directly check sessionSecret in output, but it's used internally
     const { stdout } = await runCli(`-c ${testDir}`, env);
     expect(stdout).toContain(`Port: ${testPort}`);
+  }, 10000);
+
+  it("should handle usersFile configuration from CLI", async () => {
+    const usersFilePath = join(testDir, "custom-users.json");
+
+    const { stdout } = await runCli(
+      `-c ${testDir} --users-file ${usersFilePath}`,
+    );
+
+    expect(stdout).toContain(`Users file: ${usersFilePath}`);
+  }, 10000);
+
+  it("should handle usersFile configuration from environment", async () => {
+    const usersFilePath = join(testDir, "env-users.json");
+
+    const env = {
+      NUGET_SERVER_USERS_FILE: usersFilePath,
+    };
+
+    const { stdout } = await runCli(`-c ${testDir}`, env);
+
+    expect(stdout).toContain(`Users file: ${usersFilePath}`);
+  }, 10000);
+
+  it("should handle usersFile configuration from config.json", async () => {
+    const usersFilePath = "config-users.json";
+
+    await writeFile(
+      join(testDir, "config.json"),
+      JSON.stringify({
+        port: testPort,
+        usersFile: usersFilePath,
+      }),
+    );
+
+    const { stdout } = await runCli(`-c ${testDir}`);
+
+    // usersFile path should be resolved relative to config dir
+    expect(stdout).toContain(`Users file: ${resolve(testDir, usersFilePath)}`);
+  }, 10000);
+
+  it("should prioritize usersFile configuration correctly", async () => {
+    // Create config.json with usersFile
+    await writeFile(
+      join(testDir, "config.json"),
+      JSON.stringify({
+        port: testPort,
+        usersFile: "config-users.json",
+      }),
+    );
+
+    // Set environment variable
+    const env = {
+      NUGET_SERVER_USERS_FILE: join(testDir, "env-users.json"),
+    };
+
+    // CLI option should have highest priority
+    const cliUsersFile = join(testDir, "cli-users.json");
+    const { stdout } = await runCli(
+      `-c ${testDir} --users-file ${cliUsersFile}`,
+      env,
+    );
+
+    expect(stdout).toContain(`Users file: ${cliUsersFile}`);
+  }, 10000);
+
+  it("should not show users file in output when not specified", async () => {
+    const { stdout } = await runCli(`-c ${testDir}`);
+
+    expect(stdout).not.toContain("Users file:");
   }, 10000);
 });

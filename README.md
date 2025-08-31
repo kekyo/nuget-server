@@ -66,8 +66,8 @@ nuget-server
 # Custom port
 nuget-server --port 3000
 
-# Custom log level (debug, info, warn, error, ignore - default: info)
-nuget-server --log-level debug
+# Read config from
+nuget-server --config-dir ./config
 ```
 
 The NuGet V3 API is served on the `/v3` path.
@@ -200,6 +200,7 @@ Create a `config.json` file in your configuration directory:
   "port": 5963,
   "baseUrl": "http://localhost:5963",
   "packageDir": "./packages",
+  "usersFile": "./users.json",
   "realm": "Awsome nuget-server",
   "logLevel": "info",
   "trustedProxies": ["127.0.0.1", "::1"],
@@ -211,7 +212,7 @@ Create a `config.json` file in your configuration directory:
 ```
 
 All fields are optional. Only include the settings you want to override.
-`packageDir` path is relative from `config.json`.
+Both `packageDir` and `usersFile` paths can be absolute or relative. If relative, they are resolved from the configuration directory.
 
 ## JSON-based authentication with --auth-init
 
@@ -450,6 +451,7 @@ Environment variables are also supported:
 export NUGET_SERVER_BASE_URL=https://packages.example.com
 export NUGET_SERVER_TRUSTED_PROXIES=10.0.0.1,192.168.1.100
 export NUGET_SERVER_CONFIG_DIR=/path/to/config
+export NUGET_SERVER_USERS_FILE=/path/to/users.json
 export NUGET_SERVER_SESSION_SECRET=your-secret-key-here
 ```
 
