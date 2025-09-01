@@ -9,6 +9,7 @@ import {
   Tooltip,
   createTheme,
   useMediaQuery,
+  Paper,
 } from "@mui/material";
 import { TypedMessageProvider, TypedMessage } from "typed-message";
 import { messages } from "../generated/messages";
@@ -125,6 +126,14 @@ const App = () => {
           : themeMode === "dark"
             ? "dark"
             : "light",
+      primary: {
+        main:
+          themeMode === "dark" || (themeMode === "auto" && prefersDarkMode)
+            ? "#90caf9"
+            : "#1976d2",
+        50: "#e3f2fd",
+        100: "#bbdefb",
+      },
     },
     components: {
       MuiButton: {
@@ -571,48 +580,61 @@ const App = () => {
 
           {showRepositoryInfo() && (
             <Container maxWidth="lg" sx={{ mt: 12, mb: 4 }}>
-              <Box
+              <Paper
+                elevation={1}
                 sx={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
+                  p: 2,
+                  bgcolor: (theme) =>
+                    theme.palette.mode === "light" ? "primary.50" : "grey.900",
+                  borderColor: (theme) =>
+                    theme.palette.mode === "light" ? "primary.100" : "grey.800",
+                  borderWidth: 1,
+                  borderStyle: "solid",
                 }}
               >
-                <Box sx={{ flexGrow: 1 }}>
-                  <Stack direction="row">
+                <Box
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                  }}
+                >
+                  <Box sx={{ flexGrow: 1 }}>
+                    <Stack direction="row">
+                      <Typography
+                        variant="body2"
+                        fontSize="1.3rem"
+                        color="text.secondary"
+                        gutterBottom
+                      >
+                        <EditNote fontSize="small" />
+                        <TypedMessage message={messages.ADD_SERVER_AS_SOURCE} />
+                      </Typography>
+                    </Stack>
                     <Typography
                       variant="body2"
-                      fontSize="1.3rem"
-                      color="text.secondary"
-                      gutterBottom
+                      marginLeft="1rem"
+                      sx={{
+                        fontFamily: "monospace",
+                        fontSize: "1rem",
+                        wordBreak: "break-all",
+                      }}
                     >
-                      <EditNote fontSize="small" />
-                      <TypedMessage message={messages.ADD_SERVER_AS_SOURCE} />
+                      {buildAddSourceCommand({
+                        serverUrl: serverConfig!.serverUrl,
+                      })}
                     </Typography>
-                  </Stack>
-                  <Typography
-                    variant="body2"
-                    marginLeft="1rem"
-                    sx={{
-                      fontFamily: "monospace",
-                      fontSize: "1rem",
-                      wordBreak: "break-all",
-                    }}
+                  </Box>
+                  <IconButton
+                    size="small"
+                    onClick={handleCopyCommand}
+                    aria-label="copy command"
+                    sx={{ ml: 1, marginRight: "1rem" }}
                   >
-                    {buildAddSourceCommand({
-                      serverUrl: serverConfig!.serverUrl,
-                    })}
-                  </Typography>
+                    <ContentCopyIcon fontSize="small" />
+                  </IconButton>
                 </Box>
-                <IconButton
-                  size="small"
-                  onClick={handleCopyCommand}
-                  aria-label="copy command"
-                  sx={{ ml: 1, marginRight: "1rem" }}
-                >
-                  <ContentCopyIcon fontSize="small" />
-                </IconButton>
-              </Box>
+              </Paper>
             </Container>
           )}
 

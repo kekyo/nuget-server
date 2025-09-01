@@ -119,7 +119,8 @@ const UserAvatarMenu = ({
           sx={{
             width: 32,
             height: 32,
-            bgcolor: "primary.main",
+            bgcolor: (theme) =>
+              theme.palette.mode === "light" ? "grey.500" : "primary.main",
             fontSize: "1rem",
           }}
         >

@@ -506,7 +506,14 @@ const PackageList = forwardRef<PackageListRef, PackageListProps>(
             {filteredPackages.map((pkg) => (
               <Accordion
                 key={pkg.id}
-                sx={{ mb: 1 }}
+                sx={{
+                  mb: 1,
+                  bgcolor: (theme) =>
+                    theme.palette.mode === "light" ? "grey.100" : "grey.900",
+                  "&:before": {
+                    display: "none",
+                  },
+                }}
                 expanded={expandedPanels.has(pkg.id)}
                 onChange={handleAccordionChange(pkg.id)}
                 TransitionProps={{ unmountOnExit: true }}
