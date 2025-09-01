@@ -26,8 +26,6 @@ import {
 import {
   CloudUpload as UploadIcon,
   GitHub as GitHubIcon,
-  Login as LoginIcon,
-  Logout as LogoutIcon,
   ContentCopy as ContentCopyIcon,
   EditNote,
 } from "@mui/icons-material";
@@ -36,10 +34,9 @@ import UploadDrawer from "./components/UploadDrawer";
 import UserRegistrationDrawer from "./components/UserRegistrationDrawer";
 import UserPasswordResetDrawer from "./components/UserPasswordResetDrawer";
 import UserDeleteDrawer from "./components/UserDeleteDrawer";
-import UserManagementMenu from "./components/UserManagementMenu";
 import ApiPasswordDrawer from "./components/ApiPasswordDrawer";
-import PasswordManagementMenu from "./components/PasswordManagementMenu";
 import UserPasswordChangeDrawer from "./components/UserPasswordChangeDrawer";
+import UserAvatarMenu from "./components/UserAvatarMenu";
 import LoginDialog from "./components/LoginDialog";
 import { name, repository_url, version } from "../generated/packageMetadata";
 import { buildAddSourceCommand } from "./utils/commandBuilder";
@@ -323,30 +320,11 @@ const App = () => {
     return false;
   };
 
-  const showLogoutButton = () => {
+  const showUserAvatarMenu = () => {
     if (!serverConfig) return false;
     if (shouldHideAppBarButtons()) return false;
-    const authMode = serverConfig.authMode;
-    if (authMode === "none") return false;
-    if (authMode === "publish") return isAuthenticated();
-    if (authMode === "full") return isAuthenticated();
-    return false;
-  };
-
-  const showUserAddButton = () => {
-    if (!serverConfig) return false;
-    if (shouldHideAppBarButtons()) return false;
-    const authMode = serverConfig.authMode;
-    if (authMode === "none") return false;
-    // Use currentUser.role from serverConfig
-    return serverConfig.currentUser?.role === "admin";
-  };
-
-  const showPasswordButton = () => {
-    if (!serverConfig) return false;
-    if (shouldHideAppBarButtons()) return false;
-    const authMode = serverConfig.authMode;
-    return (authMode === "publish" || authMode === "full") && isAuthenticated();
+    // Always show avatar menu regardless of auth mode or authentication status
+    return true;
   };
 
   const showRepositoryInfo = () => {
@@ -364,6 +342,19 @@ const App = () => {
     if (authMode === "none") return true;
     if (!isAuthenticated()) return false;
     return hasPublishPermission();
+  };
+
+  const isAdmin = () => {
+    if (!serverConfig) return false;
+    const authMode = serverConfig.authMode;
+    if (authMode === "none") return true; // Full access when auth is disabled
+    return serverConfig.currentUser?.role === "admin";
+  };
+
+  const canManagePassword = () => {
+    if (!serverConfig) return false;
+    const authMode = serverConfig.authMode;
+    return (authMode === "publish" || authMode === "full") && isAuthenticated();
   };
 
   const handleLogin = () => {
@@ -429,7 +420,7 @@ const App = () => {
                     <GitHubIcon
                       color="inherit"
                       onClick={() => window.open(repository_url, "_blank")}
-                      sx={{ mx: 1 }}
+                      sx={{ mx: 1, cursor: "pointer" }}
                     />
                   </Tooltip>
                   <Divider
@@ -440,70 +431,39 @@ const App = () => {
                 </>
               )}
 
-              {/* User Management Menu */}
-              {showUserAddButton() && (
-                <>
-                  <UserManagementMenu
-                    onAddUser={() => setUserRegDrawerOpen(true)}
-                    onResetPassword={() => setPasswordResetDrawerOpen(true)}
-                    onDeleteUser={() => setUserDeleteDrawerOpen(true)}
-                  />
-                  <Divider
-                    orientation="vertical"
-                    flexItem
-                    sx={{ mx: 1, borderColor: "rgba(255, 255, 255, 0.3)" }}
-                  />
-                </>
-              )}
-
-              {/* Password Management Menu */}
-              {showPasswordButton() && (
-                <PasswordManagementMenu
-                  onChangePassword={() => setPasswordChangeDrawerOpen(true)}
-                  onApiPassword={() => setApiPasswordDrawerOpen(true)}
-                />
-              )}
-
               {/* Upload Button */}
               {showUploadButton() && (
                 <Button
                   color="inherit"
                   startIcon={<UploadIcon />}
                   onClick={() => setDrawerOpen(true)}
+                  sx={{ mr: 1 }}
                 >
                   <TypedMessage message={messages.UPLOAD} />
                 </Button>
               )}
 
-              {/* Login Button */}
-              {showLoginButton() && (
-                <Button
-                  color="inherit"
-                  startIcon={<LoginIcon />}
-                  onClick={handleLogin}
-                  sx={{ mr: 1 }}
-                >
-                  <TypedMessage message={messages.LOGIN} />
-                </Button>
-              )}
-
-              {/* Logout Button */}
-              {showLogoutButton() && (
-                <>
-                  <Divider
-                    orientation="vertical"
-                    flexItem
-                    sx={{ mx: 1, borderColor: "rgba(255, 255, 255, 0.3)" }}
-                  />
-                  <Button
-                    color="inherit"
-                    startIcon={<LogoutIcon />}
-                    onClick={handleLogout}
-                    sx={{ mr: 1 }}
-                  >
-                    <TypedMessage message={messages.LOGOUT} />
-                  </Button>
-                </>
+              {/* User Avatar Menu */}
+              {showUserAvatarMenu() && (
+                <UserAvatarMenu
+                  username={
+                    serverConfig?.authMode === "none"
+                      ? "Admin"
+                      : serverConfig?.currentUser?.username
+                  }
+                  authMode={serverConfig?.authMode}
+                  isAuthenticated={isAuthenticated()}
+                  isAdmin={isAdmin()}
+                  canManagePassword={canManagePassword()}
+                  showLogin={showLoginButton()}
+                  onLogin={handleLogin}
+                  onAddUser={() => setUserRegDrawerOpen(true)}
+                  onResetPassword={() => setPasswordResetDrawerOpen(true)}
+                  onDeleteUser={() => setUserDeleteDrawerOpen(true)}
+                  onChangePassword={() => setPasswordChangeDrawerOpen(true)}
+                  onApiPassword={() => setApiPasswordDrawerOpen(true)}
+                  onLogout={handleLogout}
+                />
               )}
             </Toolbar>
           </AppBar>
