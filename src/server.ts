@@ -52,7 +52,8 @@ const resolveEnvironmentPath = (
   developmentPath: string[],
   productionPath: string[],
 ): string => {
-  const isDevelopment = __dirname.includes("/src") || __dirname.includes("\\src");
+  const isDevelopment =
+    __dirname.includes("/src") || __dirname.includes("\\src");
   return isDevelopment
     ? path.join(__dirname, ...developmentPath)
     : path.join(__dirname, ...productionPath);
@@ -509,14 +510,14 @@ export const createFastifyInstance = async (
         ["ui", "public", "locale"],
         ["ui", "locale"],
       );
-      
+
       const files = await fs.readdir(localeDir);
       availableLanguages = files
-        .filter(f => f.endsWith('.json') && f !== 'fallback.json')
-        .map(f => f.replace('.json', ''));
+        .filter((f) => f.endsWith(".json") && f !== "fallback.json")
+        .map((f) => f.replace(".json", ""));
     } catch (error) {
       logger.error(`Failed to read locale directory: ${error}`);
-      availableLanguages = ['en']; // Fallback to English
+      availableLanguages = ["en"]; // Fallback to English
     }
 
     return {
@@ -586,14 +587,18 @@ export const createFastifyInstance = async (
     let publishServiceSetter: any;
     await fastify.register(
       async (fastify) => {
-        const config: PublishRoutesConfig = {
+        const publishConfig: PublishRoutesConfig = {
           packagesRoot,
           authService,
           authConfig,
           logger,
           urlResolver,
+          duplicatePackagePolicy: config.duplicatePackagePolicy,
         };
-        const publishRoutes = await registerPublishRoutes(fastify, config);
+        const publishRoutes = await registerPublishRoutes(
+          fastify,
+          publishConfig,
+        );
         publishServiceSetter = publishRoutes.setPackageUploadService;
       },
       { prefix: "/api" },
@@ -610,10 +615,7 @@ export const createFastifyInstance = async (
 
   // Serve UI files with custom handler
   const uiPath = resolveEnvironmentPath(["ui"], ["ui"]);
-  const publicPath = resolveEnvironmentPath(
-    ["ui", "public"],
-    ["ui"],
-  );
+  const publicPath = resolveEnvironmentPath(["ui", "public"], ["ui"]);
 
   // Helper function to serve static files using streaming
   const serveStaticFile = (

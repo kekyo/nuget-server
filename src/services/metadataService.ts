@@ -6,7 +6,7 @@ import fs from "fs/promises";
 import path from "path";
 import xml2js from "xml2js";
 import { createReaderWriterLock } from "async-primitives";
-import { Logger } from "../types";
+import { Logger, DuplicatePackagePolicy } from "../types";
 import { compareVersions } from "../utils/semver";
 
 /**
@@ -82,7 +82,13 @@ export interface MetadataService {
     packageId: string,
   ) => PackageEntry | undefined;
   readonly updateBaseUrl: (baseUrl: string) => Promise<void>;
-  readonly addPackage: (metadata: PackageMetadata) => Promise<void>;
+  readonly addPackage: (
+    metadata: PackageMetadata,
+    policy?: DuplicatePackagePolicy,
+  ) => Promise<{
+    action: "added" | "overwritten" | "ignored" | "error";
+    message?: string;
+  }>;
   readonly addPackageEntry: (entry: PackageEntry) => Promise<void>;
 }
 
@@ -426,8 +432,15 @@ export const createMetadataService = (
     /**
      * Adds a new package to the cache (for uploaded packages)
      * @param metadata - Package metadata to add
+     * @param policy - Duplicate package handling policy (default: "ignore")
      */
-    addPackage: async (metadata: PackageMetadata): Promise<void> => {
+    addPackage: async (
+      metadata: PackageMetadata,
+      policy: DuplicatePackagePolicy = "ignore",
+    ): Promise<{
+      action: "added" | "overwritten" | "ignored" | "error";
+      message?: string;
+    }> => {
       const handle = await cacheLock.writeLock();
       try {
         // Create a simple storage entry for uploaded packages
@@ -446,22 +459,61 @@ export const createMetadataService = (
         const packageId = packageEntry.metadata.id.toLowerCase();
         const existingEntries = packagesCache.get(packageId) || [];
 
-        // Remove existing version if it exists (for overwrite)
-        const filteredEntries = existingEntries.filter(
-          (e) => e.metadata.version !== packageEntry.metadata.version,
+        // Check if this exact version already exists
+        const existingVersion = existingEntries.find(
+          (e) => e.metadata.version === packageEntry.metadata.version,
         );
 
-        // Add new version
-        filteredEntries.push(packageEntry);
-        filteredEntries.sort((a, b) =>
-          compareVersions(b.metadata.version, a.metadata.version),
-        ); // Descending order (newest first)
+        if (existingVersion) {
+          // Package version already exists - apply policy
+          switch (policy) {
+            case "overwrite":
+              // Remove existing version and add new one
+              const filteredEntries = existingEntries.filter(
+                (e) => e.metadata.version !== packageEntry.metadata.version,
+              );
+              filteredEntries.push(packageEntry);
+              filteredEntries.sort((a, b) =>
+                compareVersions(b.metadata.version, a.metadata.version),
+              ); // Descending order (newest first)
+              packagesCache.set(packageId, filteredEntries);
 
-        packagesCache.set(packageId, filteredEntries);
+              logger.info(
+                `Package overwritten in cache: ${packageEntry.metadata.id} ${packageEntry.metadata.version}`,
+              );
+              return { action: "overwritten" };
 
-        logger.info(
-          `Package added to cache: ${packageEntry.metadata.id} ${packageEntry.metadata.version}`,
-        );
+            case "ignore":
+              logger.info(
+                `Package already exists in cache, ignored: ${packageEntry.metadata.id} ${packageEntry.metadata.version}`,
+              );
+              return { action: "ignored" };
+
+            case "error":
+              const errorMessage = `Package ${packageEntry.metadata.id} version ${packageEntry.metadata.version} already exists`;
+              logger.warn(errorMessage);
+              return { action: "error", message: errorMessage };
+
+            default:
+              // Default to ignore for safety
+              logger.info(
+                `Package already exists in cache, ignored (default policy): ${packageEntry.metadata.id} ${packageEntry.metadata.version}`,
+              );
+              return { action: "ignored" };
+          }
+        } else {
+          // New version - add it
+          existingEntries.push(packageEntry);
+          existingEntries.sort((a, b) =>
+            compareVersions(b.metadata.version, a.metadata.version),
+          ); // Descending order (newest first)
+          packagesCache.set(packageId, existingEntries);
+
+          logger.info(
+            `Package added to cache: ${packageEntry.metadata.id} ${packageEntry.metadata.version}`,
+          );
+          return { action: "added" };
+        }
       } finally {
         handle.release();
       }
