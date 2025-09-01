@@ -96,6 +96,10 @@ const App = () => {
   const [localeMessages, setLocaleMessages] = useState<Record<string, string>>(
     {},
   );
+  const [themeMode, setThemeMode] = useState<"auto" | "light" | "dark">(() => {
+    const saved = localStorage.getItem("preferredTheme");
+    return (saved as "auto" | "light" | "dark") || "auto";
+  });
   const [languageNames, setLanguageNames] = useState<Record<string, string>>(
     {},
   );
@@ -113,7 +117,14 @@ const App = () => {
 
   const theme = createTheme({
     palette: {
-      mode: prefersDarkMode ? "dark" : "light",
+      mode:
+        themeMode === "auto"
+          ? prefersDarkMode
+            ? "dark"
+            : "light"
+          : themeMode === "dark"
+            ? "dark"
+            : "light",
     },
     components: {
       MuiButton: {
@@ -448,6 +459,15 @@ const App = () => {
     }
   };
 
+  const handleThemeChange = (mode: "auto" | "light" | "dark") => {
+    setThemeMode(mode);
+    if (mode === "auto") {
+      localStorage.removeItem("preferredTheme");
+    } else {
+      localStorage.setItem("preferredTheme", mode);
+    }
+  };
+
   const handleCopyCommand = () => {
     if (serverConfig?.serverUrl) {
       const command = buildAddSourceCommand({
@@ -527,6 +547,14 @@ const App = () => {
                     serverConfig?.availableLanguages || ["en"]
                   }
                   languageNames={languageNames}
+                  currentTheme={themeMode}
+                  effectiveTheme={
+                    themeMode === "auto"
+                      ? prefersDarkMode
+                        ? "dark"
+                        : "light"
+                      : themeMode
+                  }
                   onLogin={handleLogin}
                   onAddUser={() => setUserRegDrawerOpen(true)}
                   onResetPassword={() => setPasswordResetDrawerOpen(true)}
@@ -535,6 +563,7 @@ const App = () => {
                   onApiPassword={() => setApiPasswordDrawerOpen(true)}
                   onLogout={handleLogout}
                   onLanguageChange={handleLanguageChange}
+                  onThemeChange={handleThemeChange}
                 />
               )}
             </Toolbar>

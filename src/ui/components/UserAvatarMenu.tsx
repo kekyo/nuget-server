@@ -25,6 +25,7 @@ import {
   PersonOutline,
   Language as LanguageIcon,
   Check as CheckIcon,
+  Brightness4 as ThemeIcon,
 } from "@mui/icons-material";
 
 interface UserAvatarMenuProps {
@@ -37,6 +38,8 @@ interface UserAvatarMenuProps {
   currentLocale: string;
   availableLanguages: string[];
   languageNames: Record<string, string>;
+  currentTheme: "auto" | "light" | "dark";
+  effectiveTheme: "light" | "dark";
   onLogin: () => void;
   onAddUser: () => void;
   onResetPassword: () => void;
@@ -45,6 +48,7 @@ interface UserAvatarMenuProps {
   onApiPassword: () => void;
   onLogout: () => void;
   onLanguageChange: (code: string) => void;
+  onThemeChange: (mode: "auto" | "light" | "dark") => void;
 }
 
 const UserAvatarMenu = ({
@@ -57,6 +61,8 @@ const UserAvatarMenu = ({
   currentLocale,
   availableLanguages,
   languageNames,
+  currentTheme,
+  effectiveTheme,
   onLogin,
   onAddUser,
   onResetPassword,
@@ -65,13 +71,16 @@ const UserAvatarMenu = ({
   onApiPassword,
   onLogout,
   onLanguageChange,
+  onThemeChange,
 }: UserAvatarMenuProps) => {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [languageAnchorEl, setLanguageAnchorEl] = useState<null | HTMLElement>(
     null,
   );
+  const [themeAnchorEl, setThemeAnchorEl] = useState<null | HTMLElement>(null);
   const open = Boolean(anchorEl);
   const languageMenuOpen = Boolean(languageAnchorEl);
+  const themeMenuOpen = Boolean(themeAnchorEl);
 
   // Get first letter of username for avatar
   const getAvatarLetter = () => {
@@ -88,6 +97,7 @@ const UserAvatarMenu = ({
   const handleClose = () => {
     setAnchorEl(null);
     setLanguageAnchorEl(null);
+    setThemeAnchorEl(null);
   };
 
   const handleAction = (action: () => void) => {
@@ -177,8 +187,23 @@ const UserAvatarMenu = ({
           </MenuItem>
         ) : (
           <>
-            {/* User info at the top */}
-            {username && (
+            {/* Login button when not authenticated - at the top */}
+            {showLogin && !isAuthenticated && (
+              <>
+                <MenuItem onClick={() => handleAction(onLogin)}>
+                  <ListItemIcon>
+                    <LoginIcon fontSize="small" />
+                  </ListItemIcon>
+                  <ListItemText>
+                    <TypedMessage message={messages.LOGIN} />
+                  </ListItemText>
+                </MenuItem>
+                <Divider />
+              </>
+            )}
+
+            {/* User info */}
+            {username && isAuthenticated && (
               <>
                 <MenuItem disabled>
                   <ListItemText
@@ -252,10 +277,12 @@ const UserAvatarMenu = ({
               </>
             )}
 
-            {/* Language Selection */}
+            {/* Settings Section */}
             <ListSubheader>
-              <TypedMessage message={messages.LANGUAGE} />
+              <TypedMessage message={messages.SETTINGS} />
             </ListSubheader>
+
+            {/* Language Menu */}
             <MenuItem
               onClick={(e) => {
                 e.stopPropagation();
@@ -266,6 +293,8 @@ const UserAvatarMenu = ({
                 <LanguageIcon fontSize="small" />
               </ListItemIcon>
               <ListItemText>
+                <TypedMessage message={messages.LANGUAGE} />
+                {": "}
                 {(() => {
                   const savedLocale = localStorage.getItem("preferredLocale");
                   const isAutoMode = !savedLocale || savedLocale === "auto";
@@ -283,6 +312,32 @@ const UserAvatarMenu = ({
                 })()}
               </ListItemText>
             </MenuItem>
+
+            {/* Theme Menu */}
+            <MenuItem
+              onClick={(e) => {
+                e.stopPropagation();
+                setThemeAnchorEl(e.currentTarget);
+              }}
+            >
+              <ListItemIcon>
+                <ThemeIcon fontSize="small" />
+              </ListItemIcon>
+              <ListItemText>
+                <TypedMessage message={messages.THEME} />
+                {": "}
+                {currentTheme === "auto" ? (
+                  <>
+                    <TypedMessage message={messages.THEME_AUTO} />
+                    {` (${effectiveTheme === "dark" ? "Dark" : "Light"})`}
+                  </>
+                ) : currentTheme === "dark" ? (
+                  <TypedMessage message={messages.THEME_DARK} />
+                ) : (
+                  <TypedMessage message={messages.THEME_LIGHT} />
+                )}
+              </ListItemText>
+            </MenuItem>
             <Divider />
 
             {/* Logout - Only show when authenticated */}
@@ -293,18 +348,6 @@ const UserAvatarMenu = ({
                 </ListItemIcon>
                 <ListItemText>
                   <TypedMessage message={messages.LOGOUT} />
-                </ListItemText>
-              </MenuItem>
-            )}
-
-            {/* Login button when not authenticated */}
-            {showLogin && !isAuthenticated && (
-              <MenuItem onClick={() => handleAction(onLogin)}>
-                <ListItemIcon>
-                  <LoginIcon fontSize="small" />
-                </ListItemIcon>
-                <ListItemText>
-                  <TypedMessage message={messages.LOGIN} />
                 </ListItemText>
               </MenuItem>
             )}
@@ -359,6 +402,64 @@ const UserAvatarMenu = ({
             </ListItemText>
           </MenuItem>
         ))}
+      </Menu>
+
+      {/* Theme Submenu */}
+      <Menu
+        anchorEl={themeAnchorEl}
+        open={themeMenuOpen}
+        onClose={() => setThemeAnchorEl(null)}
+        anchorOrigin={{ vertical: "top", horizontal: "right" }}
+        transformOrigin={{ vertical: "top", horizontal: "left" }}
+      >
+        {/* Auto option */}
+        <MenuItem
+          onClick={() => {
+            handleAction(() => onThemeChange("auto"));
+            setThemeAnchorEl(null);
+          }}
+        >
+          <ListItemIcon>
+            {currentTheme === "auto" && <CheckIcon fontSize="small" />}
+          </ListItemIcon>
+          <ListItemText>
+            <TypedMessage message={messages.THEME_AUTO} />
+            {currentTheme === "auto" &&
+              ` (${effectiveTheme === "dark" ? "Dark" : "Light"})`}
+          </ListItemText>
+        </MenuItem>
+
+        <Divider />
+
+        {/* Light option */}
+        <MenuItem
+          onClick={() => {
+            handleAction(() => onThemeChange("light"));
+            setThemeAnchorEl(null);
+          }}
+        >
+          <ListItemIcon>
+            {currentTheme === "light" && <CheckIcon fontSize="small" />}
+          </ListItemIcon>
+          <ListItemText>
+            <TypedMessage message={messages.THEME_LIGHT} />
+          </ListItemText>
+        </MenuItem>
+
+        {/* Dark option */}
+        <MenuItem
+          onClick={() => {
+            handleAction(() => onThemeChange("dark"));
+            setThemeAnchorEl(null);
+          }}
+        >
+          <ListItemIcon>
+            {currentTheme === "dark" && <CheckIcon fontSize="small" />}
+          </ListItemIcon>
+          <ListItemText>
+            <TypedMessage message={messages.THEME_DARK} />
+          </ListItemText>
+        </MenuItem>
       </Menu>
     </>
   );

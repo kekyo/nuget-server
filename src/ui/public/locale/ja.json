@@ -45,9 +45,14 @@
   "PASSWORD_MENU": "パスワード",
   "PASSWORD_MANAGEMENT": "パスワード管理",
 
+  "SETTINGS": "設定",
   "LANGUAGE": "言語",
   "LANGUAGE_AUTO": "自動",
   "LANGUAGE_NAME": "日本語",
+  "THEME": "テーマ",
+  "THEME_AUTO": "自動",
+  "THEME_LIGHT": "ライト",
+  "THEME_DARK": "ダーク",
 
   "NO_PACKAGES_AVAILABLE": "利用可能なパッケージがありません",
   "NO_PACKAGES_FOUND": "リポジトリにパッケージが見つかりません。",

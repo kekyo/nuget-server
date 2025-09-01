@@ -292,6 +292,13 @@ export const messages = {
     fallback: "Password Management" 
   } as SimpleMessageItem,
   /**
+   * Messgae: "Settings"
+   */
+  SETTINGS: { 
+    key: "SETTINGS", 
+    fallback: "Settings" 
+  } as SimpleMessageItem,
+  /**
    * Messgae: "Language"
    */
   LANGUAGE: { 
@@ -311,6 +318,34 @@ export const messages = {
   LANGUAGE_NAME: { 
     key: "LANGUAGE_NAME", 
     fallback: "English" 
+  } as SimpleMessageItem,
+  /**
+   * Messgae: "Theme"
+   */
+  THEME: { 
+    key: "THEME", 
+    fallback: "Theme" 
+  } as SimpleMessageItem,
+  /**
+   * Messgae: "Auto"
+   */
+  THEME_AUTO: { 
+    key: "THEME_AUTO", 
+    fallback: "Auto" 
+  } as SimpleMessageItem,
+  /**
+   * Messgae: "Light"
+   */
+  THEME_LIGHT: { 
+    key: "THEME_LIGHT", 
+    fallback: "Light" 
+  } as SimpleMessageItem,
+  /**
+   * Messgae: "Dark"
+   */
+  THEME_DARK: { 
+    key: "THEME_DARK", 
+    fallback: "Dark" 
   } as SimpleMessageItem,
   /**
    * Messgae: "No packages available"
