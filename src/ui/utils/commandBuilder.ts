@@ -24,7 +24,7 @@ export const buildAddSourceCommand = (options: CommandOptions): string => {
   // Build the URL
   const url = serverUrl.baseUrl
     ? `${serverUrl.baseUrl}/v3/index.json`
-    : `http://localhost:${serverUrl.port}/v3/index.json`;
+    : `${serverUrl.isHttps ? "https" : "http"}://localhost:${serverUrl.port}/v3/index.json`;
 
   // Start building the command
   let command = `dotnet nuget add source "${url}" -n "${sourceName}" --protocol-version 3`;
@@ -37,7 +37,7 @@ export const buildAddSourceCommand = (options: CommandOptions): string => {
   // Add insecure connection flag if needed (only for HTTP)
   const isInsecure = serverUrl.baseUrl
     ? !serverUrl.baseUrl.startsWith("https:")
-    : true;
+    : !serverUrl.isHttps;
   if (isInsecure) {
     command += " --allow-insecure-connections";
   }
@@ -54,7 +54,7 @@ export const buildPublishCommand = (options: CommandOptions): string => {
   // Build the URL
   const url = serverUrl.baseUrl
     ? `${serverUrl.baseUrl}/api/publish`
-    : `http://localhost:${serverUrl.port}/api/publish`;
+    : `${serverUrl.isHttps ? "https" : "http"}://localhost:${serverUrl.port}/api/publish`;
 
   // Build curl command
   let command = `curl -X POST ${url}`;
