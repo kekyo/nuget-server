@@ -162,7 +162,7 @@ const createSessionOnlyAuthMiddleware = (
         .send({ error: "Session authentication required" });
     }
 
-    const session = sessionService.validateSession(sessionToken);
+    const session = await sessionService.validateSession(sessionToken);
     if (!session) {
       return reply.status(401).send({ error: "Invalid or expired session" });
     }
@@ -230,7 +230,7 @@ export const registerUiRoutes = async (
           // Check session authentication first (Cookie-based)
           const sessionToken = request.cookies?.sessionToken;
           if (sessionToken) {
-            const session = sessionService.validateSession(sessionToken);
+            const session = await sessionService.validateSession(sessionToken);
             if (session) {
               currentUser = {
                 username: session.username,

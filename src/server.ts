@@ -240,7 +240,7 @@ export const createFastifyInstance = async (
   });
 
   try {
-    sessionService.initialize();
+    await sessionService.initialize();
   } catch (error) {
     logger.error(`Failed to initialize session service: ${error}`);
     throw error;
@@ -376,7 +376,7 @@ export const createFastifyInstance = async (
 
       // Create session
       const expirationHours = rememberMe ? 7 * 24 : 24; // 7 days or 24 hours
-      const session = sessionService.createSession({
+      const session = await sessionService.createSession({
         userId: user.id,
         username: user.username,
         role: user.role,
@@ -412,7 +412,7 @@ export const createFastifyInstance = async (
     const sessionToken = request.cookies?.sessionToken;
 
     if (sessionToken) {
-      sessionService.deleteSession(sessionToken);
+      await sessionService.deleteSession(sessionToken);
     }
 
     reply.clearCookie("sessionToken", {
@@ -438,7 +438,7 @@ export const createFastifyInstance = async (
       };
     }
 
-    const session = sessionService.validateSession(sessionToken);
+    const session = await sessionService.validateSession(sessionToken);
     if (!session) {
       // Clear invalid session cookie
       reply.clearCookie("sessionToken", {
@@ -472,7 +472,7 @@ export const createFastifyInstance = async (
     try {
       const sessionToken = request.cookies?.sessionToken;
       if (sessionToken) {
-        const session = sessionService.validateSession(sessionToken);
+        const session = await sessionService.validateSession(sessionToken);
         if (session) {
           currentUser = {
             username: session.username,
@@ -713,7 +713,7 @@ export const startFastifyServer = async (
           } finally {
             try {
               logger.debug("Destroying session service...");
-              sessionService.destroy();
+              await sessionService.destroy();
               logger.debug("Session service destroyed");
             } finally {
               logger.debug("Server close process completed");

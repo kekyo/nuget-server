@@ -23,7 +23,7 @@ import { createUrlResolver } from "../../../utils/urlResolver";
  * Service interface for handling package uploads
  */
 export interface PackageUploadService {
-  addPackage(metadata: PackageMetadata): void;
+  addPackage(metadata: PackageMetadata): Promise<void>;
 }
 
 /**
@@ -205,7 +205,7 @@ export const registerPublishRoutes = async (
           packageMetadata.packageContentUrl = `${baseUrl}/v3/package/${packageId.toLowerCase()}/${version}/${packageId.toLowerCase()}.${version}.nupkg`;
 
           // Add to memory cache
-          packageUploadService.addPackage(packageMetadata);
+          await packageUploadService.addPackage(packageMetadata);
 
           const response: PublishResponse = {
             message: "Package uploaded successfully",

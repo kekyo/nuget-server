@@ -149,7 +149,7 @@ export const fastifyHost = (config: ServerConfig): Plugin => {
               const userService = (fastify as any).userService;
               const sessionService = (fastify as any).sessionService;
               if (userService) userService.destroy();
-              if (sessionService) sessionService.destroy();
+              if (sessionService) await sessionService.destroy();
             } catch (error) {
               logger.error(`Error closing Fastify: ${error}`);
             } finally {
@@ -179,7 +179,7 @@ export const fastifyHost = (config: ServerConfig): Plugin => {
           const userService = (fastify as any).userService;
           const sessionService = (fastify as any).sessionService;
           if (userService) userService.destroy();
-          if (sessionService) sessionService.destroy();
+          if (sessionService) await sessionService.destroy();
           logger.info("Fastify instance closed");
         } catch (error) {
           logger.error(`Error closing Fastify: ${error}`);
