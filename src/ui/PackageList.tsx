@@ -605,7 +605,7 @@ const PackageList = forwardRef<PackageListRef, PackageListProps>(
                               <Chip
                                 label={
                                   pkg.license
-                                    ? `License: ${pkg.license}`
+                                    ? `${getMessage(messages.LICENSE)}: ${pkg.license}`
                                     : getMessage(messages.LICENSE_LINK)
                                 }
                                 component="a"
