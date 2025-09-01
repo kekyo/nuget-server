@@ -22,6 +22,8 @@ import {
 } from "@mui/icons-material";
 import { PasswordStrengthIndicator } from "./PasswordStrengthIndicator";
 import { apiFetch } from "../utils/apiClient";
+import { TypedMessage, useTypedMessage } from "typed-message";
+import { messages } from "../../generated/messages";
 
 interface UserPasswordChangeDrawerProps {
   open: boolean;
@@ -37,6 +39,7 @@ const UserPasswordChangeDrawer = ({
   open,
   onClose,
 }: UserPasswordChangeDrawerProps) => {
+  const getMessage = useTypedMessage();
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -67,29 +70,29 @@ const UserPasswordChangeDrawer = ({
 
   const validateForm = (): boolean => {
     if (!currentPassword) {
-      setValidationError("Current password is required");
+      setValidationError(
+        getMessage(messages.CURRENT_PASSWORD) + " is required",
+      );
       return false;
     }
 
     if (!newPassword) {
-      setValidationError("New password is required");
+      setValidationError(getMessage(messages.NEW_PASSWORD) + " is required");
       return false;
     }
 
     if (newPassword.length < 4) {
-      setValidationError("New password must be at least 4 characters");
+      setValidationError(getMessage(messages.VALIDATION_PASSWORD_TOO_SHORT));
       return false;
     }
 
     if (newPassword !== confirmPassword) {
-      setValidationError("New passwords do not match");
+      setValidationError(getMessage(messages.VALIDATION_PASSWORDS_DONT_MATCH));
       return false;
     }
 
     if (currentPassword === newPassword) {
-      setValidationError(
-        "New password must be different from current password",
-      );
+      setValidationError(getMessage(messages.PASSWORD_MUST_BE_DIFFERENT));
       return false;
     }
 
@@ -123,7 +126,8 @@ const UserPasswordChangeDrawer = ({
       if (response.ok) {
         setResult({
           success: true,
-          message: data.message || "Password changed successfully",
+          message:
+            data.message || getMessage(messages.PASSWORD_CHANGED_SUCCESS),
         });
 
         // Auto-close drawer after success
@@ -133,7 +137,7 @@ const UserPasswordChangeDrawer = ({
       } else {
         setResult({
           success: false,
-          message: data.error || "Failed to change password",
+          message: data.error || getMessage(messages.PASSWORD_CHANGE_FAILED),
         });
 
         // Clear password fields on error
@@ -145,7 +149,7 @@ const UserPasswordChangeDrawer = ({
       console.error("Failed to change password:", error);
       setResult({
         success: false,
-        message: "Failed to connect to server",
+        message: getMessage(messages.NETWORK_ERROR_TRY_AGAIN),
       });
     } finally {
       setLoading(false);
@@ -185,7 +189,7 @@ const UserPasswordChangeDrawer = ({
           sx={{ display: "flex", alignItems: "center", gap: 1 }}
         >
           <LockResetIcon />
-          Change Password
+          <TypedMessage message={messages.CHANGE_PASSWORD} />
         </Typography>
         <IconButton onClick={handleClose} disabled={loading}>
           <CloseIcon />
@@ -195,12 +199,12 @@ const UserPasswordChangeDrawer = ({
       {!result && (
         <>
           <Alert severity="info" sx={{ mb: 3 }}>
-            Enter your current password and choose a new password.
+            <TypedMessage message={messages.CHANGE_PASSWORD_INSTRUCTION} />
           </Alert>
 
           <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
             <TextField
-              label="Current Password"
+              label={getMessage(messages.CURRENT_PASSWORD)}
               type={showCurrentPassword ? "text" : "password"}
               value={currentPassword}
               onChange={(e) => setCurrentPassword(e.target.value)}
@@ -232,7 +236,7 @@ const UserPasswordChangeDrawer = ({
             />
 
             <TextField
-              label="New Password"
+              label={getMessage(messages.NEW_PASSWORD)}
               type={showNewPassword ? "text" : "password"}
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
@@ -240,7 +244,11 @@ const UserPasswordChangeDrawer = ({
               disabled={loading}
               required
               fullWidth
-              helperText={newPassword ? undefined : "Minimum 4 characters"}
+              helperText={
+                newPassword
+                  ? undefined
+                  : getMessage(messages.PASSWORD_MIN_LENGTH)
+              }
               slotProps={{
                 input: {
                   endAdornment: (
@@ -261,7 +269,7 @@ const UserPasswordChangeDrawer = ({
             )}
 
             <TextField
-              label="Confirm New Password"
+              label={getMessage(messages.CONFIRM_PASSWORD)}
               type={showConfirmPassword ? "text" : "password"}
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
@@ -309,7 +317,9 @@ const UserPasswordChangeDrawer = ({
               fullWidth
               sx={{ mt: 2 }}
             >
-              {loading ? "Changing Password..." : "Change Password"}
+              {loading
+                ? getMessage(messages.CHANGING_PASSWORD)
+                : getMessage(messages.CHANGE_PASSWORD)}
             </Button>
           </Box>
         </>

@@ -623,6 +623,13 @@ export const createFastifyInstance = async (
     return serveStaticFile(iconPath, reply, request.abortSignal);
   });
 
+  // Serve locale files for internationalization
+  fastify.get("/locale/*", (request, reply) => {
+    const localePath = (request.params as any)["*"];
+    const fullPath = path.join(publicPath, "locale", localePath);
+    return serveStaticFile(fullPath, reply, request.abortSignal);
+  });
+
   // Store services on fastify instance for cleanup
   fastify.decorate("userService", userService);
   fastify.decorate("sessionService", sessionService);

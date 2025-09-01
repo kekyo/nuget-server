@@ -1,0 +1,16 @@
+node_modules/
+generated/
+dist/
+build/
+out/
+tmp/
+temp/
+
+.vscode/
+.idea/
+.claude/
+.cursor/
+
+test-results/
+playwright-report/
+artifacts/

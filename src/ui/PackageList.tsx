@@ -29,6 +29,8 @@ import DownloadIcon from "@mui/icons-material/Download";
 import InfiniteScroll from "react-infinite-scroll-component";
 import { sortVersions } from "../utils/semver";
 import { apiFetch } from "./utils/apiClient";
+import { TypedMessage, useTypedMessage } from "typed-message";
+import { messages } from "../generated/messages";
 
 interface SearchResultVersion {
   version: string;
@@ -167,6 +169,7 @@ const PackageIconDisplay: React.FC<PackageIconDisplayProps> = ({
 
 const PackageList = forwardRef<PackageListRef, PackageListProps>(
   ({ serverConfig }, ref) => {
+    const getMessage = useTypedMessage();
     const [packages, setPackages] = useState<SearchResult[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -407,12 +410,21 @@ const PackageList = forwardRef<PackageListRef, PackageListProps>(
     }
 
     if (error) {
-      return <Alert severity="error">Error loading packages: {error}</Alert>;
+      return (
+        <Alert severity="error">
+          <TypedMessage
+            message={messages.ERROR_LOADING_PACKAGES}
+            params={{ error }}
+          />
+        </Alert>
+      );
     }
 
     if (packages.length === 0 && !filterText) {
       return (
-        <Alert severity="info">No packages found in the repository.</Alert>
+        <Alert severity="info">
+          <TypedMessage message={messages.NO_PACKAGES_FOUND} />
+        </Alert>
       );
     }
 
@@ -432,7 +444,7 @@ const PackageList = forwardRef<PackageListRef, PackageListProps>(
             sx={{ display: "flex", alignItems: "center", gap: 1 }}
           >
             <PackageIcon />
-            Packages{" "}
+            <TypedMessage message={messages.PACKAGES_HEADER} />{" "}
             {filterText.trim() ? (
               <>
                 ({filteredPackages.length}/
@@ -444,7 +456,7 @@ const PackageList = forwardRef<PackageListRef, PackageListProps>(
           </Typography>
           <TextField
             size="small"
-            placeholder="Filter packages..."
+            placeholder={getMessage(messages.FILTER_PACKAGES_PLACEHOLDER)}
             value={filterText}
             onChange={(e) => setFilterText(e.target.value)}
             sx={{ minWidth: 250 }}
@@ -452,7 +464,9 @@ const PackageList = forwardRef<PackageListRef, PackageListProps>(
         </Box>
 
         {filteredPackages.length === 0 && filterText ? (
-          <Alert severity="info">No packages match your filter criteria.</Alert>
+          <Alert severity="info">
+            <TypedMessage message={messages.NO_PACKAGES_MATCH_FILTER} />
+          </Alert>
         ) : (
           <InfiniteScroll
             dataLength={filteredPackages.length}
@@ -467,7 +481,7 @@ const PackageList = forwardRef<PackageListRef, PackageListProps>(
               >
                 <CircularProgress size={24} />
                 <Typography variant="body2" sx={{ ml: 2 }}>
-                  Loading more packages...
+                  <TypedMessage message={messages.LOADING_MORE_PACKAGES} />
                 </Typography>
               </Box>
             }
@@ -477,8 +491,13 @@ const PackageList = forwardRef<PackageListRef, PackageListProps>(
                   sx={{ textAlign: "center", p: 2, color: "text.secondary" }}
                 >
                   {filterText
-                    ? `Showing ${filteredPackages.length} of ${packages.length} packages`
-                    : `All ${packages.length} packages loaded`}
+                    ? getMessage(messages.SHOWING_PACKAGES, {
+                        current: filteredPackages.length,
+                        total: packages.length,
+                      })
+                    : getMessage(messages.ALL_PACKAGES_LOADED, {
+                        count: packages.length,
+                      })}
                 </Typography>
               ) : null
             }
@@ -520,7 +539,9 @@ const PackageList = forwardRef<PackageListRef, PackageListProps>(
                       {pkg.description && (
                         <Box sx={{ mb: 2 }}>
                           <Typography variant="subtitle2" gutterBottom>
-                            Description:
+                            <TypedMessage
+                              message={messages.DESCRIPTION_LABEL}
+                            />
                           </Typography>
                           <Typography variant="body2" color="text.secondary">
                             {pkg.description}
@@ -532,7 +553,7 @@ const PackageList = forwardRef<PackageListRef, PackageListProps>(
                       {pkg.authors.length > 0 && (
                         <Box sx={{ mb: 2 }}>
                           <Typography variant="subtitle2" gutterBottom>
-                            Authors:
+                            <TypedMessage message={messages.AUTHORS_LABEL} />
                           </Typography>
                           <Typography variant="body2" color="text.secondary">
                             {pkg.authors.join(", ")}
@@ -544,7 +565,7 @@ const PackageList = forwardRef<PackageListRef, PackageListProps>(
                       {pkg.tags.length > 0 && (
                         <Box sx={{ mb: 2 }}>
                           <Typography variant="subtitle2" gutterBottom>
-                            Tags:
+                            <TypedMessage message={messages.TAGS_LABEL} />
                           </Typography>
                           <Box
                             sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}
@@ -565,12 +586,12 @@ const PackageList = forwardRef<PackageListRef, PackageListProps>(
                       {(pkg.projectUrl || pkg.licenseUrl) && (
                         <Box sx={{ mb: 2 }}>
                           <Typography variant="subtitle2" gutterBottom>
-                            Links:
+                            <TypedMessage message={messages.LINKS_LABEL} />
                           </Typography>
                           <Box sx={{ display: "flex", gap: 1 }}>
                             {pkg.projectUrl && (
                               <Chip
-                                label="Project"
+                                label={getMessage(messages.PROJECT_LINK)}
                                 component="a"
                                 href={pkg.projectUrl}
                                 target="_blank"
@@ -585,7 +606,7 @@ const PackageList = forwardRef<PackageListRef, PackageListProps>(
                                 label={
                                   pkg.license
                                     ? `License: ${pkg.license}`
-                                    : "License"
+                                    : getMessage(messages.LICENSE_LINK)
                                 }
                                 component="a"
                                 href={
@@ -607,7 +628,10 @@ const PackageList = forwardRef<PackageListRef, PackageListProps>(
 
                       {/* Versions List */}
                       <Typography variant="subtitle2" gutterBottom>
-                        Versions ({pkg.versions.length}):
+                        <TypedMessage
+                          message={messages.VERSIONS_LABEL}
+                          params={{ count: pkg.versions.length }}
+                        />
                       </Typography>
                       <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
                         {pkg.versions.map((version) => (

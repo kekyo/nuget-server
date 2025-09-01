@@ -19,6 +19,8 @@ import {
 } from "@mui/material";
 import { Login as LoginIcon } from "@mui/icons-material";
 import { apiFetch } from "./utils/apiClient";
+import { TypedMessage, useTypedMessage } from "typed-message";
+import { messages } from "../generated/messages";
 
 interface LoginResponse {
   success: boolean;
@@ -30,6 +32,7 @@ interface LoginResponse {
 }
 
 const Login = () => {
+  const getMessage = useTypedMessage();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
 
@@ -43,7 +46,7 @@ const Login = () => {
     event.preventDefault();
 
     if (!username.trim() || !password.trim()) {
-      setError("Username and password are required");
+      setError(getMessage(messages.USERNAME_PASSWORD_REQUIRED));
       return;
     }
 
@@ -70,10 +73,10 @@ const Login = () => {
         // Login successful, redirect to main page
         window.location.href = ".";
       } else {
-        setError(data.message || "Login failed");
+        setError(data.message || getMessage(messages.LOGIN_FAILED));
       }
     } catch (err) {
-      setError("Network error. Please try again.");
+      setError(getMessage(messages.NETWORK_ERROR_TRY_AGAIN));
       console.error("Login error:", err);
     } finally {
       setIsLoading(false);
@@ -154,7 +157,7 @@ const Login = () => {
             required
             fullWidth
             id="username"
-            label="Username"
+            label={getMessage(messages.USERNAME)}
             name="username"
             autoComplete="username"
             autoFocus
@@ -169,7 +172,7 @@ const Login = () => {
             required
             fullWidth
             name="password"
-            label="Password"
+            label={getMessage(messages.PASSWORD)}
             type="password"
             id="password"
             autoComplete="current-password"
@@ -189,7 +192,7 @@ const Login = () => {
                 disabled={isLoading}
               />
             }
-            label="Remember me for 7 days"
+            label={getMessage(messages.REMEMBER_ME_DAYS)}
             sx={{ mt: 1, mb: 2 }}
           />
 
@@ -209,12 +212,14 @@ const Login = () => {
               isLoading ? <CircularProgress size={20} /> : <LoginIcon />
             }
           >
-            {isLoading ? "Signing in..." : "Sign In"}
+            {isLoading
+              ? getMessage(messages.SIGNING_IN)
+              : getMessage(messages.SIGN_IN)}
           </Button>
         </Box>
 
         <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
-          Need help? Contact your system administrator.
+          <TypedMessage message={messages.NEED_HELP_CONTACT} />
         </Typography>
       </Paper>
     </Container>

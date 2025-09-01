@@ -27,6 +27,8 @@ import {
 } from "@mui/icons-material";
 import { PasswordStrengthIndicator } from "./PasswordStrengthIndicator";
 import { apiFetch } from "../utils/apiClient";
+import { TypedMessage, useTypedMessage } from "typed-message";
+import { messages } from "../../generated/messages";
 
 interface UserRegistrationDrawerProps {
   open: boolean;
@@ -47,6 +49,7 @@ const UserRegistrationDrawer = ({
   onClose,
   onRegistrationSuccess,
 }: UserRegistrationDrawerProps) => {
+  const getMessage = useTypedMessage();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -59,7 +62,7 @@ const UserRegistrationDrawer = ({
     if (!username.trim() || !password || !confirmPassword) {
       setResult({
         success: false,
-        message: "All fields are required",
+        message: getMessage(messages.VALIDATION_ALL_FIELDS_REQUIRED),
       });
       return;
     }
@@ -67,7 +70,7 @@ const UserRegistrationDrawer = ({
     if (password !== confirmPassword) {
       setResult({
         success: false,
-        message: "Passwords do not match",
+        message: getMessage(messages.VALIDATION_PASSWORDS_DONT_MATCH),
       });
       return;
     }
@@ -75,7 +78,7 @@ const UserRegistrationDrawer = ({
     if (password.length < 4) {
       setResult({
         success: false,
-        message: "Password must be at least 4 characters long",
+        message: getMessage(messages.VALIDATION_PASSWORD_TOO_SHORT),
       });
       return;
     }
@@ -83,8 +86,7 @@ const UserRegistrationDrawer = ({
     if (!/^[a-zA-Z0-9_-]+$/.test(username.trim())) {
       setResult({
         success: false,
-        message:
-          "Username must contain only alphanumeric characters, hyphens, and underscores",
+        message: getMessage(messages.VALIDATION_USERNAME_INVALID),
       });
       return;
     }
@@ -118,7 +120,7 @@ const UserRegistrationDrawer = ({
       if (response.ok) {
         setResult({
           success: true,
-          message: data.message || "User registered successfully",
+          message: data.message || getMessage(messages.USER_REGISTERED_SUCCESS),
           apiPassword: data.apiPassword,
         });
         onRegistrationSuccess();
@@ -137,7 +139,7 @@ const UserRegistrationDrawer = ({
     } catch (error) {
       setResult({
         success: false,
-        message: `Registration error: ${error instanceof Error ? error.message : "Unknown error"}`,
+        message: `${getMessage(messages.USER_REGISTRATION_FAILED)}: ${error instanceof Error ? error.message : getMessage(messages.UNKNOWN_ERROR)}`,
       });
     } finally {
       setRegistering(false);
@@ -165,11 +167,11 @@ const UserRegistrationDrawer = ({
   const getRoleDescription = (role: UserRole): string => {
     switch (role) {
       case "read":
-        return "Can view and download packages";
+        return getMessage(messages.ROLE_READONLY_DESC);
       case "publish":
-        return "Can view, download, and upload packages";
+        return getMessage(messages.ROLE_PUBLISH_DESC);
       case "admin":
-        return "Can view, download, upload packages, and manage users";
+        return getMessage(messages.ROLE_ADMIN_DESC);
       default:
         return "";
     }
@@ -178,11 +180,11 @@ const UserRegistrationDrawer = ({
   const getRoleDisplayName = (role: UserRole): string => {
     switch (role) {
       case "read":
-        return "Read Only";
+        return getMessage(messages.ROLE_READONLY_SHORT);
       case "publish":
-        return "Read & Publish";
+        return getMessage(messages.ROLE_PUBLISH_SHORT);
       case "admin":
-        return "Administrator";
+        return getMessage(messages.ROLE_ADMIN_SHORT);
       default:
         return role;
     }
@@ -227,7 +229,7 @@ const UserRegistrationDrawer = ({
           }}
         >
           <Typography variant="h6" component="h2">
-            Register User
+            <TypedMessage message={messages.REGISTER_USER} />
           </Typography>
           <IconButton onClick={handleClose} edge="end">
             <CloseIcon />
@@ -239,30 +241,30 @@ const UserRegistrationDrawer = ({
         {!result ? (
           <Box>
             <Typography variant="body1" sx={{ mb: 3 }}>
-              Add a new user to the NuGet server:
+              <TypedMessage message={messages.ADD_NEW_USER_INSTRUCTION} />
             </Typography>
 
             <TextField
               fullWidth
-              label="Username"
+              label={getMessage(messages.USERNAME)}
               variant="outlined"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               disabled={registering}
               sx={{ mb: 2 }}
-              helperText="Only alphanumeric characters, hyphens, and underscores"
+              helperText={getMessage(messages.USERNAME_HELPER)}
             />
 
             <TextField
               fullWidth
-              label="Password"
+              label={getMessage(messages.PASSWORD)}
               type="password"
               variant="outlined"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               disabled={registering}
               sx={{ mb: 1 }}
-              helperText="Minimum 4 characters"
+              helperText={getMessage(messages.PASSWORD_MIN_LENGTH)}
             />
             <PasswordStrengthIndicator
               password={password}
@@ -271,7 +273,7 @@ const UserRegistrationDrawer = ({
 
             <TextField
               fullWidth
-              label="Confirm Password"
+              label={getMessage(messages.CONFIRM_PASSWORD)}
               type="password"
               variant="outlined"
               value={confirmPassword}
@@ -281,16 +283,22 @@ const UserRegistrationDrawer = ({
             />
 
             <FormControl fullWidth sx={{ mb: 2 }}>
-              <InputLabel>Role</InputLabel>
+              <InputLabel>{getMessage(messages.ROLE)}</InputLabel>
               <Select
                 value={role}
-                label="Role"
+                label={getMessage(messages.ROLE)}
                 onChange={(e) => setRole(e.target.value as UserRole)}
                 disabled={registering}
               >
-                <MenuItem value="read">Read Only</MenuItem>
-                <MenuItem value="publish">Read & Publish</MenuItem>
-                <MenuItem value="admin">Administrator</MenuItem>
+                <MenuItem value="read">
+                  <TypedMessage message={messages.ROLE_READONLY_SHORT} />
+                </MenuItem>
+                <MenuItem value="publish">
+                  <TypedMessage message={messages.ROLE_PUBLISH_SHORT} />
+                </MenuItem>
+                <MenuItem value="admin">
+                  <TypedMessage message={messages.ROLE_ADMIN_SHORT} />
+                </MenuItem>
               </Select>
             </FormControl>
 
@@ -319,7 +327,9 @@ const UserRegistrationDrawer = ({
               }
               sx={{ mb: 2 }}
             >
-              {registering ? "Registering..." : "Register User"}
+              {registering
+                ? getMessage(messages.REGISTERING)
+                : getMessage(messages.REGISTER)}
             </Button>
           </Box>
         ) : (
@@ -330,27 +340,29 @@ const UserRegistrationDrawer = ({
               sx={{ mb: 3 }}
             >
               {result.success
-                ? "User Registered Successfully!"
-                : "Registration Failed"}
+                ? getMessage(messages.USER_REGISTERED_SUCCESS)
+                : getMessage(messages.USER_REGISTRATION_FAILED)}
             </Alert>
 
             {result.success && (
               <Paper sx={{ p: 2, mb: 3 }} variant="outlined" elevation={0}>
                 <Typography variant="body2" color="text.secondary" gutterBottom>
-                  User created successfully!
+                  <TypedMessage
+                    message={messages.USER_CREATED_SUCCESS_MESSAGE}
+                  />
                 </Typography>
                 <Typography
                   variant="body1"
                   sx={{ fontWeight: "medium", mb: 1 }}
                 >
-                  Username: {username}
+                  {getMessage(messages.USERNAME)}: {username}
                 </Typography>
                 <Typography
                   variant="body2"
                   color="text.secondary"
                   sx={{ mb: 2 }}
                 >
-                  Role: {getRoleDisplayName(role)}
+                  {getMessage(messages.ROLE)}: {getRoleDisplayName(role)}
                 </Typography>
 
                 {result.apiPassword && (
@@ -360,12 +372,14 @@ const UserRegistrationDrawer = ({
                         variant="body2"
                         sx={{ fontWeight: "bold", mb: 1 }}
                       >
-                        Important: Save API password!
+                        <TypedMessage
+                          message={messages.IMPORTANT_SAVE_API_PASSWORD}
+                        />
                       </Typography>
                       <Typography variant="body2">
-                        This API password will only be shown once. Copy it now
-                        and store it securely. They'll need it to authenticate
-                        API requests.
+                        <TypedMessage
+                          message={messages.API_PASSWORD_SHOWN_ONCE}
+                        />
                       </Typography>
                     </Alert>
 
@@ -374,7 +388,7 @@ const UserRegistrationDrawer = ({
                       color="text.secondary"
                       gutterBottom
                     >
-                      API Password:
+                      <TypedMessage message={messages.API_PASSWORD_LABEL} />
                     </Typography>
                     <Paper
                       sx={{
@@ -407,7 +421,9 @@ const UserRegistrationDrawer = ({
                         {result.apiPassword}
                       </Typography>
                       <Typography variant="caption" color="text.secondary">
-                        Click to copy to clipboard
+                        <TypedMessage
+                          message={messages.CLICK_TO_COPY_CLIPBOARD}
+                        />
                       </Typography>
                     </Paper>
                   </>
@@ -418,7 +434,7 @@ const UserRegistrationDrawer = ({
             {result.message && (
               <Box sx={{ mb: 3 }}>
                 <Typography variant="body2" color="text.secondary" gutterBottom>
-                  Details:
+                  <TypedMessage message={messages.DETAILS_LABEL} />
                 </Typography>
                 <Paper
                   sx={{
@@ -444,7 +460,7 @@ const UserRegistrationDrawer = ({
 
             <Box sx={{ display: "flex", gap: 1 }}>
               <Button variant="outlined" onClick={resetForm} sx={{ flex: 1 }}>
-                Register Another
+                <TypedMessage message={messages.REGISTER_ANOTHER} />
               </Button>
             </Box>
           </Box>

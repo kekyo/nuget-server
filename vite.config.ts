@@ -5,8 +5,21 @@ import react from "@vitejs/plugin-react";
 import dts from "vite-plugin-dts";
 import screwUp from "screw-up";
 import prettierMax from "prettier-max";
+import typedMessage from "typed-message/vite";
 import { fastifyHost } from "./src/plugins/vite-plugin-fastify";
 import { ServerConfig } from "./src/types";
+
+// Development server configuration
+const devConfig: ServerConfig = {
+  port: 5963,
+  configDir: "./dev",
+  packageDir: "./dev/packages",
+  realm: "nuget-server dev",
+  authMode: "publish",
+  trustedProxies: [],
+};
+
+////////////////////////////////////////////////////////////////////
 
 const __dirname = fileURLToPath(new URL(".", import.meta.url));
 
@@ -15,16 +28,6 @@ export default defineConfig(({ mode, command }) => {
   const isBuild = command === "build";
   const buildTarget = process.env.BUILD_TARGET || "server";
 
-  // Development server configuration
-  const devConfig: ServerConfig = {
-    port: 5963,
-    configDir: "./dev",
-    packageDir: "./dev/packages",
-    realm: "nuget-server dev",
-    authMode: "publish",
-    trustedProxies: [],
-  };
-
   // For development mode, use UI as root
   if (isDev && !isBuild) {
     return {
@@ -32,6 +35,11 @@ export default defineConfig(({ mode, command }) => {
       base: "./", // Use relative paths for assets
       plugins: [
         react(),
+        typedMessage({
+          localeDir: resolve(__dirname, "src/ui/public/locale"),
+          outputPath: resolve(__dirname, "src/generated/messages.ts"),
+          fallbackPriorityOrder: ["ja", "en", "fallback"],
+        }),
         prettierMax({
           failOnError: true,
         }),
@@ -64,6 +72,11 @@ export default defineConfig(({ mode, command }) => {
       base: "./", // Use relative paths for assets
       plugins: [
         react(),
+        typedMessage({
+          localeDir: resolve(__dirname, "src/ui/public/locale"),
+          outputPath: resolve(__dirname, "src/generated/messages.ts"),
+          fallbackPriorityOrder: ["ja", "en", "fallback"],
+        }),
         prettierMax({
           failOnError: true,
         }),
@@ -86,6 +99,11 @@ export default defineConfig(({ mode, command }) => {
   return {
     plugins: [
       react(),
+      typedMessage({
+        localeDir: resolve(__dirname, "src/ui/public/locale"),
+        outputPath: resolve(__dirname, "src/generated/messages.ts"),
+        fallbackPriorityOrder: ["ja", "en", "fallback"],
+      }),
       dts({
         insertTypesEntry: true,
         exclude: ["src/ui/**/*", "src/plugins/**/*"],

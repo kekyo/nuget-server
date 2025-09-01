@@ -10,6 +10,8 @@ import {
   createTheme,
   useMediaQuery,
 } from "@mui/material";
+import { TypedMessageProvider, TypedMessage } from "typed-message";
+import { messages } from "../generated/messages";
 import {
   AppBar,
   Toolbar,
@@ -66,8 +68,19 @@ interface ServerConfig {
   } | null;
 }
 
+// Language detection function
+const detectLanguage = (): string => {
+  const browserLang = navigator.language.toLowerCase();
+  if (browserLang.startsWith("ja")) return "ja";
+  return "en"; // Default to English
+};
+
 const App = () => {
   const prefersDarkMode = useMediaQuery("(prefers-color-scheme: dark)");
+  const [locale] = useState(detectLanguage()); // setLocale will be used for language switching UI in the future
+  const [localeMessages, setLocaleMessages] = useState<Record<string, string>>(
+    {},
+  );
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [userRegDrawerOpen, setUserRegDrawerOpen] = useState(false);
   const [passwordResetDrawerOpen, setPasswordResetDrawerOpen] = useState(false);
@@ -126,6 +139,22 @@ const App = () => {
   useEffect(() => {
     fetchServerConfig();
   }, []);
+
+  // Load locale messages
+  useEffect(() => {
+    const loadMessages = async () => {
+      try {
+        const response = await fetch(`/locale/${locale}.json`);
+        if (response.ok) {
+          const messages = await response.json();
+          setLocaleMessages(messages);
+        }
+      } catch (error) {
+        console.error("Failed to load locale messages:", error);
+      }
+    };
+    loadMessages();
+  }, [locale]);
 
   useEffect(() => {
     if (serverConfig) {
@@ -372,217 +401,223 @@ const App = () => {
   };
 
   return (
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
-      <Box
-        sx={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}
-      >
-        <AppBar position="fixed">
-          <Toolbar>
-            <img
-              src="/icon.png"
-              alt={serverConfig?.realm || "nuget-server"}
-              style={{ height: "2.3rem", width: "2.3rem", marginRight: "1rem" }}
-            />
-            <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-              {serverConfig?.realm || "nuget-server"}
-            </Typography>
-
-            {/* GitHub Link */}
-            {!shouldHideAppBarButtons() && (
-              <>
-                <Tooltip title={`${name} ${version}`}>
-                  <GitHubIcon
-                    color="inherit"
-                    onClick={() => window.open(repository_url, "_blank")}
-                    sx={{ mx: 1 }}
-                  />
-                </Tooltip>
-                <Divider
-                  orientation="vertical"
-                  flexItem
-                  sx={{ mx: 1, borderColor: "rgba(255, 255, 255, 0.3)" }}
-                />
-              </>
-            )}
-
-            {/* User Management Menu */}
-            {showUserAddButton() && (
-              <>
-                <UserManagementMenu
-                  onAddUser={() => setUserRegDrawerOpen(true)}
-                  onResetPassword={() => setPasswordResetDrawerOpen(true)}
-                  onDeleteUser={() => setUserDeleteDrawerOpen(true)}
-                />
-                <Divider
-                  orientation="vertical"
-                  flexItem
-                  sx={{ mx: 1, borderColor: "rgba(255, 255, 255, 0.3)" }}
-                />
-              </>
-            )}
-
-            {/* Password Management Menu */}
-            {showPasswordButton() && (
-              <PasswordManagementMenu
-                onChangePassword={() => setPasswordChangeDrawerOpen(true)}
-                onApiPassword={() => setApiPasswordDrawerOpen(true)}
+    <TypedMessageProvider messages={localeMessages}>
+      <ThemeProvider theme={theme}>
+        <CssBaseline />
+        <Box
+          sx={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}
+        >
+          <AppBar position="fixed">
+            <Toolbar>
+              <img
+                src="/icon.png"
+                alt={serverConfig?.realm || "nuget-server"}
+                style={{
+                  height: "2.3rem",
+                  width: "2.3rem",
+                  marginRight: "1rem",
+                }}
               />
-            )}
+              <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
+                {serverConfig?.realm || "nuget-server"}
+              </Typography>
 
-            {/* Upload Button */}
-            {showUploadButton() && (
-              <Button
-                color="inherit"
-                startIcon={<UploadIcon />}
-                onClick={() => setDrawerOpen(true)}
-              >
-                Upload
-              </Button>
-            )}
+              {/* GitHub Link */}
+              {!shouldHideAppBarButtons() && (
+                <>
+                  <Tooltip title={`${name} ${version}`}>
+                    <GitHubIcon
+                      color="inherit"
+                      onClick={() => window.open(repository_url, "_blank")}
+                      sx={{ mx: 1 }}
+                    />
+                  </Tooltip>
+                  <Divider
+                    orientation="vertical"
+                    flexItem
+                    sx={{ mx: 1, borderColor: "rgba(255, 255, 255, 0.3)" }}
+                  />
+                </>
+              )}
 
-            {/* Login Button */}
-            {showLoginButton() && (
-              <Button
-                color="inherit"
-                startIcon={<LoginIcon />}
-                onClick={handleLogin}
-                sx={{ mr: 1 }}
-              >
-                Login
-              </Button>
-            )}
+              {/* User Management Menu */}
+              {showUserAddButton() && (
+                <>
+                  <UserManagementMenu
+                    onAddUser={() => setUserRegDrawerOpen(true)}
+                    onResetPassword={() => setPasswordResetDrawerOpen(true)}
+                    onDeleteUser={() => setUserDeleteDrawerOpen(true)}
+                  />
+                  <Divider
+                    orientation="vertical"
+                    flexItem
+                    sx={{ mx: 1, borderColor: "rgba(255, 255, 255, 0.3)" }}
+                  />
+                </>
+              )}
 
-            {/* Logout Button */}
-            {showLogoutButton() && (
-              <>
-                <Divider
-                  orientation="vertical"
-                  flexItem
-                  sx={{ mx: 1, borderColor: "rgba(255, 255, 255, 0.3)" }}
+              {/* Password Management Menu */}
+              {showPasswordButton() && (
+                <PasswordManagementMenu
+                  onChangePassword={() => setPasswordChangeDrawerOpen(true)}
+                  onApiPassword={() => setApiPasswordDrawerOpen(true)}
                 />
+              )}
+
+              {/* Upload Button */}
+              {showUploadButton() && (
                 <Button
                   color="inherit"
-                  startIcon={<LogoutIcon />}
-                  onClick={handleLogout}
+                  startIcon={<UploadIcon />}
+                  onClick={() => setDrawerOpen(true)}
+                >
+                  <TypedMessage message={messages.UPLOAD} />
+                </Button>
+              )}
+
+              {/* Login Button */}
+              {showLoginButton() && (
+                <Button
+                  color="inherit"
+                  startIcon={<LoginIcon />}
+                  onClick={handleLogin}
                   sx={{ mr: 1 }}
                 >
-                  Logout
+                  <TypedMessage message={messages.LOGIN} />
                 </Button>
-              </>
-            )}
-          </Toolbar>
-        </AppBar>
+              )}
 
-        {showRepositoryInfo() && (
-          <Container maxWidth="lg" sx={{ mt: 12, mb: 4 }}>
-            <Box
-              sx={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-              }}
-            >
-              <Box sx={{ flexGrow: 1 }}>
-                <Stack direction="row">
+              {/* Logout Button */}
+              {showLogoutButton() && (
+                <>
+                  <Divider
+                    orientation="vertical"
+                    flexItem
+                    sx={{ mx: 1, borderColor: "rgba(255, 255, 255, 0.3)" }}
+                  />
+                  <Button
+                    color="inherit"
+                    startIcon={<LogoutIcon />}
+                    onClick={handleLogout}
+                    sx={{ mr: 1 }}
+                  >
+                    <TypedMessage message={messages.LOGOUT} />
+                  </Button>
+                </>
+              )}
+            </Toolbar>
+          </AppBar>
+
+          {showRepositoryInfo() && (
+            <Container maxWidth="lg" sx={{ mt: 12, mb: 4 }}>
+              <Box
+                sx={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                }}
+              >
+                <Box sx={{ flexGrow: 1 }}>
+                  <Stack direction="row">
+                    <Typography
+                      variant="body2"
+                      fontSize="1.3rem"
+                      color="text.secondary"
+                      gutterBottom
+                    >
+                      <EditNote fontSize="small" />
+                      <TypedMessage message={messages.ADD_SERVER_AS_SOURCE} />
+                    </Typography>
+                  </Stack>
                   <Typography
                     variant="body2"
-                    fontSize="1.3rem"
-                    color="text.secondary"
-                    gutterBottom
+                    marginLeft="1rem"
+                    sx={{
+                      fontFamily: "monospace",
+                      fontSize: "1rem",
+                      wordBreak: "break-all",
+                    }}
                   >
-                    <EditNote fontSize="small" />
-                    Add this server as a NuGet source:
+                    {buildAddSourceCommand({
+                      serverUrl: serverConfig!.serverUrl,
+                    })}
                   </Typography>
-                </Stack>
-                <Typography
-                  variant="body2"
-                  marginLeft="1rem"
-                  sx={{
-                    fontFamily: "monospace",
-                    fontSize: "1rem",
-                    wordBreak: "break-all",
-                  }}
+                </Box>
+                <IconButton
+                  size="small"
+                  onClick={handleCopyCommand}
+                  aria-label="copy command"
+                  sx={{ ml: 1, marginRight: "1rem" }}
                 >
-                  {buildAddSourceCommand({
-                    serverUrl: serverConfig!.serverUrl,
-                  })}
-                </Typography>
+                  <ContentCopyIcon fontSize="small" />
+                </IconButton>
               </Box>
-              <IconButton
-                size="small"
-                onClick={handleCopyCommand}
-                aria-label="copy command"
-                sx={{ ml: 1, marginRight: "1rem" }}
-              >
-                <ContentCopyIcon fontSize="small" />
-              </IconButton>
-            </Box>
+            </Container>
+          )}
+
+          <Container
+            maxWidth="lg"
+            sx={{
+              mt: showRepositoryInfo() ? 1 : 13,
+              mb: 4,
+              pr:
+                drawerOpen ||
+                userRegDrawerOpen ||
+                passwordResetDrawerOpen ||
+                userDeleteDrawerOpen ||
+                apiPasswordDrawerOpen ||
+                passwordChangeDrawerOpen
+                  ? "500px"
+                  : undefined,
+            }}
+          >
+            <PackageList ref={packageListRef} serverConfig={serverConfig} />
           </Container>
-        )}
 
-        <Container
-          maxWidth="lg"
-          sx={{
-            mt: showRepositoryInfo() ? 1 : 13,
-            mb: 4,
-            pr:
-              drawerOpen ||
-              userRegDrawerOpen ||
-              passwordResetDrawerOpen ||
-              userDeleteDrawerOpen ||
-              apiPasswordDrawerOpen ||
-              passwordChangeDrawerOpen
-                ? "500px"
-                : undefined,
-          }}
-        >
-          <PackageList ref={packageListRef} serverConfig={serverConfig} />
-        </Container>
+          <UploadDrawer
+            open={drawerOpen}
+            onClose={handleCloseDrawer}
+            onUploadSuccess={handleUploadSuccess}
+          />
 
-        <UploadDrawer
-          open={drawerOpen}
-          onClose={handleCloseDrawer}
-          onUploadSuccess={handleUploadSuccess}
-        />
+          <UserRegistrationDrawer
+            open={userRegDrawerOpen}
+            onClose={handleCloseUserRegDrawer}
+            onRegistrationSuccess={handleUserRegSuccess}
+          />
 
-        <UserRegistrationDrawer
-          open={userRegDrawerOpen}
-          onClose={handleCloseUserRegDrawer}
-          onRegistrationSuccess={handleUserRegSuccess}
-        />
+          <UserPasswordResetDrawer
+            open={passwordResetDrawerOpen}
+            onClose={handleClosePasswordResetDrawer}
+          />
 
-        <UserPasswordResetDrawer
-          open={passwordResetDrawerOpen}
-          onClose={handleClosePasswordResetDrawer}
-        />
+          <UserDeleteDrawer
+            open={userDeleteDrawerOpen}
+            onClose={handleCloseUserDeleteDrawer}
+            currentUsername={serverConfig?.currentUser?.username}
+          />
 
-        <UserDeleteDrawer
-          open={userDeleteDrawerOpen}
-          onClose={handleCloseUserDeleteDrawer}
-          currentUsername={serverConfig?.currentUser?.username}
-        />
+          <ApiPasswordDrawer
+            open={apiPasswordDrawerOpen}
+            onClose={handleCloseApiPasswordDrawer}
+            serverConfig={serverConfig}
+          />
 
-        <ApiPasswordDrawer
-          open={apiPasswordDrawerOpen}
-          onClose={handleCloseApiPasswordDrawer}
-          serverConfig={serverConfig}
-        />
+          <UserPasswordChangeDrawer
+            open={passwordChangeDrawerOpen}
+            onClose={handleClosePasswordChangeDrawer}
+          />
 
-        <UserPasswordChangeDrawer
-          open={passwordChangeDrawerOpen}
-          onClose={handleClosePasswordChangeDrawer}
-        />
-
-        <LoginDialog
-          open={loginDialogOpen}
-          onClose={handleCloseLoginDialog}
-          onLoginSuccess={handleLoginSuccess}
-          realm={serverConfig?.realm || "NuGet Server"}
-          disableBackdropClick={serverConfig?.authMode === "full"}
-        />
-      </Box>
-    </ThemeProvider>
+          <LoginDialog
+            open={loginDialogOpen}
+            onClose={handleCloseLoginDialog}
+            onLoginSuccess={handleLoginSuccess}
+            realm={serverConfig?.realm || "NuGet Server"}
+            disableBackdropClick={serverConfig?.authMode === "full"}
+          />
+        </Box>
+      </ThemeProvider>
+    </TypedMessageProvider>
   );
 };
 
