@@ -23,6 +23,8 @@ import {
   VpnKey as VpnKeyIcon,
   Login as LoginIcon,
   PersonOutline,
+  Language as LanguageIcon,
+  Check as CheckIcon,
 } from "@mui/icons-material";
 
 interface UserAvatarMenuProps {
@@ -32,6 +34,9 @@ interface UserAvatarMenuProps {
   isAdmin: boolean;
   canManagePassword: boolean;
   showLogin: boolean;
+  currentLocale: string;
+  availableLanguages: string[];
+  languageNames: Record<string, string>;
   onLogin: () => void;
   onAddUser: () => void;
   onResetPassword: () => void;
@@ -39,6 +44,7 @@ interface UserAvatarMenuProps {
   onChangePassword: () => void;
   onApiPassword: () => void;
   onLogout: () => void;
+  onLanguageChange: (code: string) => void;
 }
 
 const UserAvatarMenu = ({
@@ -48,6 +54,9 @@ const UserAvatarMenu = ({
   isAdmin,
   canManagePassword,
   showLogin,
+  currentLocale,
+  availableLanguages,
+  languageNames,
   onLogin,
   onAddUser,
   onResetPassword,
@@ -55,9 +64,14 @@ const UserAvatarMenu = ({
   onChangePassword,
   onApiPassword,
   onLogout,
+  onLanguageChange,
 }: UserAvatarMenuProps) => {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const [languageAnchorEl, setLanguageAnchorEl] = useState<null | HTMLElement>(
+    null,
+  );
   const open = Boolean(anchorEl);
+  const languageMenuOpen = Boolean(languageAnchorEl);
 
   // Get first letter of username for avatar
   const getAvatarLetter = () => {
@@ -73,6 +87,7 @@ const UserAvatarMenu = ({
 
   const handleClose = () => {
     setAnchorEl(null);
+    setLanguageAnchorEl(null);
   };
 
   const handleAction = (action: () => void) => {
@@ -237,6 +252,39 @@ const UserAvatarMenu = ({
               </>
             )}
 
+            {/* Language Selection */}
+            <ListSubheader>
+              <TypedMessage message={messages.LANGUAGE} />
+            </ListSubheader>
+            <MenuItem
+              onClick={(e) => {
+                e.stopPropagation();
+                setLanguageAnchorEl(e.currentTarget);
+              }}
+            >
+              <ListItemIcon>
+                <LanguageIcon fontSize="small" />
+              </ListItemIcon>
+              <ListItemText>
+                {(() => {
+                  const savedLocale = localStorage.getItem("preferredLocale");
+                  const isAutoMode = !savedLocale || savedLocale === "auto";
+                  if (isAutoMode) {
+                    return (
+                      <>
+                        <TypedMessage message={messages.LANGUAGE_AUTO} />
+                        {` (${languageNames[currentLocale] || currentLocale.toUpperCase()})`}
+                      </>
+                    );
+                  }
+                  return (
+                    languageNames[currentLocale] || currentLocale.toUpperCase()
+                  );
+                })()}
+              </ListItemText>
+            </MenuItem>
+            <Divider />
+
             {/* Logout - Only show when authenticated */}
             {isAuthenticated && (
               <MenuItem onClick={() => handleAction(onLogout)}>
@@ -262,6 +310,55 @@ const UserAvatarMenu = ({
             )}
           </>
         )}
+      </Menu>
+
+      {/* Language Submenu */}
+      <Menu
+        anchorEl={languageAnchorEl}
+        open={languageMenuOpen}
+        onClose={() => setLanguageAnchorEl(null)}
+        anchorOrigin={{ vertical: "top", horizontal: "right" }}
+        transformOrigin={{ vertical: "top", horizontal: "left" }}
+      >
+        {/* Auto option */}
+        <MenuItem
+          onClick={() => {
+            handleAction(() => onLanguageChange("auto"));
+            setLanguageAnchorEl(null);
+          }}
+        >
+          <ListItemIcon>
+            {(!localStorage.getItem("preferredLocale") ||
+              localStorage.getItem("preferredLocale") === "auto") && (
+              <CheckIcon fontSize="small" />
+            )}
+          </ListItemIcon>
+          <ListItemText>
+            <TypedMessage message={messages.LANGUAGE_AUTO} />
+          </ListItemText>
+        </MenuItem>
+
+        <Divider />
+
+        {/* Language options */}
+        {availableLanguages.map((lang) => (
+          <MenuItem
+            key={lang}
+            onClick={() => {
+              handleAction(() => onLanguageChange(lang));
+              setLanguageAnchorEl(null);
+            }}
+          >
+            <ListItemIcon>
+              {localStorage.getItem("preferredLocale") === lang && (
+                <CheckIcon fontSize="small" />
+              )}
+            </ListItemIcon>
+            <ListItemText>
+              {languageNames[lang] || lang.toUpperCase()}
+            </ListItemText>
+          </MenuItem>
+        ))}
       </Menu>
     </>
   );

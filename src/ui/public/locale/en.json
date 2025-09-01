@@ -45,6 +45,10 @@
   "PASSWORD_MENU": "Password",
   "PASSWORD_MANAGEMENT": "Password Management",
 
+  "LANGUAGE": "Language",
+  "LANGUAGE_AUTO": "Auto",
+  "LANGUAGE_NAME": "English",
+
   "NO_PACKAGES_AVAILABLE": "No packages available",
   "NO_PACKAGES_FOUND": "No packages found in the repository.",
   "PACKAGES_HEADER": "Packages",

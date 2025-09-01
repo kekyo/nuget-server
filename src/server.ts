@@ -12,6 +12,7 @@ import fastifySecureSession from "@fastify/secure-session";
 import fastifyStatic from "@fastify/static";
 import path from "path";
 import { fileURLToPath } from "url";
+import fs from "fs/promises";
 import {
   name as packageName,
   version,
@@ -40,6 +41,22 @@ import { createReaderWriterLock, ReaderWriterLock } from "async-primitives";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+/**
+ * Resolves paths based on the current environment (development vs production)
+ * @param developmentPath - Path segments for development environment (src)
+ * @param productionPath - Path segments for production environment (dist)
+ * @returns Resolved absolute path
+ */
+const resolveEnvironmentPath = (
+  developmentPath: string[],
+  productionPath: string[],
+): string => {
+  const isDevelopment = __dirname.includes("/src") || __dirname.includes("\\src");
+  return isDevelopment
+    ? path.join(__dirname, ...developmentPath)
+    : path.join(__dirname, ...productionPath);
+};
 
 /**
  * Server instance with cleanup functionality
@@ -485,6 +502,23 @@ export const createFastifyInstance = async (
       logger.error(`Error checking authentication for /api/config: ${error}`);
     }
 
+    // Get available languages from locale directory
+    let availableLanguages: string[] = [];
+    try {
+      const localeDir = resolveEnvironmentPath(
+        ["ui", "public", "locale"],
+        ["ui", "locale"],
+      );
+      
+      const files = await fs.readdir(localeDir);
+      availableLanguages = files
+        .filter(f => f.endsWith('.json') && f !== 'fallback.json')
+        .map(f => f.replace('.json', ''));
+    } catch (error) {
+      logger.error(`Failed to read locale directory: ${error}`);
+      availableLanguages = ['en']; // Fallback to English
+    }
+
     return {
       realm: config.realm || `${packageName} ${version}`,
       name: packageName,
@@ -498,6 +532,7 @@ export const createFastifyInstance = async (
         admin: authService.isAuthRequired("admin"),
       },
       currentUser: currentUser,
+      availableLanguages: availableLanguages,
     };
   });
 
@@ -574,13 +609,11 @@ export const createFastifyInstance = async (
   }
 
   // Serve UI files with custom handler
-  // Determine environment based on __dirname
-  const isDevelopment =
-    __dirname.includes("/src") || __dirname.includes("\\src");
-  const uiPath = path.join(__dirname, "ui");
-  const publicPath = isDevelopment
-    ? path.join(__dirname, "ui", "public")
-    : path.join(__dirname, "ui");
+  const uiPath = resolveEnvironmentPath(["ui"], ["ui"]);
+  const publicPath = resolveEnvironmentPath(
+    ["ui", "public"],
+    ["ui"],
+  );
 
   // Helper function to serve static files using streaming
   const serveStaticFile = (

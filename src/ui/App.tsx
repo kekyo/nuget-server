@@ -63,19 +63,40 @@ interface ServerConfig {
     role: string;
     authenticated: boolean;
   } | null;
+  availableLanguages?: string[];
 }
 
 // Language detection function
-const detectLanguage = (): string => {
+const detectLanguage = (availableLanguages?: string[]): string => {
+  // Check localStorage first
+  const savedLocale = localStorage.getItem("preferredLocale");
+  if (savedLocale && savedLocale !== "auto") {
+    // Verify saved locale is still available
+    if (!availableLanguages || availableLanguages.includes(savedLocale)) {
+      return savedLocale;
+    }
+  }
+
+  // Auto-detect from browser
   const browserLang = navigator.language.toLowerCase();
-  if (browserLang.startsWith("ja")) return "ja";
-  return "en"; // Default to English
+  const langCode = browserLang.split("-")[0];
+
+  // Check if browser language is available
+  if (langCode && availableLanguages && availableLanguages.includes(langCode)) {
+    return langCode;
+  }
+
+  // Default to English
+  return "en";
 };
 
 const App = () => {
   const prefersDarkMode = useMediaQuery("(prefers-color-scheme: dark)");
-  const [locale] = useState(detectLanguage()); // setLocale will be used for language switching UI in the future
+  const [locale, setLocale] = useState(detectLanguage());
   const [localeMessages, setLocaleMessages] = useState<Record<string, string>>(
+    {},
+  );
+  const [languageNames, setLanguageNames] = useState<Record<string, string>>(
     {},
   );
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -137,6 +158,16 @@ const App = () => {
     fetchServerConfig();
   }, []);
 
+  // Update locale when serverConfig changes (to use available languages)
+  useEffect(() => {
+    if (serverConfig?.availableLanguages) {
+      const detectedLang = detectLanguage(serverConfig.availableLanguages);
+      if (detectedLang !== locale) {
+        setLocale(detectedLang);
+      }
+    }
+  }, [serverConfig?.availableLanguages]); // eslint-disable-line react-hooks/exhaustive-deps
+
   // Load locale messages
   useEffect(() => {
     const loadMessages = async () => {
@@ -152,6 +183,29 @@ const App = () => {
     };
     loadMessages();
   }, [locale]);
+
+  // Load language names for all available languages
+  useEffect(() => {
+    const fetchLanguageNames = async () => {
+      if (!serverConfig?.availableLanguages) return;
+
+      const names: Record<string, string> = {};
+      for (const lang of serverConfig.availableLanguages) {
+        try {
+          const response = await fetch(`/locale/${lang}.json`);
+          if (response.ok) {
+            const messages = await response.json();
+            names[lang] = messages.LANGUAGE_NAME || lang.toUpperCase();
+          }
+        } catch (error) {
+          names[lang] = lang.toUpperCase();
+        }
+      }
+      setLanguageNames(names);
+    };
+
+    fetchLanguageNames();
+  }, [serverConfig?.availableLanguages]);
 
   useEffect(() => {
     if (serverConfig) {
@@ -382,6 +436,18 @@ const App = () => {
     }
   };
 
+  const handleLanguageChange = (languageCode: string) => {
+    if (languageCode === "auto") {
+      localStorage.removeItem("preferredLocale");
+      // Re-detect browser language
+      const detectedLang = detectLanguage(serverConfig?.availableLanguages);
+      setLocale(detectedLang);
+    } else {
+      localStorage.setItem("preferredLocale", languageCode);
+      setLocale(languageCode);
+    }
+  };
+
   const handleCopyCommand = () => {
     if (serverConfig?.serverUrl) {
       const command = buildAddSourceCommand({
@@ -456,6 +522,11 @@ const App = () => {
                   isAdmin={isAdmin()}
                   canManagePassword={canManagePassword()}
                   showLogin={showLoginButton()}
+                  currentLocale={locale}
+                  availableLanguages={
+                    serverConfig?.availableLanguages || ["en"]
+                  }
+                  languageNames={languageNames}
                   onLogin={handleLogin}
                   onAddUser={() => setUserRegDrawerOpen(true)}
                   onResetPassword={() => setPasswordResetDrawerOpen(true)}
@@ -463,6 +534,7 @@ const App = () => {
                   onChangePassword={() => setPasswordChangeDrawerOpen(true)}
                   onApiPassword={() => setApiPasswordDrawerOpen(true)}
                   onLogout={handleLogout}
+                  onLanguageChange={handleLanguageChange}
                 />
               )}
             </Toolbar>

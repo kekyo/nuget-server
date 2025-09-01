@@ -292,6 +292,27 @@ export const messages = {
     fallback: "Password Management" 
   } as SimpleMessageItem,
   /**
+   * Messgae: "Language"
+   */
+  LANGUAGE: { 
+    key: "LANGUAGE", 
+    fallback: "Language" 
+  } as SimpleMessageItem,
+  /**
+   * Messgae: "Auto"
+   */
+  LANGUAGE_AUTO: { 
+    key: "LANGUAGE_AUTO", 
+    fallback: "Auto" 
+  } as SimpleMessageItem,
+  /**
+   * Messgae: "English"
+   */
+  LANGUAGE_NAME: { 
+    key: "LANGUAGE_NAME", 
+    fallback: "English" 
+  } as SimpleMessageItem,
+  /**
    * Messgae: "No packages available"
    */
   NO_PACKAGES_AVAILABLE: { 
