@@ -29,6 +29,8 @@ import {
   Warning as WarningIcon,
 } from "@mui/icons-material";
 import { apiFetch } from "../utils/apiClient";
+import { TypedMessage, useTypedMessage } from "typed-message";
+import { messages } from "../../generated/messages";
 
 interface UserDeleteDrawerProps {
   open: boolean;
@@ -54,6 +56,7 @@ const UserDeleteDrawer = ({
   onDeleteSuccess,
   currentUsername,
 }: UserDeleteDrawerProps) => {
+  const getMessage = useTypedMessage();
   const [users, setUsers] = useState<User[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
   const [selectedUsername, setSelectedUsername] = useState<string | null>(null);
@@ -99,7 +102,7 @@ const UserDeleteDrawer = ({
     } catch (error) {
       setResult({
         success: false,
-        message: `Error loading users: ${error instanceof Error ? error.message : "Unknown error"}`,
+        message: `${getMessage(messages.ERROR_LOADING_USERS)}: ${error instanceof Error ? error.message : getMessage(messages.UNKNOWN_ERROR)}`,
       });
     } finally {
       setLoadingUsers(false);
@@ -110,7 +113,7 @@ const UserDeleteDrawer = ({
     if (!selectedUsername) {
       setResult({
         success: false,
-        message: "Please select a user to delete",
+        message: getMessage(messages.SELECT_USER_TO_DELETE),
       });
       return;
     }
@@ -145,7 +148,7 @@ const UserDeleteDrawer = ({
       if (response.ok) {
         setResult({
           success: true,
-          message: data.message || "User deleted successfully",
+          message: data.message || getMessage(messages.USER_DELETED_SUCCESS),
         });
         if (onDeleteSuccess) {
           onDeleteSuccess();
@@ -168,7 +171,7 @@ const UserDeleteDrawer = ({
     } catch (error) {
       setResult({
         success: false,
-        message: `Delete error: ${error instanceof Error ? error.message : "Unknown error"}`,
+        message: `${getMessage(messages.USER_DELETE_FAILED)}: ${error instanceof Error ? error.message : getMessage(messages.UNKNOWN_ERROR)}`,
       });
     } finally {
       setDeleting(false);
@@ -221,7 +224,7 @@ const UserDeleteDrawer = ({
             }}
           >
             <Typography variant="h6" component="h2">
-              Delete User
+              <TypedMessage message={messages.DELETE_USER_TITLE} />
             </Typography>
             <IconButton onClick={handleClose} edge="end">
               <CloseIcon />
@@ -233,7 +236,9 @@ const UserDeleteDrawer = ({
           {!result ? (
             <Box>
               <Typography variant="body1" sx={{ mb: 3 }}>
-                Select a user to delete:
+                <TypedMessage
+                  message={messages.SELECT_USER_DELETE_INSTRUCTION}
+                />
               </Typography>
 
               {loadingUsers ? (
@@ -244,8 +249,7 @@ const UserDeleteDrawer = ({
                 <>
                   {users.length === 0 ? (
                     <Alert severity="info" sx={{ mb: 3 }}>
-                      No users available to delete. You cannot delete your own
-                      account.
+                      <TypedMessage message={messages.NO_USERS_TO_DELETE} />
                     </Alert>
                   ) : (
                     <>
@@ -267,7 +271,7 @@ const UserDeleteDrawer = ({
                         renderInput={(params) => (
                           <TextField
                             {...params}
-                            label="Select User"
+                            label={getMessage(messages.SELECT_USER_TO_DELETE)}
                             variant="outlined"
                             fullWidth
                           />
@@ -295,13 +299,14 @@ const UserDeleteDrawer = ({
                               variant="body2"
                               sx={{ fontWeight: "bold" }}
                             >
-                              Warning
+                              <TypedMessage message={messages.WARNING_LABEL} />
                             </Typography>
                           </Box>
                           <Typography variant="body2">
-                            This action cannot be undone. The user{" "}
-                            <strong>{selectedUser.username}</strong> and all
-                            associated data will be permanently deleted.
+                            <TypedMessage
+                              message={messages.DELETE_USER_WARNING}
+                              params={{ username: selectedUser.username }}
+                            />
                           </Typography>
                         </Paper>
                       )}
@@ -321,7 +326,9 @@ const UserDeleteDrawer = ({
                         disabled={deleting || !selectedUsername}
                         sx={{ mb: 2 }}
                       >
-                        {deleting ? "Deleting..." : "Delete User"}
+                        {deleting
+                          ? getMessage(messages.DELETING)
+                          : getMessage(messages.DELETE_USER)}
                       </Button>
                     </>
                   )}
@@ -336,8 +343,8 @@ const UserDeleteDrawer = ({
                 sx={{ mb: 3 }}
               >
                 {result.success
-                  ? "User Deleted Successfully!"
-                  : "Delete Failed"}
+                  ? getMessage(messages.USER_DELETED_SUCCESS)
+                  : getMessage(messages.USER_DELETE_FAILED)}
               </Alert>
 
               {result.message && (
@@ -347,7 +354,7 @@ const UserDeleteDrawer = ({
                     color="text.secondary"
                     gutterBottom
                   >
-                    Details:
+                    <TypedMessage message={messages.DETAILS_LABEL} />
                   </Typography>
                   <Paper
                     sx={{
@@ -379,12 +386,12 @@ const UserDeleteDrawer = ({
                       onClick={resetForm}
                       sx={{ flex: 1 }}
                     >
-                      Delete Another
+                      <TypedMessage message={messages.DELETE_ANOTHER} />
                     </Button>
                   </>
                 ) : (
                   <Button variant="contained" onClick={handleClose} fullWidth>
-                    Close
+                    <TypedMessage message={messages.CLOSE} />
                   </Button>
                 )}
               </Box>
@@ -401,24 +408,26 @@ const UserDeleteDrawer = ({
         aria-describedby="delete-dialog-description"
       >
         <DialogTitle id="delete-dialog-title">
-          Confirm User Deletion
+          <TypedMessage message={messages.CONFIRM_USER_DELETION_TITLE} />
         </DialogTitle>
         <DialogContent>
           <DialogContentText id="delete-dialog-description">
-            Are you sure you want to delete the user{" "}
-            <strong>{selectedUsername}</strong>? This action cannot be undone.
+            <TypedMessage
+              message={messages.CONFIRM_DELETE_MESSAGE}
+              params={{ username: selectedUsername || "" }}
+            />
           </DialogContentText>
         </DialogContent>
         <DialogActions>
           <Button onClick={handleCancelDelete} autoFocus>
-            Cancel
+            <TypedMessage message={messages.CANCEL} />
           </Button>
           <Button
             onClick={handleConfirmDelete}
             color="error"
             variant="contained"
           >
-            Delete
+            <TypedMessage message={messages.DELETE} />
           </Button>
         </DialogActions>
       </Dialog>

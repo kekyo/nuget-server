@@ -9,7 +9,10 @@ import {
   Tooltip,
   createTheme,
   useMediaQuery,
+  Paper,
 } from "@mui/material";
+import { TypedMessageProvider, TypedMessage } from "typed-message";
+import { messages } from "../generated/messages";
 import {
   AppBar,
   Toolbar,
@@ -24,8 +27,6 @@ import {
 import {
   CloudUpload as UploadIcon,
   GitHub as GitHubIcon,
-  Login as LoginIcon,
-  Logout as LogoutIcon,
   ContentCopy as ContentCopyIcon,
   EditNote,
 } from "@mui/icons-material";
@@ -34,10 +35,9 @@ import UploadDrawer from "./components/UploadDrawer";
 import UserRegistrationDrawer from "./components/UserRegistrationDrawer";
 import UserPasswordResetDrawer from "./components/UserPasswordResetDrawer";
 import UserDeleteDrawer from "./components/UserDeleteDrawer";
-import UserManagementMenu from "./components/UserManagementMenu";
 import ApiPasswordDrawer from "./components/ApiPasswordDrawer";
-import PasswordManagementMenu from "./components/PasswordManagementMenu";
 import UserPasswordChangeDrawer from "./components/UserPasswordChangeDrawer";
+import UserAvatarMenu from "./components/UserAvatarMenu";
 import LoginDialog from "./components/LoginDialog";
 import { name, repository_url, version } from "../generated/packageMetadata";
 import { buildAddSourceCommand } from "./utils/commandBuilder";
@@ -64,10 +64,46 @@ interface ServerConfig {
     role: string;
     authenticated: boolean;
   } | null;
+  availableLanguages?: string[];
 }
+
+// Language detection function
+const detectLanguage = (availableLanguages?: string[]): string => {
+  // Check localStorage first
+  const savedLocale = localStorage.getItem("preferredLocale");
+  if (savedLocale && savedLocale !== "auto") {
+    // Verify saved locale is still available
+    if (!availableLanguages || availableLanguages.includes(savedLocale)) {
+      return savedLocale;
+    }
+  }
+
+  // Auto-detect from browser
+  const browserLang = navigator.language.toLowerCase();
+  const langCode = browserLang.split("-")[0];
+
+  // Check if browser language is available
+  if (langCode && availableLanguages && availableLanguages.includes(langCode)) {
+    return langCode;
+  }
+
+  // Default to English
+  return "en";
+};
 
 const App = () => {
   const prefersDarkMode = useMediaQuery("(prefers-color-scheme: dark)");
+  const [locale, setLocale] = useState(detectLanguage());
+  const [localeMessages, setLocaleMessages] = useState<Record<string, string>>(
+    {},
+  );
+  const [themeMode, setThemeMode] = useState<"auto" | "light" | "dark">(() => {
+    const saved = localStorage.getItem("preferredTheme");
+    return (saved as "auto" | "light" | "dark") || "auto";
+  });
+  const [languageNames, setLanguageNames] = useState<Record<string, string>>(
+    {},
+  );
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [userRegDrawerOpen, setUserRegDrawerOpen] = useState(false);
   const [passwordResetDrawerOpen, setPasswordResetDrawerOpen] = useState(false);
@@ -82,7 +118,22 @@ const App = () => {
 
   const theme = createTheme({
     palette: {
-      mode: prefersDarkMode ? "dark" : "light",
+      mode:
+        themeMode === "auto"
+          ? prefersDarkMode
+            ? "dark"
+            : "light"
+          : themeMode === "dark"
+            ? "dark"
+            : "light",
+      primary: {
+        main:
+          themeMode === "dark" || (themeMode === "auto" && prefersDarkMode)
+            ? "#90caf9"
+            : "#1976d2",
+        50: "#e3f2fd",
+        100: "#bbdefb",
+      },
     },
     components: {
       MuiButton: {
@@ -126,6 +177,55 @@ const App = () => {
   useEffect(() => {
     fetchServerConfig();
   }, []);
+
+  // Update locale when serverConfig changes (to use available languages)
+  useEffect(() => {
+    if (serverConfig?.availableLanguages) {
+      const detectedLang = detectLanguage(serverConfig.availableLanguages);
+      if (detectedLang !== locale) {
+        setLocale(detectedLang);
+      }
+    }
+  }, [serverConfig?.availableLanguages]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Load locale messages
+  useEffect(() => {
+    const loadMessages = async () => {
+      try {
+        const response = await fetch(`/locale/${locale}.json`);
+        if (response.ok) {
+          const messages = await response.json();
+          setLocaleMessages(messages);
+        }
+      } catch (error) {
+        console.error("Failed to load locale messages:", error);
+      }
+    };
+    loadMessages();
+  }, [locale]);
+
+  // Load language names for all available languages
+  useEffect(() => {
+    const fetchLanguageNames = async () => {
+      if (!serverConfig?.availableLanguages) return;
+
+      const names: Record<string, string> = {};
+      for (const lang of serverConfig.availableLanguages) {
+        try {
+          const response = await fetch(`/locale/${lang}.json`);
+          if (response.ok) {
+            const messages = await response.json();
+            names[lang] = messages.LANGUAGE_NAME || lang.toUpperCase();
+          }
+        } catch (error) {
+          names[lang] = lang.toUpperCase();
+        }
+      }
+      setLanguageNames(names);
+    };
+
+    fetchLanguageNames();
+  }, [serverConfig?.availableLanguages]);
 
   useEffect(() => {
     if (serverConfig) {
@@ -294,30 +394,11 @@ const App = () => {
     return false;
   };
 
-  const showLogoutButton = () => {
+  const showUserAvatarMenu = () => {
     if (!serverConfig) return false;
     if (shouldHideAppBarButtons()) return false;
-    const authMode = serverConfig.authMode;
-    if (authMode === "none") return false;
-    if (authMode === "publish") return isAuthenticated();
-    if (authMode === "full") return isAuthenticated();
-    return false;
-  };
-
-  const showUserAddButton = () => {
-    if (!serverConfig) return false;
-    if (shouldHideAppBarButtons()) return false;
-    const authMode = serverConfig.authMode;
-    if (authMode === "none") return false;
-    // Use currentUser.role from serverConfig
-    return serverConfig.currentUser?.role === "admin";
-  };
-
-  const showPasswordButton = () => {
-    if (!serverConfig) return false;
-    if (shouldHideAppBarButtons()) return false;
-    const authMode = serverConfig.authMode;
-    return (authMode === "publish" || authMode === "full") && isAuthenticated();
+    // Always show avatar menu regardless of auth mode or authentication status
+    return true;
   };
 
   const showRepositoryInfo = () => {
@@ -335,6 +416,19 @@ const App = () => {
     if (authMode === "none") return true;
     if (!isAuthenticated()) return false;
     return hasPublishPermission();
+  };
+
+  const isAdmin = () => {
+    if (!serverConfig) return false;
+    const authMode = serverConfig.authMode;
+    if (authMode === "none") return true; // Full access when auth is disabled
+    return serverConfig.currentUser?.role === "admin";
+  };
+
+  const canManagePassword = () => {
+    if (!serverConfig) return false;
+    const authMode = serverConfig.authMode;
+    return (authMode === "publish" || authMode === "full") && isAuthenticated();
   };
 
   const handleLogin = () => {
@@ -362,6 +456,27 @@ const App = () => {
     }
   };
 
+  const handleLanguageChange = (languageCode: string) => {
+    if (languageCode === "auto") {
+      localStorage.removeItem("preferredLocale");
+      // Re-detect browser language
+      const detectedLang = detectLanguage(serverConfig?.availableLanguages);
+      setLocale(detectedLang);
+    } else {
+      localStorage.setItem("preferredLocale", languageCode);
+      setLocale(languageCode);
+    }
+  };
+
+  const handleThemeChange = (mode: "auto" | "light" | "dark") => {
+    setThemeMode(mode);
+    if (mode === "auto") {
+      localStorage.removeItem("preferredTheme");
+    } else {
+      localStorage.setItem("preferredTheme", mode);
+    }
+  };
+
   const handleCopyCommand = () => {
     if (serverConfig?.serverUrl) {
       const command = buildAddSourceCommand({
@@ -372,217 +487,220 @@ const App = () => {
   };
 
   return (
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
-      <Box
-        sx={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}
-      >
-        <AppBar position="fixed">
-          <Toolbar>
-            <img
-              src="/icon.png"
-              alt={serverConfig?.realm || "nuget-server"}
-              style={{ height: "2.3rem", width: "2.3rem", marginRight: "1rem" }}
-            />
-            <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-              {serverConfig?.realm || "nuget-server"}
-            </Typography>
+    <TypedMessageProvider messages={localeMessages}>
+      <ThemeProvider theme={theme}>
+        <CssBaseline />
+        <Box
+          sx={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}
+        >
+          <AppBar position="fixed">
+            <Toolbar>
+              <img
+                src="/icon.png"
+                alt={serverConfig?.realm || "nuget-server"}
+                style={{
+                  height: "2.3rem",
+                  width: "2.3rem",
+                  marginRight: "1rem",
+                }}
+              />
+              <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
+                {serverConfig?.realm || "nuget-server"}
+              </Typography>
 
-            {/* GitHub Link */}
-            {!shouldHideAppBarButtons() && (
-              <>
-                <Tooltip title={`${name} ${version}`}>
-                  <GitHubIcon
-                    color="inherit"
-                    onClick={() => window.open(repository_url, "_blank")}
-                    sx={{ mx: 1 }}
+              {/* GitHub Link */}
+              {!shouldHideAppBarButtons() && (
+                <>
+                  <Tooltip title={`${name} ${version}`}>
+                    <GitHubIcon
+                      color="inherit"
+                      onClick={() => window.open(repository_url, "_blank")}
+                      sx={{ mx: 1, cursor: "pointer" }}
+                    />
+                  </Tooltip>
+                  <Divider
+                    orientation="vertical"
+                    flexItem
+                    sx={{ mx: 1, borderColor: "rgba(255, 255, 255, 0.3)" }}
                   />
-                </Tooltip>
-                <Divider
-                  orientation="vertical"
-                  flexItem
-                  sx={{ mx: 1, borderColor: "rgba(255, 255, 255, 0.3)" }}
-                />
-              </>
-            )}
+                </>
+              )}
 
-            {/* User Management Menu */}
-            {showUserAddButton() && (
-              <>
-                <UserManagementMenu
+              {/* Upload Button */}
+              {showUploadButton() && (
+                <Button
+                  color="inherit"
+                  startIcon={<UploadIcon />}
+                  onClick={() => setDrawerOpen(true)}
+                  sx={{ mr: 1 }}
+                >
+                  <TypedMessage message={messages.UPLOAD} />
+                </Button>
+              )}
+
+              {/* User Avatar Menu */}
+              {showUserAvatarMenu() && (
+                <UserAvatarMenu
+                  username={
+                    serverConfig?.authMode === "none"
+                      ? "Admin"
+                      : serverConfig?.currentUser?.username
+                  }
+                  authMode={serverConfig?.authMode}
+                  isAuthenticated={isAuthenticated()}
+                  isAdmin={isAdmin()}
+                  canManagePassword={canManagePassword()}
+                  showLogin={showLoginButton()}
+                  currentLocale={locale}
+                  availableLanguages={
+                    serverConfig?.availableLanguages || ["en"]
+                  }
+                  languageNames={languageNames}
+                  currentTheme={themeMode}
+                  effectiveTheme={
+                    themeMode === "auto"
+                      ? prefersDarkMode
+                        ? "dark"
+                        : "light"
+                      : themeMode
+                  }
+                  onLogin={handleLogin}
                   onAddUser={() => setUserRegDrawerOpen(true)}
                   onResetPassword={() => setPasswordResetDrawerOpen(true)}
                   onDeleteUser={() => setUserDeleteDrawerOpen(true)}
+                  onChangePassword={() => setPasswordChangeDrawerOpen(true)}
+                  onApiPassword={() => setApiPasswordDrawerOpen(true)}
+                  onLogout={handleLogout}
+                  onLanguageChange={handleLanguageChange}
+                  onThemeChange={handleThemeChange}
                 />
-                <Divider
-                  orientation="vertical"
-                  flexItem
-                  sx={{ mx: 1, borderColor: "rgba(255, 255, 255, 0.3)" }}
-                />
-              </>
-            )}
+              )}
+            </Toolbar>
+          </AppBar>
 
-            {/* Password Management Menu */}
-            {showPasswordButton() && (
-              <PasswordManagementMenu
-                onChangePassword={() => setPasswordChangeDrawerOpen(true)}
-                onApiPassword={() => setApiPasswordDrawerOpen(true)}
-              />
-            )}
-
-            {/* Upload Button */}
-            {showUploadButton() && (
-              <Button
-                color="inherit"
-                startIcon={<UploadIcon />}
-                onClick={() => setDrawerOpen(true)}
+          {showRepositoryInfo() && (
+            <Container maxWidth="lg" sx={{ mt: 12, mb: 4 }}>
+              <Paper
+                elevation={1}
+                sx={{
+                  p: 2,
+                  bgcolor: (theme) =>
+                    theme.palette.mode === "light" ? "primary.50" : "grey.900",
+                  borderColor: (theme) =>
+                    theme.palette.mode === "light" ? "primary.100" : "grey.800",
+                  borderWidth: 1,
+                  borderStyle: "solid",
+                }}
               >
-                Upload
-              </Button>
-            )}
-
-            {/* Login Button */}
-            {showLoginButton() && (
-              <Button
-                color="inherit"
-                startIcon={<LoginIcon />}
-                onClick={handleLogin}
-                sx={{ mr: 1 }}
-              >
-                Login
-              </Button>
-            )}
-
-            {/* Logout Button */}
-            {showLogoutButton() && (
-              <>
-                <Divider
-                  orientation="vertical"
-                  flexItem
-                  sx={{ mx: 1, borderColor: "rgba(255, 255, 255, 0.3)" }}
-                />
-                <Button
-                  color="inherit"
-                  startIcon={<LogoutIcon />}
-                  onClick={handleLogout}
-                  sx={{ mr: 1 }}
-                >
-                  Logout
-                </Button>
-              </>
-            )}
-          </Toolbar>
-        </AppBar>
-
-        {showRepositoryInfo() && (
-          <Container maxWidth="lg" sx={{ mt: 12, mb: 4 }}>
-            <Box
-              sx={{
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "space-between",
-              }}
-            >
-              <Box sx={{ flexGrow: 1 }}>
-                <Stack direction="row">
-                  <Typography
-                    variant="body2"
-                    fontSize="1.3rem"
-                    color="text.secondary"
-                    gutterBottom
-                  >
-                    <EditNote fontSize="small" />
-                    Add this server as a NuGet source:
-                  </Typography>
-                </Stack>
-                <Typography
-                  variant="body2"
-                  marginLeft="1rem"
+                <Box
                   sx={{
-                    fontFamily: "monospace",
-                    fontSize: "1rem",
-                    wordBreak: "break-all",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
                   }}
                 >
-                  {buildAddSourceCommand({
-                    serverUrl: serverConfig!.serverUrl,
-                  })}
-                </Typography>
-              </Box>
-              <IconButton
-                size="small"
-                onClick={handleCopyCommand}
-                aria-label="copy command"
-                sx={{ ml: 1, marginRight: "1rem" }}
-              >
-                <ContentCopyIcon fontSize="small" />
-              </IconButton>
-            </Box>
+                  <Box sx={{ flexGrow: 1 }}>
+                    <Stack direction="row">
+                      <Typography
+                        variant="body2"
+                        fontSize="1.3rem"
+                        color="text.secondary"
+                        gutterBottom
+                      >
+                        <EditNote fontSize="small" />
+                        <TypedMessage message={messages.ADD_SERVER_AS_SOURCE} />
+                      </Typography>
+                    </Stack>
+                    <Typography
+                      variant="body2"
+                      marginLeft="1rem"
+                      sx={{
+                        fontFamily: "monospace",
+                        fontSize: "1rem",
+                        wordBreak: "break-all",
+                      }}
+                    >
+                      {buildAddSourceCommand({
+                        serverUrl: serverConfig!.serverUrl,
+                      })}
+                    </Typography>
+                  </Box>
+                  <IconButton
+                    size="large"
+                    onClick={handleCopyCommand}
+                    aria-label="copy command"
+                    sx={{ ml: 1, marginRight: "1rem" }}
+                  >
+                    <ContentCopyIcon fontSize="small" />
+                  </IconButton>
+                </Box>
+              </Paper>
+            </Container>
+          )}
+
+          <Container
+            maxWidth="lg"
+            sx={{
+              mt: showRepositoryInfo() ? 1 : 13,
+              mb: 4,
+              pr:
+                drawerOpen ||
+                userRegDrawerOpen ||
+                passwordResetDrawerOpen ||
+                userDeleteDrawerOpen ||
+                apiPasswordDrawerOpen ||
+                passwordChangeDrawerOpen
+                  ? "500px"
+                  : undefined,
+            }}
+          >
+            <PackageList ref={packageListRef} serverConfig={serverConfig} />
           </Container>
-        )}
 
-        <Container
-          maxWidth="lg"
-          sx={{
-            mt: showRepositoryInfo() ? 1 : 13,
-            mb: 4,
-            pr:
-              drawerOpen ||
-              userRegDrawerOpen ||
-              passwordResetDrawerOpen ||
-              userDeleteDrawerOpen ||
-              apiPasswordDrawerOpen ||
-              passwordChangeDrawerOpen
-                ? "500px"
-                : undefined,
-          }}
-        >
-          <PackageList ref={packageListRef} serverConfig={serverConfig} />
-        </Container>
+          <UploadDrawer
+            open={drawerOpen}
+            onClose={handleCloseDrawer}
+            onUploadSuccess={handleUploadSuccess}
+          />
 
-        <UploadDrawer
-          open={drawerOpen}
-          onClose={handleCloseDrawer}
-          onUploadSuccess={handleUploadSuccess}
-        />
+          <UserRegistrationDrawer
+            open={userRegDrawerOpen}
+            onClose={handleCloseUserRegDrawer}
+            onRegistrationSuccess={handleUserRegSuccess}
+          />
 
-        <UserRegistrationDrawer
-          open={userRegDrawerOpen}
-          onClose={handleCloseUserRegDrawer}
-          onRegistrationSuccess={handleUserRegSuccess}
-        />
+          <UserPasswordResetDrawer
+            open={passwordResetDrawerOpen}
+            onClose={handleClosePasswordResetDrawer}
+          />
 
-        <UserPasswordResetDrawer
-          open={passwordResetDrawerOpen}
-          onClose={handleClosePasswordResetDrawer}
-        />
+          <UserDeleteDrawer
+            open={userDeleteDrawerOpen}
+            onClose={handleCloseUserDeleteDrawer}
+            currentUsername={serverConfig?.currentUser?.username}
+          />
 
-        <UserDeleteDrawer
-          open={userDeleteDrawerOpen}
-          onClose={handleCloseUserDeleteDrawer}
-          currentUsername={serverConfig?.currentUser?.username}
-        />
+          <ApiPasswordDrawer
+            open={apiPasswordDrawerOpen}
+            onClose={handleCloseApiPasswordDrawer}
+            serverConfig={serverConfig}
+          />
 
-        <ApiPasswordDrawer
-          open={apiPasswordDrawerOpen}
-          onClose={handleCloseApiPasswordDrawer}
-          serverConfig={serverConfig}
-        />
+          <UserPasswordChangeDrawer
+            open={passwordChangeDrawerOpen}
+            onClose={handleClosePasswordChangeDrawer}
+          />
 
-        <UserPasswordChangeDrawer
-          open={passwordChangeDrawerOpen}
-          onClose={handleClosePasswordChangeDrawer}
-        />
-
-        <LoginDialog
-          open={loginDialogOpen}
-          onClose={handleCloseLoginDialog}
-          onLoginSuccess={handleLoginSuccess}
-          realm={serverConfig?.realm || "NuGet Server"}
-          disableBackdropClick={serverConfig?.authMode === "full"}
-        />
-      </Box>
-    </ThemeProvider>
+          <LoginDialog
+            open={loginDialogOpen}
+            onClose={handleCloseLoginDialog}
+            onLoginSuccess={handleLoginSuccess}
+            realm={serverConfig?.realm || "NuGet Server"}
+            disableBackdropClick={serverConfig?.authMode === "full"}
+          />
+        </Box>
+      </ThemeProvider>
+    </TypedMessageProvider>
   );
 };
 

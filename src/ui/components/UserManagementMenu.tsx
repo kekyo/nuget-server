@@ -3,6 +3,8 @@
 // License under MIT.
 
 import { useState } from "react";
+import { TypedMessage } from "typed-message";
+import { messages } from "../../generated/messages";
 import {
   Button,
   Menu,
@@ -68,7 +70,7 @@ const UserManagementMenu = ({
         aria-haspopup="true"
         aria-expanded={open ? "true" : undefined}
       >
-        Users
+        <TypedMessage message={messages.USERS} />
       </Button>
       <Menu
         id="user-management-menu"
@@ -91,20 +93,26 @@ const UserManagementMenu = ({
           <ListItemIcon>
             <PersonAddIcon fontSize="small" />
           </ListItemIcon>
-          <ListItemText>Add User</ListItemText>
+          <ListItemText>
+            <TypedMessage message={messages.ADD_USER} />
+          </ListItemText>
         </MenuItem>
         <MenuItem onClick={handleResetPassword}>
           <ListItemIcon>
             <LockResetIcon fontSize="small" />
           </ListItemIcon>
-          <ListItemText>Reset Password</ListItemText>
+          <ListItemText>
+            <TypedMessage message={messages.RESET_PASSWORD} />
+          </ListItemText>
         </MenuItem>
         <Divider />
         <MenuItem onClick={handleDeleteUser}>
           <ListItemIcon>
             <PersonRemoveIcon fontSize="small" color="error" />
           </ListItemIcon>
-          <ListItemText>Delete User</ListItemText>
+          <ListItemText>
+            <TypedMessage message={messages.DELETE_USER} />
+          </ListItemText>
         </MenuItem>
       </Menu>
     </>

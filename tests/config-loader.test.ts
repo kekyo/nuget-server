@@ -26,6 +26,7 @@ describe("config-loader", () => {
       trustedProxies: ["192.168.1.1", "10.0.0.1"],
       authMode: "publish",
       sessionSecret: "test-secret",
+      duplicatePackagePolicy: "overwrite",
     };
 
     await writeFile(
@@ -129,6 +130,27 @@ describe("config-loader", () => {
     );
     const config = await loadConfigFromFile(testDir);
     expect(config.authMode).toBeUndefined();
+  });
+
+  it("should validate duplicatePackagePolicy values", async () => {
+    const validPolicies = ["overwrite", "ignore", "error"];
+
+    for (const policy of validPolicies) {
+      await writeFile(
+        join(testDir, "config.json"),
+        JSON.stringify({ duplicatePackagePolicy: policy }),
+      );
+      const config = await loadConfigFromFile(testDir);
+      expect(config.duplicatePackagePolicy).toBe(policy);
+    }
+
+    // Invalid policy
+    await writeFile(
+      join(testDir, "config.json"),
+      JSON.stringify({ duplicatePackagePolicy: "invalid-policy" }),
+    );
+    const config = await loadConfigFromFile(testDir);
+    expect(config.duplicatePackagePolicy).toBeUndefined();
   });
 
   it("should handle file permission errors gracefully", async () => {

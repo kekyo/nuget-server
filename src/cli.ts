@@ -13,7 +13,12 @@ import {
   git_commit_hash,
 } from "./generated/packageMetadata";
 import { createConsoleLogger } from "./logger";
-import { ServerConfig, LogLevel, AuthMode } from "./types";
+import {
+  ServerConfig,
+  LogLevel,
+  AuthMode,
+  DuplicatePackagePolicy,
+} from "./types";
 import {
   getBaseUrlFromEnv,
   getTrustedProxiesFromEnv,
@@ -81,6 +86,16 @@ const getPasswordStrengthCheckFromEnv = (): boolean | undefined => {
 
 const getUsersFileFromEnv = (): string | undefined => {
   return process.env.NUGET_SERVER_USERS_FILE;
+};
+
+const getDuplicatePackagePolicyFromEnv = ():
+  | DuplicatePackagePolicy
+  | undefined => {
+  const policy = process.env.NUGET_SERVER_DUPLICATE_PACKAGE_POLICY;
+  if (policy === "overwrite" || policy === "ignore" || policy === "error") {
+    return policy;
+  }
+  return undefined;
 };
 
 /////////////////////////////////////////////////////////////////////////
@@ -165,6 +180,10 @@ program
       true;
     const usersFile =
       options.usersFile || getUsersFileFromEnv() || configFile.usersFile;
+    const duplicatePackagePolicy =
+      getDuplicatePackagePolicyFromEnv() ||
+      configFile.duplicatePackagePolicy ||
+      "ignore";
 
     // Validate log level
     const validLogLevels: LogLevel[] = [
@@ -239,6 +258,7 @@ program
       sessionSecret,
       passwordMinScore,
       passwordStrengthCheck,
+      duplicatePackagePolicy: duplicatePackagePolicy as DuplicatePackagePolicy,
     };
 
     // Handle auth-init mode

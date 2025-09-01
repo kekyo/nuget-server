@@ -5,7 +5,8 @@
 import fs from "fs/promises";
 import path from "path";
 import xml2js from "xml2js";
-import { Logger } from "../types";
+import { createReaderWriterLock } from "async-primitives";
+import { Logger, DuplicatePackagePolicy } from "../types";
 import { compareVersions } from "../utils/semver";
 
 /**
@@ -80,9 +81,15 @@ export interface MetadataService {
   readonly getLatestPackageEntry: (
     packageId: string,
   ) => PackageEntry | undefined;
-  readonly updateBaseUrl: (baseUrl: string) => void;
-  readonly addPackage: (metadata: PackageMetadata) => void;
-  readonly addPackageEntry: (entry: PackageEntry) => void;
+  readonly updateBaseUrl: (baseUrl: string) => Promise<void>;
+  readonly addPackage: (
+    metadata: PackageMetadata,
+    policy?: DuplicatePackagePolicy,
+  ) => Promise<{
+    action: "added" | "overwritten" | "ignored" | "error";
+    message?: string;
+  }>;
+  readonly addPackageEntry: (entry: PackageEntry) => Promise<void>;
 }
 
 /**
@@ -99,6 +106,7 @@ export const createMetadataService = (
 ): MetadataService => {
   const packagesCache = new Map<string, PackageEntry[]>();
   let currentBaseUrl = baseUrl;
+  const cacheLock = createReaderWriterLock();
 
   /**
    * Extracts dependency groups from parsed XML metadata
@@ -308,24 +316,29 @@ export const createMetadataService = (
      * Initializes the metadata service by scanning packages directory
      */
     initialize: async (): Promise<void> => {
-      const startTime = Date.now();
-      logger.info("Initializing metadata cache...");
-      packagesCache.clear();
-
+      const handle = await cacheLock.writeLock();
       try {
-        await scanPackages();
-        const packageCount = Array.from(packagesCache.values()).reduce(
-          (sum, versions) => sum + versions.length,
-          0,
-        );
-        const packageIds = packagesCache.size;
-        const elapsedTime = Date.now() - startTime;
-        logger.info(
-          `Metadata cache initialized: ${packageIds} packages, ${packageCount} versions (took ${elapsedTime}ms)`,
-        );
-      } catch (error) {
-        logger.error(`Failed to initialize metadata cache: ${error}`);
-        throw error;
+        const startTime = Date.now();
+        logger.info("Initializing metadata cache...");
+        packagesCache.clear();
+
+        try {
+          await scanPackages();
+          const packageCount = Array.from(packagesCache.values()).reduce(
+            (sum, versions) => sum + versions.length,
+            0,
+          );
+          const packageIds = packagesCache.size;
+          const elapsedTime = Date.now() - startTime;
+          logger.info(
+            `Metadata cache initialized: ${packageIds} packages, ${packageCount} versions (took ${elapsedTime}ms)`,
+          );
+        } catch (error) {
+          logger.error(`Failed to initialize metadata cache: ${error}`);
+          throw error;
+        }
+      } finally {
+        handle.release();
       }
     },
 
@@ -335,6 +348,7 @@ export const createMetadataService = (
      * @returns Array of package metadata for all versions
      */
     getPackageMetadata: (packageId: string): PackageMetadata[] => {
+      // Simple read operation - no lock needed for atomic Map.get
       const entries = packagesCache.get(packageId.toLowerCase()) || [];
       return entries.map((entry) => entry.metadata);
     },
@@ -349,6 +363,7 @@ export const createMetadataService = (
       packageId: string,
       version: string,
     ): PackageMetadata | undefined => {
+      // Simple read operation - no lock needed for atomic Map.get
       const entries = packagesCache.get(packageId.toLowerCase()) || [];
       const metadata = entries.map((entry) => entry.metadata);
       return metadata.find((v) => v.version === version);
@@ -364,6 +379,7 @@ export const createMetadataService = (
       packageId: string,
       version: string,
     ): PackageEntry | undefined => {
+      // Simple read operation - no lock needed for atomic Map.get
       const entries = packagesCache.get(packageId.toLowerCase()) || [];
       return entries.find((entry) => entry.metadata.version === version);
     },
@@ -373,6 +389,7 @@ export const createMetadataService = (
      * @returns Array of package identifiers
      */
     getAllPackageIds: (): string[] => {
+      // Simple read operation - no lock needed for atomic Map.keys
       return Array.from(packagesCache.keys()).sort((a, b) =>
         a.localeCompare(b, undefined, { sensitivity: "base" }),
       );
@@ -384,6 +401,7 @@ export const createMetadataService = (
      * @returns Latest package entry or undefined if package not found
      */
     getLatestPackageEntry: (packageId: string): PackageEntry | undefined => {
+      // Simple read operation - no lock needed for atomic Map.get
       const entries = packagesCache.get(packageId.toLowerCase()) || [];
       // Entries are already sorted in descending order (newest first)
       return entries.length > 0 ? entries[0]! : undefined;
@@ -393,82 +411,143 @@ export const createMetadataService = (
      * Updates the base URL and refreshes all package content URLs
      * @param baseUrl - New base URL for package content
      */
-    updateBaseUrl: (baseUrl: string): void => {
-      currentBaseUrl = baseUrl;
+    updateBaseUrl: async (baseUrl: string): Promise<void> => {
+      const handle = await cacheLock.writeLock();
+      try {
+        currentBaseUrl = baseUrl;
 
-      // Update package content URLs
-      for (const entries of packagesCache.values()) {
-        for (const entry of entries) {
-          const packageId = entry.metadata.id.toLowerCase();
-          const version = entry.metadata.version;
-          entry.metadata.packageContentUrl = `${baseUrl}/package/${packageId}/${version}/${packageId}.${version}.nupkg`;
+        // Update package content URLs
+        for (const entries of packagesCache.values()) {
+          for (const entry of entries) {
+            const packageId = entry.metadata.id.toLowerCase();
+            const version = entry.metadata.version;
+            entry.metadata.packageContentUrl = `${baseUrl}/package/${packageId}/${version}/${packageId}.${version}.nupkg`;
+          }
         }
+      } finally {
+        handle.release();
       }
     },
 
     /**
      * Adds a new package to the cache (for uploaded packages)
      * @param metadata - Package metadata to add
+     * @param policy - Duplicate package handling policy (default: "ignore")
      */
-    addPackage: (metadata: PackageMetadata): void => {
-      // Create a simple storage entry for uploaded packages
-      const packageStorage: PackageStorage = {
-        dirName: metadata.id, // Use the actual package ID from nuspec
-        fileName: `${metadata.id}.${metadata.version}.nupkg`,
-        nuspecName: `${metadata.id}.nuspec`,
-      };
+    addPackage: async (
+      metadata: PackageMetadata,
+      policy: DuplicatePackagePolicy = "ignore",
+    ): Promise<{
+      action: "added" | "overwritten" | "ignored" | "error";
+      message?: string;
+    }> => {
+      const handle = await cacheLock.writeLock();
+      try {
+        // Create a simple storage entry for uploaded packages
+        const packageStorage: PackageStorage = {
+          dirName: metadata.id, // Use the actual package ID from nuspec
+          fileName: `${metadata.id}.${metadata.version}.nupkg`,
+          nuspecName: `${metadata.id}.nuspec`,
+        };
 
-      const packageEntry: PackageEntry = {
-        metadata: metadata,
-        storage: packageStorage,
-      };
+        const packageEntry: PackageEntry = {
+          metadata: metadata,
+          storage: packageStorage,
+        };
 
-      // Inline the addPackageEntry logic to avoid circular reference
-      const packageId = packageEntry.metadata.id.toLowerCase();
-      const existingEntries = packagesCache.get(packageId) || [];
+        // Inline the addPackageEntry logic to avoid circular reference
+        const packageId = packageEntry.metadata.id.toLowerCase();
+        const existingEntries = packagesCache.get(packageId) || [];
 
-      // Remove existing version if it exists (for overwrite)
-      const filteredEntries = existingEntries.filter(
-        (e) => e.metadata.version !== packageEntry.metadata.version,
-      );
+        // Check if this exact version already exists
+        const existingVersion = existingEntries.find(
+          (e) => e.metadata.version === packageEntry.metadata.version,
+        );
 
-      // Add new version
-      filteredEntries.push(packageEntry);
-      filteredEntries.sort((a, b) =>
-        compareVersions(b.metadata.version, a.metadata.version),
-      ); // Descending order (newest first)
+        if (existingVersion) {
+          // Package version already exists - apply policy
+          switch (policy) {
+            case "overwrite":
+              // Remove existing version and add new one
+              const filteredEntries = existingEntries.filter(
+                (e) => e.metadata.version !== packageEntry.metadata.version,
+              );
+              filteredEntries.push(packageEntry);
+              filteredEntries.sort((a, b) =>
+                compareVersions(b.metadata.version, a.metadata.version),
+              ); // Descending order (newest first)
+              packagesCache.set(packageId, filteredEntries);
 
-      packagesCache.set(packageId, filteredEntries);
+              logger.info(
+                `Package overwritten in cache: ${packageEntry.metadata.id} ${packageEntry.metadata.version}`,
+              );
+              return { action: "overwritten" };
 
-      logger.info(
-        `Package added to cache: ${packageEntry.metadata.id} ${packageEntry.metadata.version}`,
-      );
+            case "ignore":
+              logger.info(
+                `Package already exists in cache, ignored: ${packageEntry.metadata.id} ${packageEntry.metadata.version}`,
+              );
+              return { action: "ignored" };
+
+            case "error":
+              const errorMessage = `Package ${packageEntry.metadata.id} version ${packageEntry.metadata.version} already exists`;
+              logger.warn(errorMessage);
+              return { action: "error", message: errorMessage };
+
+            default:
+              // Default to ignore for safety
+              logger.info(
+                `Package already exists in cache, ignored (default policy): ${packageEntry.metadata.id} ${packageEntry.metadata.version}`,
+              );
+              return { action: "ignored" };
+          }
+        } else {
+          // New version - add it
+          existingEntries.push(packageEntry);
+          existingEntries.sort((a, b) =>
+            compareVersions(b.metadata.version, a.metadata.version),
+          ); // Descending order (newest first)
+          packagesCache.set(packageId, existingEntries);
+
+          logger.info(
+            `Package added to cache: ${packageEntry.metadata.id} ${packageEntry.metadata.version}`,
+          );
+          return { action: "added" };
+        }
+      } finally {
+        handle.release();
+      }
     },
 
     /**
      * Adds a complete package entry to the cache
      * @param entry - Package entry with metadata and storage info
      */
-    addPackageEntry: (entry: PackageEntry): void => {
-      const packageId = entry.metadata.id.toLowerCase();
-      const existingEntries = packagesCache.get(packageId) || [];
+    addPackageEntry: async (entry: PackageEntry): Promise<void> => {
+      const handle = await cacheLock.writeLock();
+      try {
+        const packageId = entry.metadata.id.toLowerCase();
+        const existingEntries = packagesCache.get(packageId) || [];
 
-      // Remove existing version if it exists (for overwrite)
-      const filteredEntries = existingEntries.filter(
-        (e) => e.metadata.version !== entry.metadata.version,
-      );
+        // Remove existing version if it exists (for overwrite)
+        const filteredEntries = existingEntries.filter(
+          (e) => e.metadata.version !== entry.metadata.version,
+        );
 
-      // Add new version
-      filteredEntries.push(entry);
-      filteredEntries.sort((a, b) =>
-        compareVersions(b.metadata.version, a.metadata.version),
-      ); // Descending order (newest first)
+        // Add new version
+        filteredEntries.push(entry);
+        filteredEntries.sort((a, b) =>
+          compareVersions(b.metadata.version, a.metadata.version),
+        ); // Descending order (newest first)
 
-      packagesCache.set(packageId, filteredEntries);
+        packagesCache.set(packageId, filteredEntries);
 
-      logger.info(
-        `Package added to cache: ${entry.metadata.id} ${entry.metadata.version}`,
-      );
+        logger.info(
+          `Package added to cache: ${entry.metadata.id} ${entry.metadata.version}`,
+        );
+      } finally {
+        handle.release();
+      }
     },
   };
 };

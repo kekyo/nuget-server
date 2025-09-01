@@ -2,6 +2,7 @@
 // Copyright (c) Kouji Matsui (@kekyo@mi.kekyo.net)
 // License under MIT.
 
+import { createReaderWriterLock } from "async-primitives";
 import { Logger } from "../types";
 import { generateSessionToken } from "../utils/crypto";
 
@@ -39,16 +40,16 @@ export interface SessionServiceConfig {
  * Session service interface for managing in-memory sessions
  */
 export interface SessionService {
-  readonly initialize: () => void;
-  readonly destroy: () => void;
-  readonly createSession: (request: CreateSessionRequest) => Session;
-  readonly getSession: (token: string) => Session | undefined;
-  readonly validateSession: (token: string) => Session | undefined;
-  readonly deleteSession: (token: string) => boolean;
-  readonly deleteAllUserSessions: (userId: string) => number;
-  readonly getActiveSessions: () => Session[];
-  readonly getActiveSessionCount: () => number;
-  readonly cleanup: () => number;
+  readonly initialize: () => Promise<void>;
+  readonly destroy: () => Promise<void>;
+  readonly createSession: (request: CreateSessionRequest) => Promise<Session>;
+  readonly getSession: (token: string) => Promise<Session | undefined>;
+  readonly validateSession: (token: string) => Promise<Session | undefined>;
+  readonly deleteSession: (token: string) => Promise<boolean>;
+  readonly deleteAllUserSessions: (userId: string) => Promise<number>;
+  readonly getActiveSessions: () => Promise<Session[]>;
+  readonly getActiveSessionCount: () => Promise<number>;
+  readonly cleanup: () => Promise<number>;
 }
 
 /**
@@ -62,26 +63,32 @@ export const createSessionService = (
   const { logger, cleanupIntervalMinutes = 60 } = config;
   const sessions: Map<string, Session> = new Map();
   let cleanupInterval: NodeJS.Timeout | undefined = undefined;
+  const sessionLock = createReaderWriterLock();
 
   /**
    * Removes expired sessions from memory
    */
-  const cleanupExpiredSessions = (): number => {
-    const now = new Date();
-    let cleanupCount = 0;
+  const cleanupExpiredSessions = async (): Promise<number> => {
+    const handle = await sessionLock.writeLock();
+    try {
+      const now = new Date();
+      let cleanupCount = 0;
 
-    for (const [token, session] of sessions) {
-      if (session.expiresAt <= now) {
-        sessions.delete(token);
-        cleanupCount++;
+      for (const [token, session] of sessions) {
+        if (session.expiresAt <= now) {
+          sessions.delete(token);
+          cleanupCount++;
+        }
       }
-    }
 
-    if (cleanupCount > 0) {
-      logger.debug(`Cleaned up ${cleanupCount} expired sessions`);
-    }
+      if (cleanupCount > 0) {
+        logger.debug(`Cleaned up ${cleanupCount} expired sessions`);
+      }
 
-    return cleanupCount;
+      return cleanupCount;
+    } finally {
+      handle.release();
+    }
   };
 
   /**
@@ -93,8 +100,8 @@ export const createSessionService = (
     }
 
     cleanupInterval = setInterval(
-      () => {
-        cleanupExpiredSessions();
+      async () => {
+        await cleanupExpiredSessions();
       },
       cleanupIntervalMinutes * 60 * 1000,
     );
@@ -119,38 +126,53 @@ export const createSessionService = (
    * Gets all active (non-expired) sessions
    * @returns Array of active sessions
    */
-  const getActiveSessions = (): Session[] => {
-    const now = new Date();
-    const activeSessions: Session[] = [];
+  const getActiveSessions = async (): Promise<Session[]> => {
+    const handle = await sessionLock.readLock();
+    try {
+      const now = new Date();
+      const activeSessions: Session[] = [];
 
-    for (const session of sessions.values()) {
-      if (session.expiresAt > now) {
-        activeSessions.push(session);
+      for (const session of sessions.values()) {
+        if (session.expiresAt > now) {
+          activeSessions.push(session);
+        }
       }
-    }
 
-    return activeSessions;
+      return activeSessions;
+    } finally {
+      handle.release();
+    }
   };
 
   return {
     /**
      * Initializes the session service
      */
-    initialize: (): void => {
-      logger.info("Initializing session service");
-      sessions.clear();
-      startCleanupTimer();
-      logger.info("Session service initialization completed");
+    initialize: async (): Promise<void> => {
+      const handle = await sessionLock.writeLock();
+      try {
+        logger.info("Initializing session service");
+        sessions.clear();
+        startCleanupTimer();
+        logger.info("Session service initialization completed");
+      } finally {
+        handle.release();
+      }
     },
 
     /**
      * Destroys the session service and cleans up resources
      */
-    destroy: (): void => {
-      logger.info("Destroying session service");
-      stopCleanupTimer();
-      sessions.clear();
-      logger.info("Session service destroyed");
+    destroy: async (): Promise<void> => {
+      const handle = await sessionLock.writeLock();
+      try {
+        logger.info("Destroying session service");
+        stopCleanupTimer();
+        sessions.clear();
+        logger.info("Session service destroyed");
+      } finally {
+        handle.release();
+      }
     },
 
     /**
@@ -158,31 +180,36 @@ export const createSessionService = (
      * @param request - Session creation request
      * @returns Created session
      */
-    createSession: (request: CreateSessionRequest): Session => {
-      const token = generateSessionToken();
-      const now = new Date();
-      const expirationHours = request.expirationHours || 24;
-      const expiresAt = new Date(
-        now.getTime() + expirationHours * 60 * 60 * 1000,
-      );
+    createSession: async (request: CreateSessionRequest): Promise<Session> => {
+      const handle = await sessionLock.writeLock();
+      try {
+        const token = generateSessionToken();
+        const now = new Date();
+        const expirationHours = request.expirationHours || 24;
+        const expiresAt = new Date(
+          now.getTime() + expirationHours * 60 * 60 * 1000,
+        );
 
-      const session: Session = {
-        token,
-        userId: request.userId,
-        username: request.username,
-        role: request.role,
-        expiresAt,
-        createdAt: now,
-      };
+        const session: Session = {
+          token,
+          userId: request.userId,
+          username: request.username,
+          role: request.role,
+          expiresAt,
+          createdAt: now,
+        };
 
-      sessions.set(token, session);
+        sessions.set(token, session);
 
-      logger.info(
-        `Created session for user: ${request.username} (expires: ${expiresAt.toISOString()})`,
-      );
-      logger.debug(`Active sessions count: ${sessions.size}`);
+        logger.info(
+          `Created session for user: ${request.username} (expires: ${expiresAt.toISOString()})`,
+        );
+        logger.debug(`Active sessions count: ${sessions.size}`);
 
-      return session;
+        return session;
+      } finally {
+        handle.release();
+      }
     },
 
     /**
@@ -190,8 +217,13 @@ export const createSessionService = (
      * @param token - Session token
      * @returns Session or undefined if not found
      */
-    getSession: (token: string): Session | undefined => {
-      return sessions.get(token);
+    getSession: async (token: string): Promise<Session | undefined> => {
+      const handle = await sessionLock.readLock();
+      try {
+        return sessions.get(token);
+      } finally {
+        handle.release();
+      }
     },
 
     /**
@@ -199,20 +231,25 @@ export const createSessionService = (
      * @param token - Session token
      * @returns Valid session or undefined
      */
-    validateSession: (token: string): Session | undefined => {
-      const session = sessions.get(token);
-      if (!session) {
-        return undefined;
-      }
+    validateSession: async (token: string): Promise<Session | undefined> => {
+      const handle = await sessionLock.writeLock(); // Write lock because we might delete
+      try {
+        const session = sessions.get(token);
+        if (!session) {
+          return undefined;
+        }
 
-      const now = new Date();
-      if (session.expiresAt <= now) {
-        sessions.delete(token);
-        logger.debug(`Removed expired session for user: ${session.username}`);
-        return undefined;
-      }
+        const now = new Date();
+        if (session.expiresAt <= now) {
+          sessions.delete(token);
+          logger.debug(`Removed expired session for user: ${session.username}`);
+          return undefined;
+        }
 
-      return session;
+        return session;
+      } finally {
+        handle.release();
+      }
     },
 
     /**
@@ -220,16 +257,21 @@ export const createSessionService = (
      * @param token - Session token to delete
      * @returns True if session was deleted, false if not found
      */
-    deleteSession: (token: string): boolean => {
-      const session = sessions.get(token);
-      const deleted = sessions.delete(token);
+    deleteSession: async (token: string): Promise<boolean> => {
+      const handle = await sessionLock.writeLock();
+      try {
+        const session = sessions.get(token);
+        const deleted = sessions.delete(token);
 
-      if (deleted && session) {
-        logger.info(`Deleted session for user: ${session.username}`);
-        logger.debug(`Active sessions count: ${sessions.size}`);
+        if (deleted && session) {
+          logger.info(`Deleted session for user: ${session.username}`);
+          logger.debug(`Active sessions count: ${sessions.size}`);
+        }
+
+        return deleted;
+      } finally {
+        handle.release();
       }
-
-      return deleted;
     },
 
     /**
@@ -237,22 +279,29 @@ export const createSessionService = (
      * @param userId - User ID
      * @returns Number of sessions deleted
      */
-    deleteAllUserSessions: (userId: string): number => {
-      let deletedCount = 0;
+    deleteAllUserSessions: async (userId: string): Promise<number> => {
+      const handle = await sessionLock.writeLock();
+      try {
+        let deletedCount = 0;
 
-      for (const [token, session] of sessions) {
-        if (session.userId === userId) {
-          sessions.delete(token);
-          deletedCount++;
+        for (const [token, session] of sessions) {
+          if (session.userId === userId) {
+            sessions.delete(token);
+            deletedCount++;
+          }
         }
-      }
 
-      if (deletedCount > 0) {
-        logger.info(`Deleted ${deletedCount} sessions for user ID: ${userId}`);
-        logger.debug(`Active sessions count: ${sessions.size}`);
-      }
+        if (deletedCount > 0) {
+          logger.info(
+            `Deleted ${deletedCount} sessions for user ID: ${userId}`,
+          );
+          logger.debug(`Active sessions count: ${sessions.size}`);
+        }
 
-      return deletedCount;
+        return deletedCount;
+      } finally {
+        handle.release();
+      }
     },
 
     /**
@@ -265,16 +314,17 @@ export const createSessionService = (
      * Gets the count of active sessions
      * @returns Number of active sessions
      */
-    getActiveSessionCount: (): number => {
-      return getActiveSessions().length;
+    getActiveSessionCount: async (): Promise<number> => {
+      const activeSessions = await getActiveSessions();
+      return activeSessions.length;
     },
 
     /**
      * Manually triggers cleanup of expired sessions
      * @returns Number of sessions cleaned up
      */
-    cleanup: (): number => {
-      return cleanupExpiredSessions();
+    cleanup: async (): Promise<number> => {
+      return await cleanupExpiredSessions();
     },
   };
 };

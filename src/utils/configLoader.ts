@@ -4,7 +4,7 @@
 
 import { readFile } from "fs/promises";
 import { join, resolve } from "path";
-import { LogLevel, AuthMode, Logger } from "../types";
+import { LogLevel, AuthMode, DuplicatePackagePolicy, Logger } from "../types";
 
 /**
  * Configuration file structure for nuget-server
@@ -21,6 +21,7 @@ export interface ConfigFile {
   sessionSecret?: string;
   passwordMinScore?: number;
   passwordStrengthCheck?: boolean;
+  duplicatePackagePolicy?: DuplicatePackagePolicy;
 }
 
 /**
@@ -135,6 +136,27 @@ const validateConfig = (
   // Validate passwordStrengthCheck
   if (typeof config.passwordStrengthCheck === "boolean") {
     validated.passwordStrengthCheck = config.passwordStrengthCheck;
+  }
+
+  // Validate duplicatePackagePolicy
+  if (typeof config.duplicatePackagePolicy === "string") {
+    const validPolicies: DuplicatePackagePolicy[] = [
+      "overwrite",
+      "ignore",
+      "error",
+    ];
+    if (
+      validPolicies.includes(
+        config.duplicatePackagePolicy as DuplicatePackagePolicy,
+      )
+    ) {
+      validated.duplicatePackagePolicy =
+        config.duplicatePackagePolicy as DuplicatePackagePolicy;
+    } else {
+      logger?.warn(
+        `Invalid duplicatePackagePolicy in config.json: ${config.duplicatePackagePolicy}`,
+      );
+    }
   }
 
   return validated;

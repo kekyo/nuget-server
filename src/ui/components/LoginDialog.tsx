@@ -3,6 +3,8 @@
 // License under MIT.
 
 import { useState } from "react";
+import { TypedMessage, useTypedMessage } from "typed-message";
+import { messages } from "../../generated/messages";
 import {
   Dialog,
   DialogTitle,
@@ -48,6 +50,7 @@ const LoginDialog = ({
 }: LoginDialogProps) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+  const getMessage = useTypedMessage();
 
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -59,7 +62,7 @@ const LoginDialog = ({
     event.preventDefault();
 
     if (!username.trim() || !password.trim()) {
-      setError("Username and password are required");
+      setError(getMessage(messages.USERNAME_PASSWORD_REQUIRED));
       return;
     }
 
@@ -91,10 +94,10 @@ const LoginDialog = ({
         setRememberMe(false);
         setError(null);
       } else {
-        setError(data.message || "Login failed");
+        setError(data.message || getMessage(messages.LOGIN_FAILED));
       }
     } catch (err) {
-      setError("Network error. Please try again.");
+      setError(getMessage(messages.NETWORK_ERROR_TRY_AGAIN));
       console.error("Login error:", err);
     } finally {
       setIsLoading(false);
@@ -139,7 +142,7 @@ const LoginDialog = ({
             }}
           />
           <Typography variant="h5" component="div" sx={{ fontWeight: "bold" }}>
-            {realm || "NuGet Server"}
+            {realm || getMessage(messages.NUGET_SERVER)}
           </Typography>
         </Box>
         {!disableBackdropClick && (
@@ -156,7 +159,7 @@ const LoginDialog = ({
 
       <DialogContent>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-          Please sign in to continue
+          <TypedMessage message={messages.PLEASE_SIGN_IN} />
         </Typography>
 
         <Box
@@ -178,7 +181,7 @@ const LoginDialog = ({
             required
             fullWidth
             id="username"
-            label="Username"
+            label={getMessage(messages.USERNAME)}
             name="username"
             autoComplete="username"
             autoFocus
@@ -192,7 +195,7 @@ const LoginDialog = ({
             required
             fullWidth
             name="password"
-            label="Password"
+            label={getMessage(messages.PASSWORD)}
             type="password"
             id="password"
             autoComplete="current-password"
@@ -212,7 +215,7 @@ const LoginDialog = ({
                 disabled={isLoading}
               />
             }
-            label="Remember me for 7 days"
+            label={getMessage(messages.REMEMBER_ME_DAYS)}
           />
 
           <Button
@@ -231,7 +234,9 @@ const LoginDialog = ({
               isLoading ? <CircularProgress size={20} /> : <LoginIcon />
             }
           >
-            {isLoading ? "Signing in..." : "Sign In"}
+            {isLoading
+              ? getMessage(messages.SIGNING_IN)
+              : getMessage(messages.SIGN_IN)}
           </Button>
         </Box>
 
@@ -240,7 +245,7 @@ const LoginDialog = ({
           color="text.secondary"
           sx={{ mt: 2, textAlign: "center" }}
         >
-          Need help? Contact your system administrator.
+          <TypedMessage message={messages.NEED_HELP_CONTACT} />
         </Typography>
       </DialogContent>
     </Dialog>

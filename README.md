@@ -249,11 +249,11 @@ Both `packageDir` and `usersFile` paths can be absolute or relative. If relative
 
 nuget-server also supports authentication.
 
-|Authentication Mode|Details|Auth Initialization|
-|:----|:----|:----|
-|`none`|Default. No authentication required|Not required|
-|`publish`|Authentication required only for package publishing|Required|
-|`full`|Authentication required for all operations (must login first)|Required|
+| Authentication Mode | Details                                                       | Auth Initialization |
+| :------------------ | :------------------------------------------------------------ | :------------------ |
+| `none`              | Default. No authentication required                           | Not required        |
+| `publish`           | Authentication required only for package publishing           | Required            |
+| `full`              | Authentication required for all operations (must login first) | Required            |
 
 To enable authentication on the NuGet server, first register an initial user using the `--auth-init` option.
 
@@ -568,6 +568,7 @@ sudo chown -R 1001:1001 ./data ./packages
 ```
 
 **Important**: Without proper permissions, you may encounter `500 Permission Denied` errors when:
+
 - Creating or updating user accounts
 - Publishing packages
 - Writing configuration files

@@ -39,6 +39,11 @@ export type LogLevel = "debug" | "info" | "warn" | "error" | "ignore";
 export type AuthMode = "none" | "publish" | "full";
 
 /**
+ * Duplicate package handling policy
+ */
+export type DuplicatePackagePolicy = "overwrite" | "ignore" | "error";
+
+/**
  * Server configuration
  */
 export interface ServerConfig {
@@ -54,6 +59,7 @@ export interface ServerConfig {
   sessionSecret?: string;
   passwordMinScore?: number; // 0-4, default: 2 (Good)
   passwordStrengthCheck?: boolean; // default: true
+  duplicatePackagePolicy?: DuplicatePackagePolicy; // default: "ignore"
 }
 
 /**

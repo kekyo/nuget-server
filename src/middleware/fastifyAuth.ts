@@ -182,7 +182,7 @@ export const createHybridAuthMiddleware = (config: FastifyAuthConfig) => {
       const sessionToken = request.cookies?.sessionToken;
       if (sessionToken) {
         logger.debug("Checking session authentication");
-        const session = sessionService.validateSession(sessionToken);
+        const session = await sessionService.validateSession(sessionToken);
         if (session) {
           logger.debug(`Session auth successful for user: ${session.username}`);
           request.user = {
@@ -334,7 +334,7 @@ export const createSessionOnlyAuthMiddleware = (config: FastifyAuthConfig) => {
         });
       }
 
-      const session = sessionService.validateSession(sessionToken);
+      const session = await sessionService.validateSession(sessionToken);
       if (!session) {
         logger.debug("Invalid or expired session token");
         // Clear invalid session cookie

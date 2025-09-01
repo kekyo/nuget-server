@@ -35,6 +35,8 @@ import {
   Stack,
 } from "@mui/material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import { TypedMessage, useTypedMessage } from "typed-message";
+import { messages } from "../../generated/messages";
 
 interface UploadDrawerProps {
   open: boolean;
@@ -56,6 +58,7 @@ const UploadDrawer = ({
   onClose,
   onUploadSuccess,
 }: UploadDrawerProps) => {
+  const getMessage = useTypedMessage();
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
   const [uploadResults, setUploadResults] = useState<UploadResult[]>([]);
@@ -69,7 +72,9 @@ const UploadDrawer = ({
     const invalidCount = files.length - validFiles.length;
 
     if (invalidCount > 0) {
-      alert(`${invalidCount} file(s) were not .nupkg files and were excluded.`);
+      alert(
+        getMessage(messages.INVALID_FILES_EXCLUDED, { count: invalidCount }),
+      );
     }
 
     if (validFiles.length > 0) {
@@ -140,7 +145,7 @@ const UploadDrawer = ({
         }
       } catch (error) {
         result.status = "error";
-        result.message = `Upload error: ${error instanceof Error ? error.message : "Unknown error"}`;
+        result.message = `${getMessage(messages.UPLOAD_ERROR)}: ${error instanceof Error ? error.message : getMessage(messages.UNKNOWN_ERROR)}`;
       }
 
       results.push(result);
@@ -247,7 +252,7 @@ const UploadDrawer = ({
           }}
         >
           <Typography variant="h6" component="h2">
-            Upload Package
+            <TypedMessage message={messages.UPLOAD_PACKAGE} />
           </Typography>
           <IconButton onClick={handleClose} edge="end">
             <CloseIcon />
@@ -259,7 +264,7 @@ const UploadDrawer = ({
         {uploadResults.length === 0 ? (
           <Box>
             <Typography variant="body1" sx={{ mb: 2 }}>
-              Select NuGet package (.nupkg) files to upload:
+              <TypedMessage message={messages.SELECT_NUPKG_FILES} />
             </Typography>
 
             <Paper
@@ -299,15 +304,15 @@ const UploadDrawer = ({
 
               {isDragging ? (
                 <Typography variant="h6" color="primary" sx={{ mb: 1 }}>
-                  Drop your .nupkg files here
+                  <TypedMessage message={messages.DROP_FILES_HERE} />
                 </Typography>
               ) : (
                 <>
                   <Typography variant="h6" color="text.primary" sx={{ mb: 1 }}>
-                    Drag & drop your .nupkg files here
+                    <TypedMessage message={messages.DRAG_DROP_FILES} />
                   </Typography>
                   <Typography variant="body2" color="text.secondary">
-                    or click to browse files
+                    <TypedMessage message={messages.OR_CLICK_TO_BROWSE} />
                   </Typography>
                 </>
               )}
@@ -333,9 +338,15 @@ const UploadDrawer = ({
                   color="text.secondary"
                   sx={{ mb: 1 }}
                 >
-                  Selected files ({selectedFiles.length} file
-                  {selectedFiles.length !== 1 ? "s" : ""},{" "}
-                  {(getTotalSize() / 1024 / 1024).toFixed(2)} MB total):
+                  <TypedMessage
+                    message={messages.SELECTED_FILES}
+                    params={{
+                      count: selectedFiles.length,
+                      plural: selectedFiles.length !== 1 ? "s" : "",
+                      size: (getTotalSize() / 1024 / 1024).toFixed(2),
+                    }}
+                  />
+                  :
                 </Typography>
                 <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
                   {selectedFiles.map((file, index) => (
@@ -359,8 +370,14 @@ const UploadDrawer = ({
                   color="text.secondary"
                   sx={{ mb: 1 }}
                 >
-                  Uploading {currentUploadIndex + 1} of {selectedFiles.length}:{" "}
-                  {selectedFiles[currentUploadIndex]?.name || ""}
+                  <TypedMessage
+                    message={messages.UPLOADING_PROGRESS}
+                    params={{
+                      current: currentUploadIndex + 1,
+                      total: selectedFiles.length,
+                      fileName: selectedFiles[currentUploadIndex]?.name || "",
+                    }}
+                  />
                 </Typography>
                 <LinearProgress
                   variant="determinate"
@@ -380,8 +397,14 @@ const UploadDrawer = ({
               sx={{ mb: 2 }}
             >
               {uploading
-                ? `Uploading (${currentUploadIndex + 1}/${selectedFiles.length})...`
-                : `Upload ${selectedFiles.length} file${selectedFiles.length !== 1 ? "s" : ""}`}
+                ? getMessage(messages.UPLOADING_N_OF_M, {
+                    current: currentUploadIndex + 1,
+                    total: selectedFiles.length,
+                  })
+                : getMessage(messages.UPLOAD_N_FILES, {
+                    count: selectedFiles.length,
+                    plural: selectedFiles.length !== 1 ? "s" : "",
+                  })}
             </Button>
           </Box>
         ) : (
@@ -391,26 +414,38 @@ const UploadDrawer = ({
               {uploadResults.filter((r) => r.status === "success").length ===
               uploadResults.length ? (
                 <Alert severity="success" icon={<SuccessIcon />}>
-                  All {uploadResults.length} package
-                  {uploadResults.length !== 1 ? "s" : ""} uploaded successfully!
+                  <TypedMessage
+                    message={messages.ALL_UPLOADS_SUCCESS}
+                    params={{
+                      count: uploadResults.length,
+                      plural: uploadResults.length !== 1 ? "s" : "",
+                    }}
+                  />
                 </Alert>
               ) : uploadResults.filter((r) => r.status === "error").length ===
                 uploadResults.length ? (
                 <Alert severity="error" icon={<ErrorIcon />}>
-                  All uploads failed
+                  <TypedMessage message={messages.ALL_UPLOADS_FAILED} />
                 </Alert>
               ) : (
                 <Alert severity="warning">
-                  {uploadResults.filter((r) => r.status === "success").length}{" "}
-                  of {uploadResults.length} package
-                  {uploadResults.length !== 1 ? "s" : ""} uploaded successfully
+                  <TypedMessage
+                    message={messages.PARTIAL_UPLOAD_SUCCESS}
+                    params={{
+                      success: uploadResults.filter(
+                        (r) => r.status === "success",
+                      ).length,
+                      total: uploadResults.length,
+                      plural: uploadResults.length !== 1 ? "s" : "",
+                    }}
+                  />
                 </Alert>
               )}
             </Box>
 
             {/* Results List */}
             <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
-              Upload Results:
+              <TypedMessage message={messages.UPLOAD_RESULTS} />
             </Typography>
 
             <List sx={{ mb: 3 }}>
@@ -471,7 +506,7 @@ const UploadDrawer = ({
 
             <Box sx={{ display: "flex", gap: 1 }}>
               <Button variant="outlined" onClick={resetForm} sx={{ flex: 1 }}>
-                Upload More
+                <TypedMessage message={messages.UPLOAD_MORE} />
               </Button>
             </Box>
           </Box>

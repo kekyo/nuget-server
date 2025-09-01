@@ -10,7 +10,7 @@ import { randomUUID } from "crypto";
 import xml2js from "xml2js";
 import AdmZip from "adm-zip";
 import { PackageMetadata } from "../../../services/metadataService";
-import { Logger } from "../../../types";
+import { Logger, DuplicatePackagePolicy } from "../../../types";
 import { AuthService } from "../../../services/authService";
 import {
   createConditionalHybridAuthMiddleware,
@@ -23,7 +23,13 @@ import { createUrlResolver } from "../../../utils/urlResolver";
  * Service interface for handling package uploads
  */
 export interface PackageUploadService {
-  addPackage(metadata: PackageMetadata): void;
+  addPackage(
+    metadata: PackageMetadata,
+    policy?: DuplicatePackagePolicy,
+  ): Promise<{
+    action: "added" | "overwritten" | "ignored" | "error";
+    message?: string;
+  }>;
 }
 
 /**
@@ -35,6 +41,7 @@ export interface PublishRoutesConfig {
   authConfig: FastifyAuthConfig;
   logger: Logger;
   urlResolver: ReturnType<typeof createUrlResolver>;
+  duplicatePackagePolicy?: DuplicatePackagePolicy;
 }
 
 /**
@@ -53,7 +60,14 @@ export const registerPublishRoutes = async (
   fastify: FastifyInstance,
   config: PublishRoutesConfig,
 ) => {
-  const { packagesRoot, authService, authConfig, logger, urlResolver } = config;
+  const {
+    packagesRoot,
+    authService,
+    authConfig,
+    logger,
+    urlResolver,
+    duplicatePackagePolicy = "ignore",
+  } = config;
 
   let packageUploadService: PackageUploadService | null = null;
 
@@ -161,6 +175,40 @@ export const registerPublishRoutes = async (
         const packageDir = join(packagesRoot, packageId, version);
 
         try {
+          // Update package content URL using urlResolver
+          const baseUrl = urlResolver.resolveUrl(request).baseUrl;
+          packageMetadata.packageContentUrl = `${baseUrl}/v3/package/${packageId.toLowerCase()}/${version}/${packageId.toLowerCase()}.${version}.nupkg`;
+
+          // Check with metadata service first to handle duplicate policy
+          const result = await packageUploadService.addPackage(
+            packageMetadata,
+            duplicatePackagePolicy,
+          );
+
+          // Handle the result based on the action
+          if (result.action === "error") {
+            // For "error" policy, return 409 Conflict
+            return reply.status(409).send({
+              error:
+                result.message ||
+                `Package ${packageId} version ${version} already exists`,
+            });
+          }
+
+          if (result.action === "ignored") {
+            // For "ignore" policy, return 200 OK without saving files
+            const response: PublishResponse = {
+              message: "Package already exists and was ignored",
+              id: packageId,
+              version: version,
+            };
+            logger.info(
+              `Package already exists, ignored: ${packageId} ${version}`,
+            );
+            return reply.status(200).send(response);
+          }
+
+          // For "added" or "overwritten", save the files
           await mkdir(packageDir, { recursive: true });
 
           // Save nupkg file by copying from temp file
@@ -199,21 +247,19 @@ export const registerPublishRoutes = async (
             }
           }
 
-          // Update package content URL using urlResolver
-          const baseUrl = urlResolver.resolveUrl(request).baseUrl;
-
-          packageMetadata.packageContentUrl = `${baseUrl}/v3/package/${packageId.toLowerCase()}/${version}/${packageId.toLowerCase()}.${version}.nupkg`;
-
-          // Add to memory cache
-          packageUploadService.addPackage(packageMetadata);
-
+          // Prepare response based on action
           const response: PublishResponse = {
-            message: "Package uploaded successfully",
+            message:
+              result.action === "overwritten"
+                ? "Package uploaded successfully (replaced existing version)"
+                : "Package uploaded successfully",
             id: packageId,
             version: version,
           };
 
-          logger.info(`Package uploaded successfully: ${packageId} ${version}`);
+          logger.info(
+            `Package ${result.action === "overwritten" ? "overwritten" : "uploaded"} successfully: ${packageId} ${version}`,
+          );
           return reply.status(201).send(response);
         } catch (error) {
           return reply.status(500).send({

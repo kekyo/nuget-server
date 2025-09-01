@@ -33,6 +33,8 @@ import {
 } from "@mui/icons-material";
 import { buildAddSourceCommand } from "../utils/commandBuilder";
 import { apiFetch } from "../utils/apiClient";
+import { TypedMessage, useTypedMessage } from "typed-message";
+import { messages } from "../../generated/messages";
 
 interface ApiPasswordDrawerProps {
   open: boolean;
@@ -60,6 +62,7 @@ const ApiPasswordDrawer = ({
   onClose,
   serverConfig,
 }: ApiPasswordDrawerProps) => {
+  const getMessage = useTypedMessage();
   const [loading, setLoading] = useState(false);
   const [apiPasswords, setApiPasswords] = useState<ApiPassword[]>([]);
   const [addDialogOpen, setAddDialogOpen] = useState(false);
@@ -107,11 +110,13 @@ const ApiPasswordDrawer = ({
         setApiPasswords(data.apiPasswords);
       } else {
         const errorData = await response.json().catch(() => ({}));
-        setError(errorData.error || "Failed to load API passwords");
+        setError(
+          errorData.error || getMessage(messages.FAILED_TO_LOAD_API_PASSWORDS),
+        );
       }
     } catch (err) {
       setError(
-        `Error: ${err instanceof Error ? err.message : "Unknown error"}`,
+        `${getMessage(messages.ERROR)}: ${err instanceof Error ? err.message : getMessage(messages.UNKNOWN_ERROR)}`,
       );
     } finally {
       setLoading(false);
@@ -120,7 +125,7 @@ const ApiPasswordDrawer = ({
 
   const handleAddApiPassword = async () => {
     if (!newLabel.trim()) {
-      setError("Label cannot be empty");
+      setError(getMessage(messages.TABLE_LABEL) + " cannot be empty");
       return;
     }
 
@@ -146,11 +151,13 @@ const ApiPasswordDrawer = ({
         await loadApiPasswords();
       } else {
         const errorData = await response.json().catch(() => ({}));
-        setError(errorData.error || "Failed to add API password");
+        setError(
+          errorData.error || getMessage(messages.API_KEY_GENERATION_FAILED),
+        );
       }
     } catch (err) {
       setError(
-        `Error: ${err instanceof Error ? err.message : "Unknown error"}`,
+        `${getMessage(messages.ERROR)}: ${err instanceof Error ? err.message : getMessage(messages.UNKNOWN_ERROR)}`,
       );
     } finally {
       setLoading(false);
@@ -177,11 +184,13 @@ const ApiPasswordDrawer = ({
         await loadApiPasswords();
       } else {
         const errorData = await response.json().catch(() => ({}));
-        setError(errorData.error || "Failed to delete API password");
+        setError(
+          errorData.error || getMessage(messages.FAILED_TO_DELETE_API_PASSWORD),
+        );
       }
     } catch (err) {
       setError(
-        `Error: ${err instanceof Error ? err.message : "Unknown error"}`,
+        `${getMessage(messages.ERROR)}: ${err instanceof Error ? err.message : getMessage(messages.UNKNOWN_ERROR)}`,
       );
     } finally {
       setLoading(false);
@@ -233,7 +242,7 @@ const ApiPasswordDrawer = ({
             }}
           >
             <Typography variant="h6" component="h2">
-              API Password Management
+              <TypedMessage message={messages.API_PASSWORD_MANAGEMENT} />
             </Typography>
             <IconButton onClick={onClose} edge="end">
               <CloseIcon />
@@ -255,10 +264,11 @@ const ApiPasswordDrawer = ({
           {newApiPassword && (
             <Alert severity="success" sx={{ mb: 3 }}>
               <Typography variant="body2" sx={{ fontWeight: "bold", mb: 1 }}>
-                New API Password Created!
+                <TypedMessage message={messages.NEW_API_PASSWORD_CREATED} />
               </Typography>
               <Typography variant="body2" sx={{ mb: 1 }}>
-                Label: {newApiPassword.label}
+                <TypedMessage message={messages.LABEL_PREFIX} />
+                {newApiPassword.label}
               </Typography>
               <Paper
                 sx={{
@@ -288,14 +298,14 @@ const ApiPasswordDrawer = ({
                   {newApiPassword.apiPassword}
                 </Typography>
                 <Typography variant="caption" color="text.secondary">
-                  Click to copy - This password will only be shown once!
+                  <TypedMessage message={messages.CLICK_COPY_SHOWN_ONCE} />
                 </Typography>
               </Paper>
 
               {serverConfig.authMode === "full" && currentUsername && (
                 <Box sx={{ mt: 2 }}>
                   <Typography variant="caption" color="text.secondary">
-                    Example commands:
+                    <TypedMessage message={messages.EXAMPLE_COMMANDS} />
                   </Typography>
                   <Paper
                     sx={{
@@ -345,7 +355,10 @@ const ApiPasswordDrawer = ({
             }}
           >
             <Typography variant="body2" color="text.secondary">
-              {apiPasswords.length} / 10 API passwords
+              <TypedMessage
+                message={messages.API_PASSWORDS_COUNT}
+                params={{ current: apiPasswords.length }}
+              />
             </Typography>
             <Button
               variant="contained"
@@ -354,7 +367,7 @@ const ApiPasswordDrawer = ({
               onClick={() => setAddDialogOpen(true)}
               disabled={loading || apiPasswords.length >= 10}
             >
-              Add New
+              <TypedMessage message={messages.ADD_NEW} />
             </Button>
           </Box>
 
@@ -365,7 +378,7 @@ const ApiPasswordDrawer = ({
           ) : apiPasswords.length === 0 ? (
             <Paper sx={{ p: 3, textAlign: "center" }}>
               <Typography color="text.secondary">
-                No API passwords configured. Click "Add New" to create one.
+                <TypedMessage message={messages.NO_API_PASSWORDS} />
               </Typography>
             </Paper>
           ) : (
@@ -373,9 +386,15 @@ const ApiPasswordDrawer = ({
               <Table>
                 <TableHead>
                   <TableRow>
-                    <TableCell>Label</TableCell>
-                    <TableCell>Created</TableCell>
-                    <TableCell align="right">Delete</TableCell>
+                    <TableCell>
+                      <TypedMessage message={messages.TABLE_LABEL} />
+                    </TableCell>
+                    <TableCell>
+                      <TypedMessage message={messages.TABLE_CREATED} />
+                    </TableCell>
+                    <TableCell align="right">
+                      <TypedMessage message={messages.TABLE_DELETE} />
+                    </TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -413,8 +432,7 @@ const ApiPasswordDrawer = ({
 
           {apiPasswords.length >= 10 && (
             <Alert severity="warning" sx={{ mt: 2 }}>
-              Maximum of 10 API passwords reached. Delete existing passwords to
-              add new ones.
+              <TypedMessage message={messages.MAX_API_PASSWORDS} />
             </Alert>
           )}
         </Box>
@@ -427,24 +445,26 @@ const ApiPasswordDrawer = ({
         maxWidth="sm"
         fullWidth
       >
-        <DialogTitle>Add new API password</DialogTitle>
+        <DialogTitle>
+          <TypedMessage message={messages.ADD_NEW_API_PASSWORD_TITLE} />
+        </DialogTitle>
         <DialogContent>
           <TextField
             autoFocus
             margin="dense"
-            label="Label"
+            label={getMessage(messages.TABLE_LABEL)}
             type="text"
             fullWidth
             variant="outlined"
             value={newLabel}
             onChange={(e) => setNewLabel(e.target.value)}
             disabled={loading}
-            helperText="Enter a unique label to identify this API password (e.g., 'CI Pipeline', 'Local Development')"
+            helperText={getMessage(messages.API_PASSWORD_LABEL_HELPER)}
           />
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setAddDialogOpen(false)} disabled={loading}>
-            Cancel
+            <TypedMessage message={messages.CANCEL} />
           </Button>
           <Button
             onClick={handleAddApiPassword}
@@ -454,7 +474,7 @@ const ApiPasswordDrawer = ({
               loading ? <CircularProgress size={20} /> : <VpnKeyIcon />
             }
           >
-            Generate
+            <TypedMessage message={messages.GENERATE} />
           </Button>
         </DialogActions>
       </Dialog>
@@ -466,14 +486,18 @@ const ApiPasswordDrawer = ({
         maxWidth="sm"
         fullWidth
       >
-        <DialogTitle>Delete API password</DialogTitle>
+        <DialogTitle>
+          <TypedMessage message={messages.DELETE_API_PASSWORD_TITLE} />
+        </DialogTitle>
         <DialogContent>
           <Typography>
-            Are you sure you want to delete the API password "
-            {deleteConfirmDialog}"?
+            <TypedMessage
+              message={messages.CONFIRM_DELETE_API_PASSWORD}
+              params={{ label: deleteConfirmDialog || "" }}
+            />
           </Typography>
           <Alert severity="warning" sx={{ mt: 2 }}>
-            Any applications using this password will lose access immediately.
+            <TypedMessage message={messages.API_PASSWORD_DELETE_WARNING} />
           </Alert>
         </DialogContent>
         <DialogActions>
@@ -481,7 +505,7 @@ const ApiPasswordDrawer = ({
             onClick={() => setDeleteConfirmDialog(null)}
             disabled={loading}
           >
-            Cancel
+            <TypedMessage message={messages.CANCEL} />
           </Button>
           <Button
             onClick={() =>
@@ -495,7 +519,7 @@ const ApiPasswordDrawer = ({
               loading ? <CircularProgress size={20} /> : <DeleteIcon />
             }
           >
-            Delete
+            <TypedMessage message={messages.DELETE} />
           </Button>
         </DialogActions>
       </Dialog>

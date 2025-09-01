@@ -24,6 +24,8 @@ import {
 } from "@mui/icons-material";
 import { PasswordStrengthIndicator } from "./PasswordStrengthIndicator";
 import { apiFetch } from "../utils/apiClient";
+import { TypedMessage, useTypedMessage } from "typed-message";
+import { messages } from "../../generated/messages";
 
 interface UserPasswordResetDrawerProps {
   open: boolean;
@@ -47,6 +49,7 @@ const UserPasswordResetDrawer = ({
   onClose,
   onPasswordResetSuccess,
 }: UserPasswordResetDrawerProps) => {
+  const getMessage = useTypedMessage();
   const [users, setUsers] = useState<User[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
   const [selectedUsername, setSelectedUsername] = useState<string | null>(null);
@@ -89,7 +92,7 @@ const UserPasswordResetDrawer = ({
     } catch (error) {
       setResult({
         success: false,
-        message: `Error loading users: ${error instanceof Error ? error.message : "Unknown error"}`,
+        message: `${getMessage(messages.ERROR_LOADING_USERS)}: ${error instanceof Error ? error.message : getMessage(messages.UNKNOWN_ERROR)}`,
       });
     } finally {
       setLoadingUsers(false);
@@ -101,7 +104,7 @@ const UserPasswordResetDrawer = ({
     if (!selectedUsername) {
       setResult({
         success: false,
-        message: "Please select a user",
+        message: getMessage(messages.SELECT_USER),
       });
       return;
     }
@@ -109,7 +112,7 @@ const UserPasswordResetDrawer = ({
     if (!password || !confirmPassword) {
       setResult({
         success: false,
-        message: "Both password fields are required",
+        message: getMessage(messages.VALIDATION_ALL_FIELDS_REQUIRED),
       });
       return;
     }
@@ -117,7 +120,7 @@ const UserPasswordResetDrawer = ({
     if (password !== confirmPassword) {
       setResult({
         success: false,
-        message: "Passwords do not match",
+        message: getMessage(messages.VALIDATION_PASSWORDS_DONT_MATCH),
       });
       return;
     }
@@ -125,7 +128,7 @@ const UserPasswordResetDrawer = ({
     if (password.length < 4) {
       setResult({
         success: false,
-        message: "Password must be at least 4 characters long",
+        message: getMessage(messages.VALIDATION_PASSWORD_TOO_SHORT),
       });
       return;
     }
@@ -152,7 +155,7 @@ const UserPasswordResetDrawer = ({
       if (response.ok) {
         setResult({
           success: true,
-          message: data.message || "Password reset successfully",
+          message: data.message || getMessage(messages.PASSWORD_RESET_SUCCESS),
         });
         if (onPasswordResetSuccess) {
           onPasswordResetSuccess();
@@ -173,7 +176,7 @@ const UserPasswordResetDrawer = ({
     } catch (error) {
       setResult({
         success: false,
-        message: `Reset error: ${error instanceof Error ? error.message : "Unknown error"}`,
+        message: `${getMessage(messages.PASSWORD_RESET_FAILED)}: ${error instanceof Error ? error.message : getMessage(messages.UNKNOWN_ERROR)}`,
       });
     } finally {
       setResetting(false);
@@ -222,7 +225,7 @@ const UserPasswordResetDrawer = ({
           }}
         >
           <Typography variant="h6" component="h2">
-            Reset User Password
+            <TypedMessage message={messages.RESET_USER_PASSWORD} />
           </Typography>
           <IconButton onClick={handleClose} edge="end">
             <CloseIcon />
@@ -234,7 +237,7 @@ const UserPasswordResetDrawer = ({
         {!result ? (
           <Box>
             <Typography variant="body1" sx={{ mb: 3 }}>
-              Reset password for an existing user:
+              <TypedMessage message={messages.RESET_PASSWORD_INSTRUCTION} />
             </Typography>
 
             {loadingUsers ? (
@@ -258,7 +261,7 @@ const UserPasswordResetDrawer = ({
                   renderInput={(params) => (
                     <TextField
                       {...params}
-                      label="Select User"
+                      label={getMessage(messages.SELECT_USER)}
                       variant="outlined"
                       fullWidth
                     />
@@ -268,14 +271,14 @@ const UserPasswordResetDrawer = ({
 
                 <TextField
                   fullWidth
-                  label="New Password"
+                  label={getMessage(messages.NEW_PASSWORD)}
                   type="password"
                   variant="outlined"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   disabled={resetting}
                   sx={{ mb: 1 }}
-                  helperText="Minimum 4 characters"
+                  helperText={getMessage(messages.PASSWORD_MIN_LENGTH)}
                 />
                 <PasswordStrengthIndicator
                   password={password}
@@ -284,7 +287,7 @@ const UserPasswordResetDrawer = ({
 
                 <TextField
                   fullWidth
-                  label="Confirm New Password"
+                  label={getMessage(messages.CONFIRM_PASSWORD)}
                   type="password"
                   variant="outlined"
                   value={confirmPassword}
@@ -295,8 +298,7 @@ const UserPasswordResetDrawer = ({
 
                 <Alert severity="warning" sx={{ mb: 3 }}>
                   <Typography variant="body2">
-                    The user will need to use this new password to authenticate.
-                    Make sure to communicate the new password securely.
+                    <TypedMessage message={messages.PASSWORD_RESET_WARNING} />
                   </Typography>
                 </Alert>
 
@@ -319,7 +321,9 @@ const UserPasswordResetDrawer = ({
                   }
                   sx={{ mb: 2 }}
                 >
-                  {resetting ? "Resetting..." : "Reset Password"}
+                  {resetting
+                    ? getMessage(messages.RESETTING)
+                    : getMessage(messages.RESET_PASSWORD)}
                 </Button>
               </>
             )}
@@ -331,22 +335,25 @@ const UserPasswordResetDrawer = ({
               icon={result.success ? <SuccessIcon /> : <ErrorIcon />}
               sx={{ mb: 3 }}
             >
-              {result.success ? "Password Reset Successfully!" : "Reset Failed"}
+              {result.success
+                ? getMessage(messages.PASSWORD_RESET_SUCCESS)
+                : getMessage(messages.PASSWORD_RESET_FAILED)}
             </Alert>
 
             {result.success && selectedUsername && (
               <Paper sx={{ p: 2, mb: 3 }} variant="outlined" elevation={0}>
                 <Typography variant="body2" color="text.secondary" gutterBottom>
-                  Password reset completed
+                  <TypedMessage message={messages.PASSWORD_RESET_COMPLETED} />
                 </Typography>
                 <Typography
                   variant="body1"
                   sx={{ fontWeight: "medium", mb: 1 }}
                 >
-                  User: {selectedUsername}
+                  <TypedMessage message={messages.USER_LABEL} />
+                  {selectedUsername}
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
-                  The password has been successfully updated.
+                  <TypedMessage message={messages.PASSWORD_UPDATED_MESSAGE} />
                 </Typography>
               </Paper>
             )}
@@ -354,7 +361,7 @@ const UserPasswordResetDrawer = ({
             {result.message && (
               <Box sx={{ mb: 3 }}>
                 <Typography variant="body2" color="text.secondary" gutterBottom>
-                  Details:
+                  <TypedMessage message={messages.DETAILS_LABEL} />
                 </Typography>
                 <Paper
                   sx={{
@@ -380,14 +387,7 @@ const UserPasswordResetDrawer = ({
 
             <Box sx={{ display: "flex", gap: 1 }}>
               <Button variant="outlined" onClick={resetForm} sx={{ flex: 1 }}>
-                Reset Another
-              </Button>
-              <Button
-                variant="contained"
-                onClick={handleClose}
-                sx={{ flex: 1 }}
-              >
-                Close
+                <TypedMessage message={messages.RESET_ANOTHER} />
               </Button>
             </Box>
           </Box>

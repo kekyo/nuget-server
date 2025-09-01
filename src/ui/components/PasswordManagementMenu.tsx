@@ -3,6 +3,8 @@
 // License under MIT.
 
 import { useState } from "react";
+import { TypedMessage } from "typed-message";
+import { messages } from "../../generated/messages";
 import {
   Button,
   Menu,
@@ -56,7 +58,7 @@ const PasswordManagementMenu = ({
         onClick={handleClick}
         sx={{ mr: 1 }}
       >
-        Password
+        <TypedMessage message={messages.PASSWORD_MENU} />
       </Button>
       <Menu
         anchorEl={anchorEl}
@@ -75,13 +77,17 @@ const PasswordManagementMenu = ({
           <ListItemIcon>
             <LockResetIcon fontSize="small" />
           </ListItemIcon>
-          <ListItemText>Change Password</ListItemText>
+          <ListItemText>
+            <TypedMessage message={messages.CHANGE_PASSWORD} />
+          </ListItemText>
         </MenuItem>
         <MenuItem onClick={handleApiPassword}>
           <ListItemIcon>
             <VpnKeyIcon fontSize="small" />
           </ListItemIcon>
-          <ListItemText>API Password</ListItemText>
+          <ListItemText>
+            <TypedMessage message={messages.API_PASSWORD} />
+          </ListItemText>
         </MenuItem>
       </Menu>
     </>
