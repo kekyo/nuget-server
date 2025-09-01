@@ -4,758 +4,1325 @@
 import type { MessageItem, SimpleMessageItem } from 'typed-message';
 
 export const messages = {
+  /**
+   * Messgae: "nuget-server"
+   */
   APP_TITLE: { 
     key: "APP_TITLE", 
     fallback: "nuget-server" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "Upload"
+   */
   UPLOAD: { 
     key: "UPLOAD", 
     fallback: "Upload" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "Login"
+   */
   LOGIN: { 
     key: "LOGIN", 
     fallback: "Login" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "Logout"
+   */
   LOGOUT: { 
     key: "LOGOUT", 
     fallback: "Logout" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "Sign In"
+   */
   SIGN_IN: { 
     key: "SIGN_IN", 
     fallback: "Sign In" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "Signing in..."
+   */
   SIGNING_IN: { 
     key: "SIGNING_IN", 
     fallback: "Signing in..." 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "Username"
+   */
   USERNAME: { 
     key: "USERNAME", 
     fallback: "Username" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "Password"
+   */
   PASSWORD: { 
     key: "PASSWORD", 
     fallback: "Password" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "Close"
+   */
   CLOSE: { 
     key: "CLOSE", 
     fallback: "Close" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "Upload Package"
+   */
   UPLOAD_PACKAGE: { 
     key: "UPLOAD_PACKAGE", 
     fallback: "Upload Package" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "Select NuGet package (.nupkg) files to upload:"
+   */
   SELECT_NUPKG_FILES: { 
     key: "SELECT_NUPKG_FILES", 
     fallback: "Select NuGet package (.nupkg) files to upload:" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "Drag & drop your .nupkg files here"
+   */
   DRAG_DROP_FILES: { 
     key: "DRAG_DROP_FILES", 
     fallback: "Drag & drop your .nupkg files here" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "Drop your .nupkg files here"
+   */
   DROP_FILES_HERE: { 
     key: "DROP_FILES_HERE", 
     fallback: "Drop your .nupkg files here" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "or click to browse files"
+   */
   OR_CLICK_TO_BROWSE: { 
     key: "OR_CLICK_TO_BROWSE", 
     fallback: "or click to browse files" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "Upload More"
+   */
   UPLOAD_MORE: { 
     key: "UPLOAD_MORE", 
     fallback: "Upload More" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "Upload Results:"
+   */
   UPLOAD_RESULTS: { 
     key: "UPLOAD_RESULTS", 
     fallback: "Upload Results:" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "All {count:number} package{plural} uploaded successfully!"
+   */
   ALL_UPLOADS_SUCCESS: { 
     key: "ALL_UPLOADS_SUCCESS", 
     fallback: "All {count:number} package{plural} uploaded successfully!" 
   } as MessageItem<{ count: number; plural: string }>,
+  /**
+   * Messgae: "All uploads failed"
+   */
   ALL_UPLOADS_FAILED: { 
     key: "ALL_UPLOADS_FAILED", 
     fallback: "All uploads failed" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "{success:number} of {total:number} package{plural} uploaded successfully"
+   */
   PARTIAL_UPLOAD_SUCCESS: { 
     key: "PARTIAL_UPLOAD_SUCCESS", 
     fallback: "{success:number} of {total:number} package{plural} uploaded successfully" 
   } as MessageItem<{ success: number; total: number; plural: string }>,
+  /**
+   * Messgae: "Uploading {current:number} of {total:number}: {fileName}"
+   */
   UPLOADING_PROGRESS: { 
     key: "UPLOADING_PROGRESS", 
     fallback: "Uploading {current:number} of {total:number}: {fileName}" 
   } as MessageItem<{ current: number; total: number; fileName: string }>,
+  /**
+   * Messgae: "Selected files ({count:number} file{plural}, {size} MB total):"
+   */
   SELECTED_FILES: { 
     key: "SELECTED_FILES", 
     fallback: "Selected files ({count:number} file{plural}, {size} MB total):" 
   } as MessageItem<{ count: number; plural: string; size: string }>,
+  /**
+   * Messgae: "{count:number} file(s) were not .nupkg files and were excluded."
+   */
   INVALID_FILES_EXCLUDED: { 
     key: "INVALID_FILES_EXCLUDED", 
     fallback: "{count:number} file(s) were not .nupkg files and were excluded." 
   } as MessageItem<{ count: number }>,
+  /**
+   * Messgae: "Upload {count:number} file{plural}"
+   */
   UPLOAD_N_FILES: { 
     key: "UPLOAD_N_FILES", 
     fallback: "Upload {count:number} file{plural}" 
   } as MessageItem<{ count: number; plural: string }>,
+  /**
+   * Messgae: "Uploading ({current:number}/{total:number})..."
+   */
   UPLOADING_N_OF_M: { 
     key: "UPLOADING_N_OF_M", 
     fallback: "Uploading ({current:number}/{total:number})..." 
   } as MessageItem<{ current: number; total: number }>,
+  /**
+   * Messgae: "Please sign in to continue"
+   */
   PLEASE_SIGN_IN: { 
     key: "PLEASE_SIGN_IN", 
     fallback: "Please sign in to continue" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "Remember me for 7 days"
+   */
   REMEMBER_ME_DAYS: { 
     key: "REMEMBER_ME_DAYS", 
     fallback: "Remember me for 7 days" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "Need help? Contact your system administrator."
+   */
   NEED_HELP_CONTACT: { 
     key: "NEED_HELP_CONTACT", 
     fallback: "Need help? Contact your system administrator." 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "Login failed"
+   */
   LOGIN_FAILED: { 
     key: "LOGIN_FAILED", 
     fallback: "Login failed" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "Network error. Please try again."
+   */
   NETWORK_ERROR_TRY_AGAIN: { 
     key: "NETWORK_ERROR_TRY_AGAIN", 
     fallback: "Network error. Please try again." 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "Username and password are required"
+   */
   USERNAME_PASSWORD_REQUIRED: { 
     key: "USERNAME_PASSWORD_REQUIRED", 
     fallback: "Username and password are required" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "Add this server as a NuGet source:"
+   */
   ADD_SERVER_AS_SOURCE: { 
     key: "ADD_SERVER_AS_SOURCE", 
     fallback: "Add this server as a NuGet source:" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "copy command"
+   */
   COPY_COMMAND: { 
     key: "COPY_COMMAND", 
     fallback: "copy command" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "Users"
+   */
   USERS: { 
     key: "USERS", 
     fallback: "Users" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "User Management"
+   */
   USER_MANAGEMENT: { 
     key: "USER_MANAGEMENT", 
     fallback: "User Management" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "Add User"
+   */
   ADD_USER: { 
     key: "ADD_USER", 
     fallback: "Add User" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "Reset Password"
+   */
   RESET_PASSWORD: { 
     key: "RESET_PASSWORD", 
     fallback: "Reset Password" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "Delete User"
+   */
   DELETE_USER: { 
     key: "DELETE_USER", 
     fallback: "Delete User" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "Change Password"
+   */
   CHANGE_PASSWORD: { 
     key: "CHANGE_PASSWORD", 
     fallback: "Change Password" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "API Password"
+   */
   API_PASSWORD: { 
     key: "API_PASSWORD", 
     fallback: "API Password" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "Password"
+   */
   PASSWORD_MENU: { 
     key: "PASSWORD_MENU", 
     fallback: "Password" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "Password Management"
+   */
   PASSWORD_MANAGEMENT: { 
     key: "PASSWORD_MANAGEMENT", 
     fallback: "Password Management" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "No packages available"
+   */
   NO_PACKAGES_AVAILABLE: { 
     key: "NO_PACKAGES_AVAILABLE", 
     fallback: "No packages available" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "No packages found in the repository."
+   */
   NO_PACKAGES_FOUND: { 
     key: "NO_PACKAGES_FOUND", 
     fallback: "No packages found in the repository." 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "Packages"
+   */
   PACKAGES_HEADER: { 
     key: "PACKAGES_HEADER", 
     fallback: "Packages" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "Loading packages..."
+   */
   LOADING_PACKAGES: { 
     key: "LOADING_PACKAGES", 
     fallback: "Loading packages..." 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "Failed to load packages"
+   */
   FAILED_TO_LOAD_PACKAGES: { 
     key: "FAILED_TO_LOAD_PACKAGES", 
     fallback: "Failed to load packages" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "Error loading packages: {error}"
+   */
   ERROR_LOADING_PACKAGES: { 
     key: "ERROR_LOADING_PACKAGES", 
     fallback: "Error loading packages: {error}" 
   } as MessageItem<{ error: string }>,
+  /**
+   * Messgae: "Search packages..."
+   */
   SEARCH_PACKAGES: { 
     key: "SEARCH_PACKAGES", 
     fallback: "Search packages..." 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "Filter packages..."
+   */
   FILTER_PACKAGES_PLACEHOLDER: { 
     key: "FILTER_PACKAGES_PLACEHOLDER", 
     fallback: "Filter packages..." 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "No packages match your filter criteria."
+   */
   NO_PACKAGES_MATCH_FILTER: { 
     key: "NO_PACKAGES_MATCH_FILTER", 
     fallback: "No packages match your filter criteria." 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "Clear search"
+   */
   CLEAR_SEARCH: { 
     key: "CLEAR_SEARCH", 
     fallback: "Clear search" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "Download package"
+   */
   DOWNLOAD_PACKAGE: { 
     key: "DOWNLOAD_PACKAGE", 
     fallback: "Download package" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "Authors: {authors}"
+   */
   AUTHORS: { 
     key: "AUTHORS", 
     fallback: "Authors: {authors}" 
   } as MessageItem<{ authors: string }>,
+  /**
+   * Messgae: "Authors:"
+   */
   AUTHORS_LABEL: { 
     key: "AUTHORS_LABEL", 
     fallback: "Authors:" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "Tags"
+   */
   TAGS: { 
     key: "TAGS", 
     fallback: "Tags" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "Tags:"
+   */
   TAGS_LABEL: { 
     key: "TAGS_LABEL", 
     fallback: "Tags:" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "License"
+   */
   LICENSE: { 
     key: "LICENSE", 
     fallback: "License" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "Project URL"
+   */
   PROJECT_URL: { 
     key: "PROJECT_URL", 
     fallback: "Project URL" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "Project"
+   */
   PROJECT_LINK: { 
     key: "PROJECT_LINK", 
     fallback: "Project" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "License"
+   */
   LICENSE_LINK: { 
     key: "LICENSE_LINK", 
     fallback: "License" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "Links:"
+   */
   LINKS_LABEL: { 
     key: "LINKS_LABEL", 
     fallback: "Links:" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "Description:"
+   */
   DESCRIPTION_LABEL: { 
     key: "DESCRIPTION_LABEL", 
     fallback: "Description:" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "Versions ({count:number})"
+   */
   VERSIONS: { 
     key: "VERSIONS", 
     fallback: "Versions ({count:number})" 
   } as MessageItem<{ count: number }>,
+  /**
+   * Messgae: "Versions ({count:number}):"
+   */
   VERSIONS_LABEL: { 
     key: "VERSIONS_LABEL", 
     fallback: "Versions ({count:number}):" 
   } as MessageItem<{ count: number }>,
+  /**
+   * Messgae: "Version {version}"
+   */
   VERSION: { 
     key: "VERSION", 
     fallback: "Version {version}" 
   } as MessageItem<{ version: string }>,
+  /**
+   * Messgae: "{count:number} downloads"
+   */
   DOWNLOADS: { 
     key: "DOWNLOADS", 
     fallback: "{count:number} downloads" 
   } as MessageItem<{ count: number }>,
+  /**
+   * Messgae: "Loading more..."
+   */
   LOADING_MORE: { 
     key: "LOADING_MORE", 
     fallback: "Loading more..." 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "Loading more packages..."
+   */
   LOADING_MORE_PACKAGES: { 
     key: "LOADING_MORE_PACKAGES", 
     fallback: "Loading more packages..." 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "Showing {current:number} of {total:number} packages"
+   */
   SHOWING_PACKAGES: { 
     key: "SHOWING_PACKAGES", 
     fallback: "Showing {current:number} of {total:number} packages" 
   } as MessageItem<{ current: number; total: number }>,
+  /**
+   * Messgae: "All {count:number} packages loaded"
+   */
   ALL_PACKAGES_LOADED: { 
     key: "ALL_PACKAGES_LOADED", 
     fallback: "All {count:number} packages loaded" 
   } as MessageItem<{ count: number }>,
+  /**
+   * Messgae: "Register User"
+   */
   REGISTER_USER: { 
     key: "REGISTER_USER", 
     fallback: "Register User" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "Add a new user to the NuGet server:"
+   */
   ADD_NEW_USER_INSTRUCTION: { 
     key: "ADD_NEW_USER_INSTRUCTION", 
     fallback: "Add a new user to the NuGet server:" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "Confirm Password"
+   */
   CONFIRM_PASSWORD: { 
     key: "CONFIRM_PASSWORD", 
     fallback: "Confirm Password" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "Only alphanumeric characters, hyphens, and underscores"
+   */
   USERNAME_HELPER: { 
     key: "USERNAME_HELPER", 
     fallback: "Only alphanumeric characters, hyphens, and underscores" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "Minimum 4 characters"
+   */
   PASSWORD_MIN_LENGTH: { 
     key: "PASSWORD_MIN_LENGTH", 
     fallback: "Minimum 4 characters" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "Read Only"
+   */
   ROLE_READONLY_SHORT: { 
     key: "ROLE_READONLY_SHORT", 
     fallback: "Read Only" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "Read & Publish"
+   */
   ROLE_PUBLISH_SHORT: { 
     key: "ROLE_PUBLISH_SHORT", 
     fallback: "Read & Publish" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "Administrator"
+   */
   ROLE_ADMIN_SHORT: { 
     key: "ROLE_ADMIN_SHORT", 
     fallback: "Administrator" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "Can browse and download packages"
+   */
   ROLE_READONLY_DESC: { 
     key: "ROLE_READONLY_DESC", 
     fallback: "Can browse and download packages" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "Can browse, download, and publish packages"
+   */
   ROLE_PUBLISH_DESC: { 
     key: "ROLE_PUBLISH_DESC", 
     fallback: "Can browse, download, and publish packages" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "Full access including user management"
+   */
   ROLE_ADMIN_DESC: { 
     key: "ROLE_ADMIN_DESC", 
     fallback: "Full access including user management" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "All fields are required"
+   */
   VALIDATION_ALL_FIELDS_REQUIRED: { 
     key: "VALIDATION_ALL_FIELDS_REQUIRED", 
     fallback: "All fields are required" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "Passwords do not match"
+   */
   VALIDATION_PASSWORDS_DONT_MATCH: { 
     key: "VALIDATION_PASSWORDS_DONT_MATCH", 
     fallback: "Passwords do not match" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "Password must be at least 4 characters long"
+   */
   VALIDATION_PASSWORD_TOO_SHORT: { 
     key: "VALIDATION_PASSWORD_TOO_SHORT", 
     fallback: "Password must be at least 4 characters long" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "Username must contain only alphanumeric characters, hyphens, and underscores"
+   */
   VALIDATION_USERNAME_INVALID: { 
     key: "VALIDATION_USERNAME_INVALID", 
     fallback: "Username must contain only alphanumeric characters, hyphens, and underscores" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "User created successfully!"
+   */
   USER_CREATED_SUCCESS_MESSAGE: { 
     key: "USER_CREATED_SUCCESS_MESSAGE", 
     fallback: "User created successfully!" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "Important: Save API password!"
+   */
   IMPORTANT_SAVE_API_PASSWORD: { 
     key: "IMPORTANT_SAVE_API_PASSWORD", 
     fallback: "Important: Save API password!" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "This API password will only be shown once. Make sure to save it in a secure location."
+   */
   API_PASSWORD_SHOWN_ONCE: { 
     key: "API_PASSWORD_SHOWN_ONCE", 
     fallback: "This API password will only be shown once. Make sure to save it in a secure location." 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "API Password:"
+   */
   API_PASSWORD_LABEL: { 
     key: "API_PASSWORD_LABEL", 
     fallback: "API Password:" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "Click to copy to clipboard"
+   */
   CLICK_TO_COPY_CLIPBOARD: { 
     key: "CLICK_TO_COPY_CLIPBOARD", 
     fallback: "Click to copy to clipboard" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "Details:"
+   */
   DETAILS_LABEL: { 
     key: "DETAILS_LABEL", 
     fallback: "Details:" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "Register Another"
+   */
   REGISTER_ANOTHER: { 
     key: "REGISTER_ANOTHER", 
     fallback: "Register Another" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "Registering..."
+   */
   REGISTERING: { 
     key: "REGISTERING", 
     fallback: "Registering..." 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "Register"
+   */
   REGISTER: { 
     key: "REGISTER", 
     fallback: "Register" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "Role"
+   */
   ROLE: { 
     key: "ROLE", 
     fallback: "Role" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "Admin (full access)"
+   */
   ROLE_ADMIN: { 
     key: "ROLE_ADMIN", 
     fallback: "Admin (full access)" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "Publisher (read and publish)"
+   */
   ROLE_PUBLISH: { 
     key: "ROLE_PUBLISH", 
     fallback: "Publisher (read and publish)" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "Read-only (read only)"
+   */
   ROLE_READONLY: { 
     key: "ROLE_READONLY", 
     fallback: "Read-only (read only)" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "Password Strength"
+   */
   PASSWORD_STRENGTH: { 
     key: "PASSWORD_STRENGTH", 
     fallback: "Password Strength" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "Generate Password"
+   */
   GENERATE_PASSWORD: { 
     key: "GENERATE_PASSWORD", 
     fallback: "Generate Password" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "Generated Password"
+   */
   GENERATED_PASSWORD: { 
     key: "GENERATED_PASSWORD", 
     fallback: "Generated Password" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "Copy Password"
+   */
   COPY_PASSWORD: { 
     key: "COPY_PASSWORD", 
     fallback: "Copy Password" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "Password copied to clipboard!"
+   */
   PASSWORD_COPIED: { 
     key: "PASSWORD_COPIED", 
     fallback: "Password copied to clipboard!" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "User registered successfully!"
+   */
   USER_REGISTERED_SUCCESS: { 
     key: "USER_REGISTERED_SUCCESS", 
     fallback: "User registered successfully!" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "Failed to register user"
+   */
   USER_REGISTRATION_FAILED: { 
     key: "USER_REGISTRATION_FAILED", 
     fallback: "Failed to register user" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "Reset User Password"
+   */
   RESET_USER_PASSWORD: { 
     key: "RESET_USER_PASSWORD", 
     fallback: "Reset User Password" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "Reset password for an existing user:"
+   */
   RESET_PASSWORD_INSTRUCTION: { 
     key: "RESET_PASSWORD_INSTRUCTION", 
     fallback: "Reset password for an existing user:" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "The user will need to use this new password to authenticate. Make sure to communicate the new password securely."
+   */
   PASSWORD_RESET_WARNING: { 
     key: "PASSWORD_RESET_WARNING", 
     fallback: "The user will need to use this new password to authenticate. Make sure to communicate the new password securely." 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "Password reset completed"
+   */
   PASSWORD_RESET_COMPLETED: { 
     key: "PASSWORD_RESET_COMPLETED", 
     fallback: "Password reset completed" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "User: "
+   */
   USER_LABEL: { 
     key: "USER_LABEL", 
     fallback: "User: " 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "The password has been successfully updated."
+   */
   PASSWORD_UPDATED_MESSAGE: { 
     key: "PASSWORD_UPDATED_MESSAGE", 
     fallback: "The password has been successfully updated." 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "Reset Another"
+   */
   RESET_ANOTHER: { 
     key: "RESET_ANOTHER", 
     fallback: "Reset Another" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "Select user to reset password"
+   */
   SELECT_USER: { 
     key: "SELECT_USER", 
     fallback: "Select user to reset password" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "New Password"
+   */
   NEW_PASSWORD: { 
     key: "NEW_PASSWORD", 
     fallback: "New Password" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "Resetting..."
+   */
   RESETTING: { 
     key: "RESETTING", 
     fallback: "Resetting..." 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "Reset"
+   */
   RESET: { 
     key: "RESET", 
     fallback: "Reset" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "Password reset successfully!"
+   */
   PASSWORD_RESET_SUCCESS: { 
     key: "PASSWORD_RESET_SUCCESS", 
     fallback: "Password reset successfully!" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "Failed to reset password"
+   */
   PASSWORD_RESET_FAILED: { 
     key: "PASSWORD_RESET_FAILED", 
     fallback: "Failed to reset password" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "Delete User"
+   */
   DELETE_USER_TITLE: { 
     key: "DELETE_USER_TITLE", 
     fallback: "Delete User" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "Select a user to delete:"
+   */
   SELECT_USER_DELETE_INSTRUCTION: { 
     key: "SELECT_USER_DELETE_INSTRUCTION", 
     fallback: "Select a user to delete:" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "No users available to delete. You cannot delete your own account."
+   */
   NO_USERS_TO_DELETE: { 
     key: "NO_USERS_TO_DELETE", 
     fallback: "No users available to delete. You cannot delete your own account." 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "Warning"
+   */
   WARNING_LABEL: { 
     key: "WARNING_LABEL", 
     fallback: "Warning" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "This action cannot be undone. The user {username} and all associated data will be permanently deleted."
+   */
   DELETE_USER_WARNING: { 
     key: "DELETE_USER_WARNING", 
     fallback: "This action cannot be undone. The user {username} and all associated data will be permanently deleted." 
   } as MessageItem<{ username: string }>,
+  /**
+   * Messgae: "Delete Another"
+   */
   DELETE_ANOTHER: { 
     key: "DELETE_ANOTHER", 
     fallback: "Delete Another" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "Confirm User Deletion"
+   */
   CONFIRM_USER_DELETION_TITLE: { 
     key: "CONFIRM_USER_DELETION_TITLE", 
     fallback: "Confirm User Deletion" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "Are you sure you want to delete the user {username}? This action cannot be undone."
+   */
   CONFIRM_DELETE_MESSAGE: { 
     key: "CONFIRM_DELETE_MESSAGE", 
     fallback: "Are you sure you want to delete the user {username}? This action cannot be undone." 
   } as MessageItem<{ username: string }>,
+  /**
+   * Messgae: "Select user to delete"
+   */
   SELECT_USER_TO_DELETE: { 
     key: "SELECT_USER_TO_DELETE", 
     fallback: "Select user to delete" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "Are you sure you want to delete user "{username}"?"
+   */
   CONFIRM_DELETE_USER: { 
     key: "CONFIRM_DELETE_USER", 
     fallback: "Are you sure you want to delete user \"{username}\"?" 
   } as MessageItem<{ username: string }>,
+  /**
+   * Messgae: "Deleting..."
+   */
   DELETING: { 
     key: "DELETING", 
     fallback: "Deleting..." 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "Delete"
+   */
   DELETE: { 
     key: "DELETE", 
     fallback: "Delete" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "Cancel"
+   */
   CANCEL: { 
     key: "CANCEL", 
     fallback: "Cancel" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "User deleted successfully!"
+   */
   USER_DELETED_SUCCESS: { 
     key: "USER_DELETED_SUCCESS", 
     fallback: "User deleted successfully!" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "Failed to delete user"
+   */
   USER_DELETE_FAILED: { 
     key: "USER_DELETE_FAILED", 
     fallback: "Failed to delete user" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "Cannot delete your own account"
+   */
   CANNOT_DELETE_SELF: { 
     key: "CANNOT_DELETE_SELF", 
     fallback: "Cannot delete your own account" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "Change Your Password"
+   */
   CHANGE_YOUR_PASSWORD: { 
     key: "CHANGE_YOUR_PASSWORD", 
     fallback: "Change Your Password" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "Enter your current password and choose a new password."
+   */
   CHANGE_PASSWORD_INSTRUCTION: { 
     key: "CHANGE_PASSWORD_INSTRUCTION", 
     fallback: "Enter your current password and choose a new password." 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "Changing Password..."
+   */
   CHANGING_PASSWORD: { 
     key: "CHANGING_PASSWORD", 
     fallback: "Changing Password..." 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "Current Password"
+   */
   CURRENT_PASSWORD: { 
     key: "CURRENT_PASSWORD", 
     fallback: "Current Password" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "Changing..."
+   */
   CHANGING: { 
     key: "CHANGING", 
     fallback: "Changing..." 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "Change"
+   */
   CHANGE: { 
     key: "CHANGE", 
     fallback: "Change" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "Password changed successfully!"
+   */
   PASSWORD_CHANGED_SUCCESS: { 
     key: "PASSWORD_CHANGED_SUCCESS", 
     fallback: "Password changed successfully!" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "Failed to change password"
+   */
   PASSWORD_CHANGE_FAILED: { 
     key: "PASSWORD_CHANGE_FAILED", 
     fallback: "Failed to change password" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "API Password Management"
+   */
   API_PASSWORD_MANAGEMENT: { 
     key: "API_PASSWORD_MANAGEMENT", 
     fallback: "API Password Management" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "New API Password Created!"
+   */
   NEW_API_PASSWORD_CREATED: { 
     key: "NEW_API_PASSWORD_CREATED", 
     fallback: "New API Password Created!" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "Label: "
+   */
   LABEL_PREFIX: { 
     key: "LABEL_PREFIX", 
     fallback: "Label: " 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "Click to copy - This password will only be shown once!"
+   */
   CLICK_COPY_SHOWN_ONCE: { 
     key: "CLICK_COPY_SHOWN_ONCE", 
     fallback: "Click to copy - This password will only be shown once!" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "Example commands:"
+   */
   EXAMPLE_COMMANDS: { 
     key: "EXAMPLE_COMMANDS", 
     fallback: "Example commands:" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "{current:number} / 10 API passwords"
+   */
   API_PASSWORDS_COUNT: { 
     key: "API_PASSWORDS_COUNT", 
     fallback: "{current:number} / 10 API passwords" 
   } as MessageItem<{ current: number }>,
+  /**
+   * Messgae: "Add New"
+   */
   ADD_NEW: { 
     key: "ADD_NEW", 
     fallback: "Add New" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "No API passwords configured. Click "Add New" to create one."
+   */
   NO_API_PASSWORDS: { 
     key: "NO_API_PASSWORDS", 
     fallback: "No API passwords configured. Click \"Add New\" to create one." 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "Label"
+   */
   TABLE_LABEL: { 
     key: "TABLE_LABEL", 
     fallback: "Label" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "Created"
+   */
   TABLE_CREATED: { 
     key: "TABLE_CREATED", 
     fallback: "Created" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "Delete"
+   */
   TABLE_DELETE: { 
     key: "TABLE_DELETE", 
     fallback: "Delete" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "Maximum of 10 API passwords reached. Delete existing passwords to add new ones."
+   */
   MAX_API_PASSWORDS: { 
     key: "MAX_API_PASSWORDS", 
     fallback: "Maximum of 10 API passwords reached. Delete existing passwords to add new ones." 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "Add new API password"
+   */
   ADD_NEW_API_PASSWORD_TITLE: { 
     key: "ADD_NEW_API_PASSWORD_TITLE", 
     fallback: "Add new API password" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "Enter a unique label to identify this API password..."
+   */
   API_PASSWORD_LABEL_HELPER: { 
     key: "API_PASSWORD_LABEL_HELPER", 
     fallback: "Enter a unique label to identify this API password..." 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "Generate"
+   */
   GENERATE: { 
     key: "GENERATE", 
     fallback: "Generate" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "Delete API password"
+   */
   DELETE_API_PASSWORD_TITLE: { 
     key: "DELETE_API_PASSWORD_TITLE", 
     fallback: "Delete API password" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "Are you sure you want to delete the API password "{label}"?"
+   */
   CONFIRM_DELETE_API_PASSWORD: { 
     key: "CONFIRM_DELETE_API_PASSWORD", 
     fallback: "Are you sure you want to delete the API password \"{label}\"?" 
   } as MessageItem<{ label: string }>,
+  /**
+   * Messgae: "Any applications using this password will lose access immediately."
+   */
   API_PASSWORD_DELETE_WARNING: { 
     key: "API_PASSWORD_DELETE_WARNING", 
     fallback: "Any applications using this password will lose access immediately." 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "API Password"
+   */
   API_PASSWORD_TITLE: { 
     key: "API_PASSWORD_TITLE", 
     fallback: "API Password" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "Use this API key for package operations:"
+   */
   API_PASSWORD_DESCRIPTION: { 
     key: "API_PASSWORD_DESCRIPTION", 
     fallback: "Use this API key for package operations:" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "NuGet push command:"
+   */
   NUGET_PUSH_COMMAND: { 
     key: "NUGET_PUSH_COMMAND", 
     fallback: "NuGet push command:" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "NuGet delete command:"
+   */
   NUGET_DELETE_COMMAND: { 
     key: "NUGET_DELETE_COMMAND", 
     fallback: "NuGet delete command:" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "dotnet nuget push command:"
+   */
   DOTNET_PUSH_COMMAND: { 
     key: "DOTNET_PUSH_COMMAND", 
     fallback: "dotnet nuget push command:" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "dotnet nuget delete command:"
+   */
   DOTNET_DELETE_COMMAND: { 
     key: "DOTNET_DELETE_COMMAND", 
     fallback: "dotnet nuget delete command:" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "Generating API key..."
+   */
   GENERATING_API_KEY: { 
     key: "GENERATING_API_KEY", 
     fallback: "Generating API key..." 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "Generate New Key"
+   */
   GENERATE_NEW_KEY: { 
     key: "GENERATE_NEW_KEY", 
     fallback: "Generate New Key" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "API key generated successfully!"
+   */
   API_KEY_GENERATED: { 
     key: "API_KEY_GENERATED", 
     fallback: "API key generated successfully!" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "Failed to generate API key"
+   */
   API_KEY_GENERATION_FAILED: { 
     key: "API_KEY_GENERATION_FAILED", 
     fallback: "Failed to generate API key" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "Time to crack: "
+   */
   TIME_TO_CRACK: { 
     key: "TIME_TO_CRACK", 
     fallback: "Time to crack: " 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "Suggestion: "
+   */
   SUGGESTION_LABEL: { 
     key: "SUGGESTION_LABEL", 
     fallback: "Suggestion: " 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "Weak"
+   */
   WEAK: { 
     key: "WEAK", 
     fallback: "Weak" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "Fair"
+   */
   FAIR: { 
     key: "FAIR", 
     fallback: "Fair" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "Good"
+   */
   GOOD: { 
     key: "GOOD", 
     fallback: "Good" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "Strong"
+   */
   STRONG: { 
     key: "STRONG", 
     fallback: "Strong" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "Very Strong"
+   */
   VERY_STRONG: { 
     key: "VERY_STRONG", 
     fallback: "Very Strong" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "Loading..."
+   */
   LOADING: { 
     key: "LOADING", 
     fallback: "Loading..." 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "Error"
+   */
   ERROR: { 
     key: "ERROR", 
     fallback: "Error" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "Success"
+   */
   SUCCESS: { 
     key: "SUCCESS", 
     fallback: "Success" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "Warning"
+   */
   WARNING: { 
     key: "WARNING", 
     fallback: "Warning" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "Info"
+   */
   INFO: { 
     key: "INFO", 
     fallback: "Info" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "New password must be different from current password"
+   */
   PASSWORD_MUST_BE_DIFFERENT: { 
     key: "PASSWORD_MUST_BE_DIFFERENT", 
     fallback: "New password must be different from current password" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "Failed to load API passwords"
+   */
   FAILED_TO_LOAD_API_PASSWORDS: { 
     key: "FAILED_TO_LOAD_API_PASSWORDS", 
     fallback: "Failed to load API passwords" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "Failed to delete API password"
+   */
   FAILED_TO_DELETE_API_PASSWORD: { 
     key: "FAILED_TO_DELETE_API_PASSWORD", 
     fallback: "Failed to delete API password" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "Error loading users"
+   */
   ERROR_LOADING_USERS: { 
     key: "ERROR_LOADING_USERS", 
     fallback: "Error loading users" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "Unknown error"
+   */
   UNKNOWN_ERROR: { 
     key: "UNKNOWN_ERROR", 
     fallback: "Unknown error" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "Upload error"
+   */
   UPLOAD_ERROR: { 
     key: "UPLOAD_ERROR", 
     fallback: "Upload error" 
   } as SimpleMessageItem,
+  /**
+   * Messgae: "NuGet Server"
+   */
   NUGET_SERVER: { 
     key: "NUGET_SERVER", 
     fallback: "NuGet Server" 
