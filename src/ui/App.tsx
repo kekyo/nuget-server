@@ -626,7 +626,7 @@ const App = () => {
                     </Typography>
                   </Box>
                   <IconButton
-                    size="small"
+                    size="large"
                     onClick={handleCopyCommand}
                     aria-label="copy command"
                     sx={{ ml: 1, marginRight: "1rem" }}
