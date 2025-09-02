@@ -156,11 +156,13 @@ const ApiPasswordDrawer = ({
         setError(
           errorData.error || getMessage(messages.API_KEY_GENERATION_FAILED)
         );
+        setAddDialogOpen(false);
       }
     } catch (err) {
       setError(
         `${getMessage(messages.ERROR)}: ${err instanceof Error ? err.message : getMessage(messages.UNKNOWN_ERROR)}`
       );
+      setAddDialogOpen(false);
     } finally {
       setLoading(false);
     }
@@ -372,7 +374,10 @@ const ApiPasswordDrawer = ({
               variant="contained"
               size="small"
               startIcon={<AddIcon />}
-              onClick={() => setAddDialogOpen(true)}
+              onClick={() => {
+                setNewApiPassword(null);
+                setAddDialogOpen(true);
+              }}
               disabled={loading || apiPasswords.length >= 10}
             >
               <TypedMessage message={messages.ADD_NEW} />
@@ -425,7 +430,10 @@ const ApiPasswordDrawer = ({
                         <IconButton
                           size="small"
                           color="error"
-                          onClick={() => setDeleteConfirmDialog(apiPwd.label)}
+                          onClick={() => {
+                            setNewApiPassword(null);
+                            setDeleteConfirmDialog(apiPwd.label);
+                          }}
                           disabled={loading}
                         >
                           <DeleteIcon fontSize="small" />
