@@ -262,9 +262,8 @@ export const createMetadataService = (
   ): Promise<void> => {
     try {
       const versionDirs = await fs.readdir(packagePath);
-      const entries: PackageEntry[] = [];
 
-      for (const version of versionDirs) {
+      const versionPromises = versionDirs.map(async (version) => {
         const versionPath = path.join(packagePath, version);
         const stat = await fs.stat(versionPath);
 
@@ -274,11 +273,15 @@ export const createMetadataService = (
             version,
             versionPath
           );
-          if (entry) {
-            entries.push(entry);
-          }
+          return entry;
         }
-      }
+        return undefined;
+      });
+
+      const results = await Promise.all(versionPromises);
+      const entries = results.filter(
+        (entry): entry is PackageEntry => entry !== undefined
+      );
 
       if (entries.length > 0) {
         entries.sort((a, b) =>
@@ -298,14 +301,16 @@ export const createMetadataService = (
     try {
       const packageDirs = await fs.readdir(packagesRoot);
 
-      for (const packageId of packageDirs) {
+      const packagePromises = packageDirs.map(async (packageId) => {
         const packagePath = path.join(packagesRoot, packageId);
         const stat = await fs.stat(packagePath);
 
         if (stat.isDirectory()) {
           await scanPackageVersions(packageId, packagePath);
         }
-      }
+      });
+
+      await Promise.all(packagePromises);
     } catch (error) {
       logger.warn(`Packages directory not found or empty: ${packagesRoot}`);
     }
