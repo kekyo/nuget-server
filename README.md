@@ -54,6 +54,10 @@ A modern browser-based UI is also provided:
 - Package importer: Included package importer from existing NuGet server
 - Docker image available
 
+## System Requirements
+
+Node.js 20.18.0 or later
+
 ---
 
 ## Installation
