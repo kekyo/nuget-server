@@ -4,7 +4,7 @@ Simple modenized NuGet server implementation.
 
 ![nuget-server](images/nuget-server-120.png)
 
-[![Project Status: WIP – Initial development is in progress, but there has not yet been a stable, usable release suitable for the public.](https://www.repostatus.org/badges/latest/wip.svg)](https://www.repostatus.org/#wip)
+[![Project Status: Active – The project has reached a stable, usable state and is being actively developed.](https://www.repostatus.org/badges/latest/active.svg)](https://www.repostatus.org/#active)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![npm version](https://img.shields.io/npm/v/nuget-server.svg)](https://www.npmjs.com/package/nuget-server)
 [![Docker Image Version](https://img.shields.io/docker/v/kekyo/nuget-server.svg?label=docker)](https://hub.docker.com/r/kekyo/nuget-server)
