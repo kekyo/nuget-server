@@ -36,7 +36,7 @@ interface LoginResponse {
 interface LoginDialogProps {
   open: boolean;
   onClose: () => void;
-  onLoginSuccess: () => void;
+  onLoginSuccess: (username: string) => void;
   realm: string;
   disableBackdropClick?: boolean; // For authMode='full'
 }
@@ -86,8 +86,9 @@ const LoginDialog = ({
       const data: LoginResponse = await response.json();
 
       if (data.success) {
-        // Login successful, call success callback
-        onLoginSuccess();
+        // Login successful, call success callback with username
+        const loggedInUsername = data.user?.username || username;
+        onLoginSuccess(loggedInUsername);
         // Clear form
         setUsername('');
         setPassword('');

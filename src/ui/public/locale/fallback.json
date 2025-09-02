@@ -104,6 +104,7 @@
   "API_PASSWORD_SHOWN_ONCE": "This API password will only be shown once. Make sure to save it in a secure location.",
   "API_PASSWORD_LABEL": "API Password:",
   "CLICK_TO_COPY_CLIPBOARD": "Click to copy to clipboard",
+  "COPIED_TO_CLIPBOARD": "Copied to clipboard!",
   "DETAILS_LABEL": "Details:",
   "REGISTER_ANOTHER": "Register Another",
   "REGISTERING": "Registering...",

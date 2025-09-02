@@ -34,6 +34,7 @@ import {
 import { buildAddSourceCommand } from '../utils/commandBuilder';
 import { apiFetch } from '../utils/apiClient';
 import { TypedMessage, useTypedMessage } from 'typed-message';
+import { useSnackbar } from 'notistack';
 import { messages } from '../../generated/messages';
 
 interface ApiPasswordDrawerProps {
@@ -63,6 +64,7 @@ const ApiPasswordDrawer = ({
   serverConfig,
 }: ApiPasswordDrawerProps) => {
   const getMessage = useTypedMessage();
+  const { enqueueSnackbar } = useSnackbar();
   const [loading, setLoading] = useState(false);
   const [apiPasswords, setApiPasswords] = useState<ApiPassword[]>([]);
   const [addDialogOpen, setAddDialogOpen] = useState(false);
@@ -200,6 +202,9 @@ const ApiPasswordDrawer = ({
   const copyToClipboard = async (text: string) => {
     try {
       await navigator.clipboard.writeText(text);
+      enqueueSnackbar(getMessage(messages.COPIED_TO_CLIPBOARD), {
+        variant: 'success',
+      });
     } catch (err) {
       // Fallback for browsers without Clipboard API support
       const textArea = document.createElement('textarea');
@@ -208,6 +213,9 @@ const ApiPasswordDrawer = ({
       textArea.select();
       document.execCommand('copy');
       document.body.removeChild(textArea);
+      enqueueSnackbar(getMessage(messages.COPIED_TO_CLIPBOARD), {
+        variant: 'success',
+      });
     }
   };
 

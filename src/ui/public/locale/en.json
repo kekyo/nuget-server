@@ -29,6 +29,7 @@
   "REMEMBER_ME_DAYS": "Remember me for 7 days",
   "NEED_HELP_CONTACT": "Need help? Contact your system administrator.",
   "LOGIN_FAILED": "Login failed",
+  "LOGIN_SUCCESS": "Successfully logged in as {username}",
   "NETWORK_ERROR_TRY_AGAIN": "Network error. Please try again.",
   "USERNAME_PASSWORD_REQUIRED": "Username and password are required",
 
@@ -104,6 +105,7 @@
   "API_PASSWORD_SHOWN_ONCE": "This API password will only be shown once. Make sure to save it in a secure location.",
   "API_PASSWORD_LABEL": "API Password:",
   "CLICK_TO_COPY_CLIPBOARD": "Click to copy to clipboard",
+  "COPIED_TO_CLIPBOARD": "Copied to clipboard!",
   "DETAILS_LABEL": "Details:",
   "REGISTER_ANOTHER": "Register Another",
   "REGISTERING": "Registering...",
