@@ -16,6 +16,7 @@ const timestamp = dayjs().format('YYYYMMDD_HHmmss');
 
 /**
  * Creates a test directory with timestamp for test isolation
+ * @remarks WARNING: Do NOT construct nested `describe()` tests, isolation environment will break.
  */
 export const createTestDirectory = async (
   categoryName: string,
@@ -49,6 +50,7 @@ export const createTestDirectory = async (
 /**
  * Generates a test port number to avoid conflicts
  * Uses process.pid and random component for better uniqueness across parallel test runs
+ * @remarks WARNING: Do NOT construct nested `describe()` tests, isolation environment will break.
  */
 export const getTestPort = (basePort: number = 6000): number => {
   // Use process.pid for better uniqueness across parallel test runs

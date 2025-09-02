@@ -198,9 +198,10 @@ export const createFastifyInstance = async (
   });
 
   // Create Fastify instance with configured logger and URL rewriting
+  const maxUploadSizeMb = config.maxUploadSizeMb || 100; // Default to 100MB if not configured
   const fastify: FastifyInstance = Fastify({
     logger: createPinoLoggerConfig(logger, config.logLevel),
-    bodyLimit: 1024 * 1024 * 100, // 100MB limit for package uploads
+    bodyLimit: 1024 * 1024 * maxUploadSizeMb, // Configurable limit for package uploads
     disableRequestLogging: true, // Use our custom request logging
     rewriteUrl: createRewriteUrl(urlResolver, logger),
   });

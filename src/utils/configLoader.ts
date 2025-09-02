@@ -22,6 +22,7 @@ export interface ConfigFile {
   passwordMinScore?: number;
   passwordStrengthCheck?: boolean;
   duplicatePackagePolicy?: DuplicatePackagePolicy;
+  maxUploadSizeMb?: number;
 }
 
 /**
@@ -157,6 +158,19 @@ const validateConfig = (
         `Invalid duplicatePackagePolicy in config.json: ${config.duplicatePackagePolicy}`
       );
     }
+  }
+
+  // Validate maxUploadSizeMb
+  if (
+    typeof config.maxUploadSizeMb === 'number' &&
+    config.maxUploadSizeMb >= 1 &&
+    config.maxUploadSizeMb <= 10000
+  ) {
+    validated.maxUploadSizeMb = config.maxUploadSizeMb;
+  } else if (config.maxUploadSizeMb !== undefined) {
+    logger?.warn(
+      `Invalid maxUploadSizeMb in config.json: ${config.maxUploadSizeMb}. Must be between 1 and 10000 MB.`
+    );
   }
 
   return validated;

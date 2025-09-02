@@ -74,7 +74,7 @@ nuget-server
 nuget-server --port 3000
 
 # Multiple options
-nuget-server --port 3000 --config-file config/config.json --users-file config/users.json
+nuget-server --port 3000 --users-file config/users.json --max-upload-size-mb 500
 ```
 
 The NuGet V3 API is served on the `/v3` path.
@@ -236,7 +236,8 @@ Create a `config.json` file:
   "authMode": "none",
   "sessionSecret": "<your-secret-here>",
   "passwordMinScore": 2,
-  "passwordStrengthCheck": true
+  "passwordStrengthCheck": true,
+  "maxUploadSizeMb": 100
 }
 ```
 
@@ -495,6 +496,7 @@ export NUGET_SERVER_TRUSTED_PROXIES=10.0.0.1,192.168.1.100
 export NUGET_SERVER_CONFIG_FILE=/path/to/config.json
 export NUGET_SERVER_USERS_FILE=/path/to/users.json
 export NUGET_SERVER_SESSION_SECRET=your-secret-key-here
+export NUGET_SERVER_MAX_UPLOAD_SIZE_MB=500
 ```
 
 ---

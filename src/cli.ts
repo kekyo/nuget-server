@@ -98,6 +98,17 @@ const getDuplicatePackagePolicyFromEnv = ():
   return undefined;
 };
 
+const getMaxUploadSizeMbFromEnv = (): number | undefined => {
+  const value = process.env.NUGET_SERVER_MAX_UPLOAD_SIZE_MB;
+  if (value) {
+    const size = parseInt(value, 10);
+    if (!isNaN(size) && size >= 1 && size <= 10000) {
+      return size;
+    }
+  }
+  return undefined;
+};
+
 /////////////////////////////////////////////////////////////////////////
 
 const program = new Command();
@@ -124,6 +135,10 @@ program
     'comma-separated list of trusted proxy IPs'
   )
   .option('--auth-mode <mode>', 'authentication mode (none, publish, full)')
+  .option(
+    '--max-upload-size-mb <size>',
+    'maximum package upload size in MB (1-10000)'
+  )
   .option(
     '--auth-init',
     'initialize authentication with interactive admin user creation'
@@ -184,6 +199,10 @@ program
       getDuplicatePackagePolicyFromEnv() ||
       configFile.duplicatePackagePolicy ||
       'ignore';
+    const maxUploadSizeMb =
+      options.maxUploadSizeMb !== undefined
+        ? parseInt(options.maxUploadSizeMb, 10)
+        : getMaxUploadSizeMbFromEnv() || configFile.maxUploadSizeMb || 100;
 
     // Validate log level
     const validLogLevels: LogLevel[] = [
@@ -218,6 +237,16 @@ program
       process.exit(1);
     }
 
+    // Validate maxUploadSizeMb
+    if (
+      isNaN(maxUploadSizeMb) ||
+      maxUploadSizeMb < 1 ||
+      maxUploadSizeMb > 10000
+    ) {
+      console.error('Invalid max upload size. Must be between 1 and 10000 MB');
+      process.exit(1);
+    }
+
     // Display banner
     logger.info(`${packageName} [${version}-${git_commit_hash}] Starting...`);
 
@@ -238,6 +267,7 @@ program
     logger.info(`Realm: ${realm}`);
     logger.info(`Authentication mode: ${authMode}`);
     logger.info(`Log level: ${logLevel}`);
+    logger.info(`Max upload size: ${maxUploadSizeMb}MB`);
     if (trustedProxies && trustedProxies.length > 0) {
       logger.info(`Trusted proxies: ${trustedProxies.join(', ')}`);
     }
@@ -259,6 +289,7 @@ program
       passwordMinScore,
       passwordStrengthCheck,
       duplicatePackagePolicy: duplicatePackagePolicy as DuplicatePackagePolicy,
+      maxUploadSizeMb,
     };
 
     // Handle auth-init mode
