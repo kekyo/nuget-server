@@ -2,28 +2,28 @@
 // Copyright (c) Kouji Matsui (@kekyo@mi.kekyo.net)
 // License under MIT.
 
-import { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
-import { ReaderWriterLock } from "async-primitives";
-import { Logger } from "../../types";
+import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
+import { ReaderWriterLock } from 'async-primitives';
+import { Logger } from '../../types';
 import {
   MetadataService,
   PackageMetadata,
-} from "../../services/metadataService";
-import { AuthService } from "../../services/authService";
+} from '../../services/metadataService';
+import { AuthService } from '../../services/authService';
 import {
   createConditionalHybridAuthMiddleware,
   FastifyAuthConfig,
-} from "../../middleware/fastifyAuth";
-import { createPackageService } from "../../services/packageService";
-import { createUrlResolver } from "../../utils/urlResolver";
-import { streamFile } from "../../utils/fileStreaming";
+} from '../../middleware/fastifyAuth';
+import { createPackageService } from '../../services/packageService';
+import { createUrlResolver } from '../../utils/urlResolver';
+import { streamFile } from '../../utils/fileStreaming';
 
 /**
  * Service Index Resource interface for NuGet V3 API
  */
 export interface ServiceIndexResource {
-  "@id": string;
-  "@type": string;
+  '@id': string;
+  '@type': string;
   comment: string;
 }
 
@@ -31,7 +31,7 @@ export interface ServiceIndexResource {
  * Service Index response structure
  */
 export interface ServiceIndex {
-  "@context": string;
+  '@context': string;
   version: string;
   resources: ServiceIndexResource[];
 }
@@ -42,14 +42,14 @@ export interface ServiceIndex {
 export interface SearchResultVersion {
   version: string;
   downloads: number;
-  "@id": string;
+  '@id': string;
 }
 
 /**
  * Individual package search result
  */
 export interface SearchResult {
-  "@type": string;
+  '@type': string;
   registration: string;
   id: string;
   version: string;
@@ -74,9 +74,9 @@ export interface SearchResult {
  * Search query response
  */
 export interface SearchResponse {
-  "@context": {
-    "@vocab": string;
-    "@base": string;
+  '@context': {
+    '@vocab': string;
+    '@base': string;
   };
   totalHits: number;
   lastReopen: string;
@@ -88,8 +88,8 @@ export interface SearchResponse {
  * Registration index response for a package
  */
 export interface RegistrationIndex {
-  "@id": string;
-  "@type": string[];
+  '@id': string;
+  '@type': string[];
   commitId?: string;
   commitTimeStamp?: string;
   count: number;
@@ -100,8 +100,8 @@ export interface RegistrationIndex {
  * Registration page containing package versions
  */
 export interface RegistrationPage {
-  "@id": string;
-  "@type": string;
+  '@id': string;
+  '@type': string;
   commitId?: string;
   commitTimeStamp?: string;
   count: number;
@@ -114,8 +114,8 @@ export interface RegistrationPage {
  * Individual package version entry in registration
  */
 export interface RegistrationLeaf {
-  "@id": string;
-  "@type": string;
+  '@id': string;
+  '@type': string;
   commitId?: string;
   commitTimeStamp?: string;
   catalogEntry: CatalogEntry;
@@ -127,8 +127,8 @@ export interface RegistrationLeaf {
  * Catalog entry with package metadata
  */
 export interface CatalogEntry {
-  "@id": string;
-  "@type": string;
+  '@id': string;
+  '@type': string;
   authors: string;
   description?: string;
   iconUrl?: string;
@@ -166,23 +166,23 @@ export interface V3RoutesConfig {
  */
 const createServiceIndex = (baseUrl: string): ServiceIndex => {
   return {
-    "@context": "https://api.nuget.org/v3/index.json",
-    version: "3.0.0",
+    '@context': 'https://api.nuget.org/v3/index.json',
+    version: '3.0.0',
     resources: [
       {
-        "@id": `${baseUrl}/v3/package/`,
-        "@type": "PackageBaseAddress/3.0.0",
+        '@id': `${baseUrl}/v3/package/`,
+        '@type': 'PackageBaseAddress/3.0.0',
         comment: `Base URL of where NuGet packages are stored, in the format ${baseUrl}/v3/package/{id}/{version}/{id}.{version}.nupkg`,
       },
       {
-        "@id": `${baseUrl}/v3/registrations/`,
-        "@type": "RegistrationsBaseUrl",
-        comment: "Base URL of NuGet package registration info",
+        '@id': `${baseUrl}/v3/registrations/`,
+        '@type': 'RegistrationsBaseUrl',
+        comment: 'Base URL of NuGet package registration info',
       },
       {
-        "@id": `${baseUrl}/v3/search`,
-        "@type": "SearchQueryService",
-        comment: "Query endpoint of NuGet Search service",
+        '@id': `${baseUrl}/v3/search`,
+        '@type': 'SearchQueryService',
+        comment: 'Query endpoint of NuGet Search service',
       },
     ],
   };
@@ -194,10 +194,10 @@ const createServiceIndex = (baseUrl: string): ServiceIndex => {
 const createSearchResult = (
   baseUrl: string,
   packageId: string,
-  versions: PackageMetadata[],
+  versions: PackageMetadata[]
 ): SearchResult => {
   if (versions.length === 0) {
-    throw new Error("No versions provided for package");
+    throw new Error('No versions provided for package');
   }
 
   // Use the latest version for main package info (first element since sorted in descending order)
@@ -207,16 +207,16 @@ const createSearchResult = (
   const versionEntries: SearchResultVersion[] = versions.map((version) => ({
     version: version.version,
     downloads: 0, // Not tracked in this implementation
-    "@id": `${baseUrl}/v3/registrations/${packageId.toLowerCase()}/${version.version}.json`,
+    '@id': `${baseUrl}/v3/registrations/${packageId.toLowerCase()}/${version.version}.json`,
   }));
 
   return {
-    "@type": "Package",
+    '@type': 'Package',
     registration: `${baseUrl}/v3/registrations/${packageId.toLowerCase()}/index.json`,
     id: packageId,
     version: latestVersion.version,
-    description: latestVersion.description || "",
-    summary: latestVersion.description || "",
+    description: latestVersion.description || '',
+    summary: latestVersion.description || '',
     title: latestVersion.id,
     iconUrl: latestVersion.iconUrl,
     licenseUrl: latestVersion.licenseUrl,
@@ -224,13 +224,13 @@ const createSearchResult = (
     projectUrl: latestVersion.projectUrl,
     tags: latestVersion.tags || [],
     authors: latestVersion.authors
-      ? latestVersion.authors.split(",").map((a) => a.trim())
+      ? latestVersion.authors.split(',').map((a) => a.trim())
       : [],
     totalDownloads: 0, // Not tracked in this implementation
     verified: false, // Not implemented
     packageTypes: [
       {
-        name: "Dependency",
+        name: 'Dependency',
       },
     ],
     versions: versionEntries,
@@ -242,11 +242,11 @@ const createSearchResult = (
  */
 const createCatalogEntry = (
   baseUrl: string,
-  metadata: PackageMetadata,
+  metadata: PackageMetadata
 ): CatalogEntry => {
   return {
-    "@id": `${baseUrl}/v3/catalog/entries/${metadata.id.toLowerCase()}/${metadata.version}.json`,
-    "@type": "PackageDetails",
+    '@id': `${baseUrl}/v3/catalog/entries/${metadata.id.toLowerCase()}/${metadata.version}.json`,
+    '@type': 'PackageDetails',
     authors: metadata.authors || metadata.id,
     description: metadata.description,
     iconUrl: metadata.iconUrl,
@@ -276,7 +276,7 @@ const createCatalogEntry = (
 export const registerV3Routes = async (
   fastify: FastifyInstance,
   config: V3RoutesConfig,
-  locker: ReaderWriterLock,
+  locker: ReaderWriterLock
 ) => {
   const {
     metadataService,
@@ -296,7 +296,7 @@ export const registerV3Routes = async (
   // Helper to create conditional auth middleware based on authMode
   const createAuthHandler = () => {
     const authMode = authService.getAuthMode();
-    if (authMode === "full") {
+    if (authMode === 'full') {
       // For full auth mode, require hybrid authentication
       return createConditionalHybridAuthMiddleware(authConfig);
     }
@@ -311,7 +311,7 @@ export const registerV3Routes = async (
 
   // V3 Service Index - GET /v3/index.json
   fastify.get(
-    "/v3/index.json",
+    '/v3/index.json',
     {
       preHandler: authPreHandler,
     },
@@ -322,14 +322,41 @@ export const registerV3Routes = async (
         return reply.send(serviceIndex);
       } catch (error) {
         logger.error(`Error in V3 service index: ${error}`);
-        return reply.status(500).send({ error: "Internal server error" });
+        return reply.status(500).send({ error: 'Internal server error' });
       }
-    },
+    }
+  );
+
+  // Redirect /v3/ to /v3/index.json
+  fastify.get('/v3/', async (request: FastifyRequest, reply: FastifyReply) => {
+    const baseUrl = getBaseUrl(request);
+    const redirectUrl = `${baseUrl}/v3/index.json`;
+    logger.debug(`Redirecting /v3/ to ${redirectUrl}`);
+    return reply.code(301).redirect(redirectUrl);
+  });
+
+  // Redirect /v3 to /v3/index.json
+  fastify.get('/v3', async (request: FastifyRequest, reply: FastifyReply) => {
+    const baseUrl = getBaseUrl(request);
+    const redirectUrl = `${baseUrl}/v3/index.json`;
+    logger.debug(`Redirecting /v3 to ${redirectUrl}`);
+    return reply.code(301).redirect(redirectUrl);
+  });
+
+  // Redirect /index.json to /v3/index.json
+  fastify.get(
+    '/index.json',
+    async (request: FastifyRequest, reply: FastifyReply) => {
+      const baseUrl = getBaseUrl(request);
+      const redirectUrl = `${baseUrl}/v3/index.json`;
+      logger.debug(`Redirecting /index.json to ${redirectUrl}`);
+      return reply.code(301).redirect(redirectUrl);
+    }
   );
 
   // V3 Package Search - GET /v3/search
   fastify.get(
-    "/v3/search",
+    '/v3/search',
     {
       preHandler: authPreHandler,
     },
@@ -340,13 +367,13 @@ export const registerV3Routes = async (
         // Log query parameters for debugging
         const query = request.query as Record<string, any>;
         logger.debug(
-          `V3 search request - Query params: ${JSON.stringify(query)}, Host: ${request.headers.host}`,
+          `V3 search request - Query params: ${JSON.stringify(query)}, Host: ${request.headers.host}`
         );
 
         // Parse query parameters
-        const q = ((query.q as string) || "").toLowerCase();
-        const skip = parseInt((query.skip as string) || "0", 10);
-        const take = parseInt((query.take as string) || "20", 10);
+        const q = ((query.q as string) || '').toLowerCase();
+        const skip = parseInt((query.skip as string) || '0', 10);
+        const take = parseInt((query.take as string) || '20', 10);
         // const _prerelease = query.prerelease !== "false"; // Default to true
         // const _semVerLevel = query.semVerLevel || "2.0.0";
 
@@ -366,7 +393,7 @@ export const registerV3Routes = async (
             if (q && !actualPackageId.toLowerCase().includes(q)) {
               // Also check description
               const hasMatchingDescription = versions.some(
-                (v) => v.description && v.description.toLowerCase().includes(q),
+                (v) => v.description && v.description.toLowerCase().includes(q)
               );
               if (!hasMatchingDescription) {
                 continue;
@@ -376,7 +403,7 @@ export const registerV3Routes = async (
             const searchResult = createSearchResult(
               baseUrl,
               actualPackageId,
-              versions,
+              versions
             );
             allSearchResults.push(searchResult);
           }
@@ -384,35 +411,35 @@ export const registerV3Routes = async (
 
         // Sort search results alphabetically for consistent display
         allSearchResults.sort((a, b) =>
-          a.id.localeCompare(b.id, undefined, { sensitivity: "base" }),
+          a.id.localeCompare(b.id, undefined, { sensitivity: 'base' })
         );
 
         // Apply pagination
         const searchResults = allSearchResults.slice(skip, skip + take);
 
         const response: SearchResponse = {
-          "@context": {
-            "@vocab": "http://schema.nuget.org/schema#",
-            "@base": `${baseUrl}/v3/`,
+          '@context': {
+            '@vocab': 'http://schema.nuget.org/schema#',
+            '@base': `${baseUrl}/v3/`,
           },
           totalHits: allSearchResults.length, // Total count before pagination
           lastReopen: new Date().toISOString(),
-          index: "v3-lucene0",
+          index: 'v3-lucene0',
           data: searchResults, // Paginated results
         };
 
         return reply.send(response);
       } catch (error) {
         logger.error(`Error in V3 search endpoint: ${error}`);
-        return reply.status(500).send({ error: "Internal server error" });
+        return reply.status(500).send({ error: 'Internal server error' });
       }
-    },
+    }
   );
 
   // V3 PackageBaseAddress Index - GET /v3/package/{id}/index.json
   // Returns list of versions for a package
   fastify.get(
-    "/v3/package/:id/index.json",
+    '/v3/package/:id/index.json',
     {
       preHandler: authPreHandler,
     },
@@ -426,7 +453,7 @@ export const registerV3Routes = async (
 
         if (versions.length === 0) {
           logger.debug(`V3: Package versions list not found: ${packageId}`);
-          return reply.status(404).send({ error: "Package not found" });
+          return reply.status(404).send({ error: 'Package not found' });
         }
 
         // Return PackageBaseAddress index format with list of versions
@@ -435,21 +462,21 @@ export const registerV3Routes = async (
         };
 
         logger.debug(
-          `V3: Package versions list served: ${packageId} (${versions.length} versions)`,
+          `V3: Package versions list served: ${packageId} (${versions.length} versions)`
         );
-        return reply.type("application/json").send(response);
+        return reply.type('application/json').send(response);
       } catch (error) {
         logger.error(
-          `V3: Error in package versions endpoint for ${packageId}: ${error}`,
+          `V3: Error in package versions endpoint for ${packageId}: ${error}`
         );
-        return reply.status(500).send({ error: "Internal server error" });
+        return reply.status(500).send({ error: 'Internal server error' });
       }
-    },
+    }
   );
 
   // V3 Package Download - GET /v3/package/{id}/{version}/{filename}
   fastify.get(
-    "/v3/package/:id/:version/:filename",
+    '/v3/package/:id/:version/:filename',
     {
       preHandler: authPreHandler,
     },
@@ -478,19 +505,19 @@ export const registerV3Routes = async (
 
           const packagePath = await packageService.getPackageFilePath(
             actualDirName,
-            lowerVersion,
+            lowerVersion
           );
 
           if (!packagePath) {
             logger.info(`V3: Package not found: ${packageId} ${version}`);
-            return reply.status(404).send({ error: "Package not found" });
+            return reply.status(404).send({ error: 'Package not found' });
           }
 
           // Get the actual filename from PackageEntry
           const downloadFileName = entry?.storage.fileName || filename;
 
           logger.info(
-            `V3: Package served successfully: ${packageId} ${version} as "${downloadFileName}"`,
+            `V3: Package served successfully: ${packageId} ${version} as "${downloadFileName}"`
           );
 
           await streamFile(
@@ -499,32 +526,32 @@ export const registerV3Routes = async (
             packagePath,
             reply,
             {
-              contentType: "application/zip",
+              contentType: 'application/zip',
               contentDisposition: `attachment; filename="${downloadFileName}"`,
             },
-            request.abortSignal,
+            request.abortSignal
           );
           return;
         } else {
           logger.warn(
-            `V3: File not found: ${filename} for ${packageId} ${version}`,
+            `V3: File not found: ${filename} for ${packageId} ${version}`
           );
-          await reply.status(404).send({ error: "File not found" });
+          await reply.status(404).send({ error: 'File not found' });
           return;
         }
       } catch (error) {
         logger.error(
-          `V3: Error serving package file for ${packageId} ${version}: ${error}`,
+          `V3: Error serving package file for ${packageId} ${version}: ${error}`
         );
-        await reply.status(500).send({ error: "Internal server error" });
+        await reply.status(500).send({ error: 'Internal server error' });
         return;
       }
-    },
+    }
   );
 
   // V3 Registrations - GET /v3/registrations/{id}/index.json
   fastify.get(
-    "/v3/registrations/:id/index.json",
+    '/v3/registrations/:id/index.json',
     {
       preHandler: authPreHandler,
     },
@@ -538,25 +565,25 @@ export const registerV3Routes = async (
 
         if (versions.length === 0) {
           logger.info(`V3: Package not found in registrations: ${packageId}`);
-          return reply.status(404).send({ error: "Package not found" });
+          return reply.status(404).send({ error: 'Package not found' });
         }
 
         // Create registration leaves for each version
         const registrationLeaves: RegistrationLeaf[] = versions.map(
           (metadata) => ({
-            "@id": `${baseUrl}/v3/registrations/${lowerId}/${metadata.version}.json`,
-            "@type": "Package",
+            '@id': `${baseUrl}/v3/registrations/${lowerId}/${metadata.version}.json`,
+            '@type': 'Package',
             catalogEntry: createCatalogEntry(baseUrl, metadata),
             packageContent: `${baseUrl}/v3/package/${lowerId}/${metadata.version}/${lowerId}.${metadata.version}.nupkg`,
             registration: `${baseUrl}/v3/registrations/${lowerId}/index.json`,
-          }),
+          })
         );
 
         // Create a single page containing all versions
         // Since versions are sorted in descending order: first = newest (upper), last = oldest (lower)
         const page: RegistrationPage = {
-          "@id": `${baseUrl}/v3/registrations/${lowerId}/index.json#page/${versions[versions.length - 1]!.version}/${versions[0]!.version}`,
-          "@type": "catalog:CatalogPage",
+          '@id': `${baseUrl}/v3/registrations/${lowerId}/index.json#page/${versions[versions.length - 1]!.version}/${versions[0]!.version}`,
+          '@type': 'catalog:CatalogPage',
           count: versions.length,
           items: registrationLeaves,
           lower: versions[versions.length - 1]!.version, // oldest version
@@ -564,11 +591,11 @@ export const registerV3Routes = async (
         };
 
         const registrationIndex: RegistrationIndex = {
-          "@id": `${baseUrl}/v3/registrations/${lowerId}/index.json`,
-          "@type": [
-            "catalog:CatalogRoot",
-            "PackageRegistration",
-            "catalog:Permalink",
+          '@id': `${baseUrl}/v3/registrations/${lowerId}/index.json`,
+          '@type': [
+            'catalog:CatalogRoot',
+            'PackageRegistration',
+            'catalog:Permalink',
           ],
           commitTimeStamp: new Date().toISOString(),
           count: 1,
@@ -576,17 +603,17 @@ export const registerV3Routes = async (
         };
 
         logger.info(
-          `V3: Registration served successfully: ${packageId} (${versions.length} versions)`,
+          `V3: Registration served successfully: ${packageId} (${versions.length} versions)`
         );
         return reply.send(registrationIndex);
       } catch (error) {
         logger.error(
-          `V3: Error in registrations endpoint for ${packageId}: ${error}`,
+          `V3: Error in registrations endpoint for ${packageId}: ${error}`
         );
-        return reply.status(500).send({ error: "Internal server error" });
+        return reply.status(500).send({ error: 'Internal server error' });
       }
-    },
+    }
   );
 
-  logger.info("NuGet V3 API routes registered successfully");
+  logger.info('NuGet V3 API routes registered successfully');
 };

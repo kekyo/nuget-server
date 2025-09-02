@@ -6,38 +6,38 @@ import Fastify, {
   FastifyInstance,
   FastifyReply,
   FastifyRequest,
-} from "fastify";
-import fastifyPassport from "@fastify/passport";
-import fastifySecureSession from "@fastify/secure-session";
-import fastifyStatic from "@fastify/static";
-import path from "path";
-import { fileURLToPath } from "url";
-import fs from "fs/promises";
+} from 'fastify';
+import fastifyPassport from '@fastify/passport';
+import fastifySecureSession from '@fastify/secure-session';
+import fastifyStatic from '@fastify/static';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import fs from 'fs/promises';
 import {
   name as packageName,
   version,
   git_commit_hash,
-} from "./generated/packageMetadata";
-import { streamFile } from "./utils/fileStreaming";
-import { createMetadataService } from "./services/metadataService";
-import { createAuthService } from "./services/authService";
-import { createUserService } from "./services/userService";
-import { createSessionService } from "./services/sessionService";
-import { createAuthFailureTrackerFromEnv } from "./services/authFailureTracker";
-import { Logger, LogLevel, ServerConfig } from "./types";
-import { createUrlResolver } from "./utils/urlResolver";
+} from './generated/packageMetadata';
+import { streamFile } from './utils/fileStreaming';
+import { createMetadataService } from './services/metadataService';
+import { createAuthService } from './services/authService';
+import { createUserService } from './services/userService';
+import { createSessionService } from './services/sessionService';
+import { createAuthFailureTrackerFromEnv } from './services/authFailureTracker';
+import { Logger, LogLevel, ServerConfig } from './types';
+import { createUrlResolver } from './utils/urlResolver';
 import {
   createLocalStrategy,
   createBasicStrategy,
   FastifyAuthConfig,
-} from "./middleware/fastifyAuth";
-import { registerV3Routes } from "./routes/v3/index";
-import { registerUiRoutes } from "./routes/api/ui/index";
+} from './middleware/fastifyAuth';
+import { registerV3Routes } from './routes/v3/index';
+import { registerUiRoutes } from './routes/api/ui/index';
 import {
   registerPublishRoutes,
   type PublishRoutesConfig,
-} from "./routes/api/publish/index";
-import { createReaderWriterLock, ReaderWriterLock } from "async-primitives";
+} from './routes/api/publish/index';
+import { createReaderWriterLock, ReaderWriterLock } from 'async-primitives';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -50,10 +50,10 @@ const __dirname = path.dirname(__filename);
  */
 const resolveEnvironmentPath = (
   developmentPath: string[],
-  productionPath: string[],
+  productionPath: string[]
 ): string => {
   const isDevelopment =
-    __dirname.includes("/src") || __dirname.includes("\\src");
+    __dirname.includes('/src') || __dirname.includes('\\src');
   return isDevelopment
     ? path.join(__dirname, ...developmentPath)
     : path.join(__dirname, ...productionPath);
@@ -76,18 +76,18 @@ const createPinoLoggerConfig = (logger: Logger, logLevel?: LogLevel) => {
   // Convert project log level to Pino log level
   const pinoLogLevel = (() => {
     switch (logLevel) {
-      case "debug":
-        return "debug";
-      case "info":
-        return "info";
-      case "warn":
-        return "warn";
-      case "error":
-        return "error";
-      case "ignore":
-        return "silent";
+      case 'debug':
+        return 'debug';
+      case 'info':
+        return 'info';
+      case 'warn':
+        return 'warn';
+      case 'error':
+        return 'error';
+      case 'ignore':
+        return 'silent';
       default:
-        return "info";
+        return 'info';
     }
   })();
 
@@ -99,12 +99,12 @@ const createPinoLoggerConfig = (logger: Logger, logLevel?: LogLevel) => {
         const [msgOrObj] = inputArgs;
         let message: string;
 
-        if (typeof msgOrObj === "string") {
+        if (typeof msgOrObj === 'string') {
           message = msgOrObj;
-        } else if (msgOrObj && typeof msgOrObj === "object") {
+        } else if (msgOrObj && typeof msgOrObj === 'object') {
           // Handle object with msg property
           const obj = msgOrObj as any;
-          if ("msg" in obj && typeof obj.msg === "string") {
+          if ('msg' in obj && typeof obj.msg === 'string') {
             message = obj.msg;
           } else {
             message = JSON.stringify(obj);
@@ -143,7 +143,7 @@ const createPinoLoggerConfig = (logger: Logger, logLevel?: LogLevel) => {
  */
 const createRewriteUrl = (
   urlResolver: ReturnType<typeof createUrlResolver>,
-  logger: Logger,
+  logger: Logger
 ) => {
   return (req: {
     url?: string;
@@ -152,13 +152,13 @@ const createRewriteUrl = (
   }) => {
     // Check if URL exists
     if (!req.url) {
-      return "/";
+      return '/';
     }
 
     // Extract path prefix from baseUrl or x-forwarded-path header
     // Create a simple request object that matches GenericRequest interface
     const pathPrefix = urlResolver.extractPathPrefix({
-      protocol: "http", // Will be overridden by headers if needed
+      protocol: 'http', // Will be overridden by headers if needed
       socket: {
         remoteAddress: req.socket?.remoteAddress,
       },
@@ -169,7 +169,7 @@ const createRewriteUrl = (
 
     if (pathPrefix && req.url.startsWith(pathPrefix)) {
       // Remove the path prefix from the URL
-      const newUrl = req.url.slice(pathPrefix.length) || "/";
+      const newUrl = req.url.slice(pathPrefix.length) || '/';
       logger.debug(`rewriteUrl: ${req.url} -> ${newUrl}`);
       return newUrl;
     }
@@ -189,7 +189,7 @@ const createRewriteUrl = (
 export const createFastifyInstance = async (
   config: ServerConfig,
   logger: Logger,
-  locker: ReaderWriterLock,
+  locker: ReaderWriterLock
 ): Promise<FastifyInstance> => {
   // Initialize URL resolver early to use in rewriteUrl
   const urlResolver = createUrlResolver(logger, {
@@ -207,21 +207,21 @@ export const createFastifyInstance = async (
 
   // Add content type parser for binary data (package uploads)
   fastify.addContentTypeParser(
-    "application/octet-stream",
-    { parseAs: "buffer" },
+    'application/octet-stream',
+    { parseAs: 'buffer' },
     (_req, body, done) => {
       done(null, body);
-    },
+    }
   );
 
   // Initialize metadata service
-  const packagesRoot = config.packageDir || process.cwd() + "/packages";
+  const packagesRoot = config.packageDir || process.cwd() + '/packages';
   const initialBaseUrl = config.baseUrl || `http://localhost:${config.port}`;
-  const isHttps = initialBaseUrl.startsWith("https://");
+  const isHttps = initialBaseUrl.startsWith('https://');
   const metadataService = createMetadataService(
     packagesRoot,
     initialBaseUrl,
-    logger,
+    logger
   );
 
   try {
@@ -233,13 +233,13 @@ export const createFastifyInstance = async (
 
   // Initialize authentication service (for auth mode checking)
   const authService = createAuthService({
-    authMode: config.authMode || "none",
+    authMode: config.authMode || 'none',
     logger,
   });
 
   // Initialize user service (new authentication system)
   const userService = createUserService({
-    configDir: config.configDir || "./",
+    configDir: config.configDir || './',
     usersFile: config.usersFile,
     logger,
     serverConfig: config,
@@ -271,17 +271,17 @@ export const createFastifyInstance = async (
   let sessionKey: Buffer;
   if (config.sessionSecret) {
     // Use provided secret (ensure it's 32 bytes)
-    const secret = config.sessionSecret.padEnd(32, "0").substring(0, 32);
+    const secret = config.sessionSecret.padEnd(32, '0').substring(0, 32);
     sessionKey = Buffer.from(secret);
   } else {
     // Generate random secret and log info
-    const crypto = await import("crypto");
+    const crypto = await import('crypto');
     sessionKey = crypto.randomBytes(32);
     logger.info(
-      "Session secret was not provided. Generated a random session secret for this instance.",
+      'Session secret was not provided. Generated a random session secret for this instance.'
     );
     logger.info(
-      "To persist sessions across restarts, set NUGET_SERVER_SESSION_SECRET environment variable.",
+      'To persist sessions across restarts, set NUGET_SERVER_SESSION_SECRET environment variable.'
     );
   }
 
@@ -289,10 +289,10 @@ export const createFastifyInstance = async (
   await fastify.register(fastifySecureSession, {
     key: sessionKey,
     cookie: {
-      path: "/",
+      path: '/',
       httpOnly: true,
       secure: isHttps, // Automatically determined from baseUrl
-      sameSite: "strict" as const,
+      sameSite: 'strict' as const,
       maxAge: 86400000, // 24 hours
     },
   });
@@ -303,7 +303,7 @@ export const createFastifyInstance = async (
 
   // Register static file plugin (provides sendFile method)
   await fastify.register(fastifyStatic, {
-    root: "/", // This allows sending files from absolute paths
+    root: '/', // This allows sending files from absolute paths
     serve: false, // Disable automatic serving, use sendFile manually
   });
 
@@ -311,7 +311,7 @@ export const createFastifyInstance = async (
   // Store AbortController in a WeakMap to associate with each request
   const abortControllers = new WeakMap<FastifyRequest, AbortController>();
 
-  fastify.decorateRequest("abortSignal", {
+  fastify.decorateRequest('abortSignal', {
     getter() {
       let controller = abortControllers.get(this as FastifyRequest);
 
@@ -322,7 +322,7 @@ export const createFastifyInstance = async (
 
         const request = this as FastifyRequest;
         // Listen for client disconnect
-        request.raw.once("close", () => {
+        request.raw.once('close', () => {
           // Check if connection was closed
           // Using destroyed as a replacement for deprecated aborted property
           if (request.raw.destroyed || (request.raw as any).aborted) {
@@ -349,8 +349,8 @@ export const createFastifyInstance = async (
   const localStrategy = createLocalStrategy(authConfig);
   const basicStrategy = createBasicStrategy(authConfig);
 
-  fastifyPassport.use("local", localStrategy);
-  fastifyPassport.use("basic", basicStrategy);
+  fastifyPassport.use('local', localStrategy);
+  fastifyPassport.use('basic', basicStrategy);
 
   // Passport serialization for sessions
   fastifyPassport.registerUserSerializer(async (user: any) => user.id);
@@ -361,19 +361,19 @@ export const createFastifyInstance = async (
   });
 
   // Basic health check endpoint
-  fastify.get("/health", async (_request, _reply) => {
-    return { status: "ok", version };
+  fastify.get('/health', async (_request, _reply) => {
+    return { status: 'ok', version };
   });
 
   // Generate server URL info for UI
   const serverUrl = {
     baseUrl: config.baseUrl,
     port: config.port,
-    isHttps: config.baseUrl ? config.baseUrl.startsWith("https:") : false,
+    isHttps: config.baseUrl ? config.baseUrl.startsWith('https:') : false,
   };
 
   // Authentication endpoints (must be accessible without authentication for login)
-  fastify.post("/api/auth/login", async (request, reply) => {
+  fastify.post('/api/auth/login', async (request, reply) => {
     const { username, password, rememberMe } = request.body as any;
 
     try {
@@ -385,7 +385,7 @@ export const createFastifyInstance = async (
 
         return reply.status(401).send({
           success: false,
-          message: "Invalid credentials",
+          message: 'Invalid credentials',
         });
       }
 
@@ -402,12 +402,12 @@ export const createFastifyInstance = async (
       });
 
       // Set session cookie
-      reply.setCookie("sessionToken", session.token, {
+      reply.setCookie('sessionToken', session.token, {
         httpOnly: true,
-        secure: request.protocol === "https",
-        sameSite: "strict" as const,
+        secure: request.protocol === 'https',
+        sameSite: 'strict' as const,
         maxAge: expirationHours * 60 * 60 * 1000,
-        path: "/",
+        path: '/',
       });
 
       return {
@@ -421,32 +421,32 @@ export const createFastifyInstance = async (
       logger.error(`Login error: ${error}`);
       return reply.status(500).send({
         success: false,
-        message: "Internal server error",
+        message: 'Internal server error',
       });
     }
   });
 
-  fastify.post("/api/auth/logout", async (request, reply) => {
+  fastify.post('/api/auth/logout', async (request, reply) => {
     const sessionToken = request.cookies?.sessionToken;
 
     if (sessionToken) {
       await sessionService.deleteSession(sessionToken);
     }
 
-    reply.clearCookie("sessionToken", {
+    reply.clearCookie('sessionToken', {
       httpOnly: true,
-      secure: request.protocol === "https",
-      sameSite: "strict" as const,
-      path: "/",
+      secure: request.protocol === 'https',
+      sameSite: 'strict' as const,
+      path: '/',
     });
 
     return {
       success: true,
-      message: "Logged out successfully",
+      message: 'Logged out successfully',
     };
   });
 
-  fastify.get("/api/auth/session", async (request, reply) => {
+  fastify.get('/api/auth/session', async (request, reply) => {
     const sessionToken = request.cookies?.sessionToken;
 
     if (!sessionToken) {
@@ -459,11 +459,11 @@ export const createFastifyInstance = async (
     const session = await sessionService.validateSession(sessionToken);
     if (!session) {
       // Clear invalid session cookie
-      reply.clearCookie("sessionToken", {
+      reply.clearCookie('sessionToken', {
         httpOnly: true,
-        secure: request.protocol === "https",
-        sameSite: "strict" as const,
-        path: "/",
+        secure: request.protocol === 'https',
+        sameSite: 'strict' as const,
+        path: '/',
       });
 
       return {
@@ -482,7 +482,7 @@ export const createFastifyInstance = async (
   });
 
   // Serve config endpoint without authentication (public endpoint per CLAUDE.md spec)
-  fastify.get("/api/config", async (request: FastifyRequest, _reply) => {
+  fastify.get('/api/config', async (request: FastifyRequest, _reply) => {
     // Get current user from session if available
     let currentUser = null;
 
@@ -507,17 +507,17 @@ export const createFastifyInstance = async (
     let availableLanguages: string[] = [];
     try {
       const localeDir = resolveEnvironmentPath(
-        ["ui", "public", "locale"],
-        ["ui", "locale"],
+        ['ui', 'public', 'locale'],
+        ['ui', 'locale']
       );
 
       const files = await fs.readdir(localeDir);
       availableLanguages = files
-        .filter((f) => f.endsWith(".json") && f !== "fallback.json")
-        .map((f) => f.replace(".json", ""));
+        .filter((f) => f.endsWith('.json') && f !== 'fallback.json')
+        .map((f) => f.replace('.json', ''));
     } catch (error) {
       logger.error(`Failed to read locale directory: ${error}`);
-      availableLanguages = ["en"]; // Fallback to English
+      availableLanguages = ['en']; // Fallback to English
     }
 
     return {
@@ -528,9 +528,9 @@ export const createFastifyInstance = async (
       serverUrl: serverUrl,
       authMode: authService.getAuthMode(),
       authEnabled: {
-        general: authService.isAuthRequired("general"),
-        publish: authService.isAuthRequired("publish"),
-        admin: authService.isAuthRequired("admin"),
+        general: authService.isAuthRequired('general'),
+        publish: authService.isAuthRequired('publish'),
+        admin: authService.isAuthRequired('admin'),
       },
       currentUser: currentUser,
       availableLanguages: availableLanguages,
@@ -549,7 +549,7 @@ export const createFastifyInstance = async (
         logger,
         urlResolver,
       },
-      locker,
+      locker
     );
   } catch (error) {
     logger.error(`Failed to register V3 routes: ${error}`);
@@ -572,10 +572,10 @@ export const createFastifyInstance = async (
             serverUrl,
             metadataService,
           },
-          locker,
+          locker
         );
       },
-      { prefix: "/api/ui" },
+      { prefix: '/api/ui' }
     );
   } catch (error) {
     logger.error(`Failed to register UI routes: ${error}`);
@@ -597,11 +597,11 @@ export const createFastifyInstance = async (
         };
         const publishRoutes = await registerPublishRoutes(
           fastify,
-          publishConfig,
+          publishConfig
         );
         publishServiceSetter = publishRoutes.setPackageUploadService;
       },
-      { prefix: "/api" },
+      { prefix: '/api' }
     );
 
     // Set package upload service for publish functionality
@@ -614,63 +614,76 @@ export const createFastifyInstance = async (
   }
 
   // Serve UI files with custom handler
-  const uiPath = resolveEnvironmentPath(["ui"], ["ui"]);
-  const publicPath = resolveEnvironmentPath(["ui", "public"], ["ui"]);
+  const uiPath = resolveEnvironmentPath(['ui'], ['ui']);
+  const publicPath = resolveEnvironmentPath(['ui', 'public'], ['ui']);
 
   // Helper function to serve static files using streaming
   const serveStaticFile = (
     filePath: string,
     reply: FastifyReply,
-    signal?: AbortSignal,
+    signal?: AbortSignal
   ) => {
     // Use the unified file streaming helper
     return streamFile(logger, locker, filePath, reply, {}, signal);
   };
 
-  // Serve UI at root path
-  fastify.get("/", (request, reply) => {
-    const indexPath = path.join(uiPath, "index.html");
+  // Serve UI at root path with Content Negotiation
+  fastify.get('/', (request, reply) => {
+    // Check if client accepts JSON (for NuGet API clients)
+    const acceptHeader = request.headers.accept;
+    if (acceptHeader && acceptHeader.includes('application/json')) {
+      // Redirect to V3 service index for JSON requests
+      const baseUrl = urlResolver.resolveUrl(request).baseUrl;
+      const redirectUrl = `${baseUrl}/v3/index.json`;
+      logger.debug(
+        `Redirecting / (Accept: application/json) to ${redirectUrl}`
+      );
+      return reply.code(301).redirect(redirectUrl);
+    }
+
+    // Serve UI for non-JSON requests
+    const indexPath = path.join(uiPath, 'index.html');
     return serveStaticFile(indexPath, reply, request.abortSignal);
   });
 
   // Serve login page
-  fastify.get("/login", (request, reply) => {
-    const loginPath = path.join(uiPath, "login.html");
+  fastify.get('/login', (request, reply) => {
+    const loginPath = path.join(uiPath, 'login.html');
     return serveStaticFile(loginPath, reply, request.abortSignal);
   });
 
   // Serve other UI assets
-  fastify.get("/assets/*", (request, reply) => {
-    const assetPath = (request.params as any)["*"];
-    const fullPath = path.join(uiPath, "assets", assetPath);
+  fastify.get('/assets/*', (request, reply) => {
+    const assetPath = (request.params as any)['*'];
+    const fullPath = path.join(uiPath, 'assets', assetPath);
     return serveStaticFile(fullPath, reply, request.abortSignal);
   });
 
   // Serve favicon
-  fastify.get("/favicon.ico", (request, reply) => {
-    const faviconPath = path.join(publicPath, "favicon.ico");
+  fastify.get('/favicon.ico', (request, reply) => {
+    const faviconPath = path.join(publicPath, 'favicon.ico');
     return serveStaticFile(faviconPath, reply, request.abortSignal);
   });
 
   // Serve icon
-  fastify.get("/icon.png", (request, reply) => {
-    const iconPath = path.join(publicPath, "icon.png");
+  fastify.get('/icon.png', (request, reply) => {
+    const iconPath = path.join(publicPath, 'icon.png');
     return serveStaticFile(iconPath, reply, request.abortSignal);
   });
 
   // Serve locale files for internationalization
-  fastify.get("/locale/*", (request, reply) => {
-    const localePath = (request.params as any)["*"];
-    const fullPath = path.join(publicPath, "locale", localePath);
+  fastify.get('/locale/*', (request, reply) => {
+    const localePath = (request.params as any)['*'];
+    const fullPath = path.join(publicPath, 'locale', localePath);
     return serveStaticFile(fullPath, reply, request.abortSignal);
   });
 
   // Store services on fastify instance for cleanup
-  fastify.decorate("userService", userService);
-  fastify.decorate("sessionService", sessionService);
-  fastify.decorate("authService", authService);
-  fastify.decorate("serverConfig", config);
-  fastify.decorate("serverUrl", serverUrl);
+  fastify.decorate('userService', userService);
+  fastify.decorate('sessionService', sessionService);
+  fastify.decorate('authService', authService);
+  fastify.decorate('serverConfig', config);
+  fastify.decorate('serverUrl', serverUrl);
 
   return fastify;
 };
@@ -683,7 +696,7 @@ export const createFastifyInstance = async (
  */
 export const startFastifyServer = async (
   config: ServerConfig,
-  logger: Logger,
+  logger: Logger
 ): Promise<FastifyServerInstance> => {
   const locker = createReaderWriterLock();
   const fastify = await createFastifyInstance(config, logger, locker);
@@ -698,43 +711,43 @@ export const startFastifyServer = async (
   try {
     await fastify.listen({
       port: config.port,
-      host: "0.0.0.0",
+      host: '0.0.0.0',
     });
 
     logger.info(`Fastify server listening on port ${config.port}`);
     // Build example command for logging
     const exampleCommand = serverUrlInfo.baseUrl
-      ? `dotnet nuget add source "${serverUrlInfo.baseUrl}/v3/index.json" -n "ref1" --protocol-version 3${!serverUrlInfo.isHttps ? " --allow-insecure-connections" : ""}`
+      ? `dotnet nuget add source "${serverUrlInfo.baseUrl}/v3/index.json" -n "ref1" --protocol-version 3${!serverUrlInfo.isHttps ? ' --allow-insecure-connections' : ''}`
       : `dotnet nuget add source "http://localhost:${serverUrlInfo.port}/v3/index.json" -n "ref1" --protocol-version 3 --allow-insecure-connections`;
     logger.info(`Example register command: ${exampleCommand}`);
     logger.info(`Authentication mode: ${authService.getAuthMode()}`);
 
     const userCount = await userService.getUserCount();
 
-    if (authService.isAuthRequired("publish")) {
+    if (authService.isAuthRequired('publish')) {
       logger.info(`Publish authentication: enabled (${userCount} users)`);
     } else {
-      logger.info("Publish authentication: disabled");
+      logger.info('Publish authentication: disabled');
     }
 
-    if (authService.isAuthRequired("general")) {
+    if (authService.isAuthRequired('general')) {
       logger.info(`General authentication: enabled (${userCount} users)`);
     } else {
-      logger.info("General authentication: disabled");
+      logger.info('General authentication: disabled');
     }
 
-    if (authService.isAuthRequired("admin")) {
+    if (authService.isAuthRequired('admin')) {
       logger.info(`Admin authentication: enabled (${userCount} users)`);
     } else {
-      logger.info("Admin authentication: disabled");
+      logger.info('Admin authentication: disabled');
     }
 
     const serverInstance: FastifyServerInstance = {
       close: async () => {
         try {
-          logger.debug("Starting server close process...");
+          logger.debug('Starting server close process...');
 
-          logger.debug("Closing Fastify instance...");
+          logger.debug('Closing Fastify instance...');
 
           // Acquire writer lock, makes safer shutdown race condition between file streaming.
           const handle = await locker.writeLock();
@@ -744,21 +757,21 @@ export const startFastifyServer = async (
             handle.release();
           }
 
-          logger.debug("Fastify instance closed successfully");
+          logger.debug('Fastify instance closed successfully');
         } catch (error) {
           logger.error(`Error closing Fastify server: ${error}`);
         } finally {
           try {
-            logger.debug("Destroying user service...");
+            logger.debug('Destroying user service...');
             userService.destroy();
-            logger.debug("User service destroyed");
+            logger.debug('User service destroyed');
           } finally {
             try {
-              logger.debug("Destroying session service...");
+              logger.debug('Destroying session service...');
               await sessionService.destroy();
-              logger.debug("Session service destroyed");
+              logger.debug('Session service destroyed');
             } finally {
-              logger.debug("Server close process completed");
+              logger.debug('Server close process completed');
             }
           }
         }
