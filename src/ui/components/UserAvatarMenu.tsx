@@ -174,19 +174,8 @@ const UserAvatarMenu = ({
           },
         }}
       >
-        {/* Determine what to show based on authMode */}
-        {authMode === 'none' ? (
-          // For authMode=none, show empty menu
-          <MenuItem disabled>
-            <ListItemText
-              primary="No menu items available"
-              primaryTypographyProps={{
-                fontStyle: 'italic',
-                color: 'text.secondary',
-              }}
-            />
-          </MenuItem>
-        ) : (
+        {/* Authentication-related menu items - not shown when authMode=none */}
+        {authMode !== 'none' && (
           <>
             {/* Login button when not authenticated - at the top */}
             {showLogin && !isAuthenticated && (
@@ -277,81 +266,83 @@ const UserAvatarMenu = ({
                 <Divider />
               </>
             )}
+          </>
+        )}
 
-            {/* Settings Section */}
-            <ListSubheader>
-              <TypedMessage message={messages.SETTINGS} />
-            </ListSubheader>
+        {/* Settings Section - Always shown */}
+        <ListSubheader>
+          <TypedMessage message={messages.SETTINGS} />
+        </ListSubheader>
 
-            {/* Language Menu */}
-            <MenuItem
-              onClick={(e) => {
-                e.stopPropagation();
-                setLanguageAnchorEl(e.currentTarget);
-              }}
-            >
-              <ListItemIcon>
-                <LanguageIcon fontSize="small" />
-              </ListItemIcon>
-              <ListItemText>
-                <TypedMessage message={messages.LANGUAGE} />
-                {': '}
-                {(() => {
-                  const savedLocale = localStorage.getItem('preferredLocale');
-                  const isAutoMode = !savedLocale || savedLocale === 'auto';
-                  if (isAutoMode) {
-                    return (
-                      <>
-                        <TypedMessage message={messages.LANGUAGE_AUTO} />
-                        {` (${languageNames[currentLocale] || currentLocale.toUpperCase()})`}
-                      </>
-                    );
-                  }
-                  return (
-                    languageNames[currentLocale] || currentLocale.toUpperCase()
-                  );
-                })()}
-              </ListItemText>
-            </MenuItem>
-
-            {/* Theme Menu */}
-            <MenuItem
-              onClick={(e) => {
-                e.stopPropagation();
-                setThemeAnchorEl(e.currentTarget);
-              }}
-            >
-              <ListItemIcon>
-                <ThemeIcon fontSize="small" />
-              </ListItemIcon>
-              <ListItemText>
-                <TypedMessage message={messages.THEME} />
-                {': '}
-                {currentTheme === 'auto' ? (
+        {/* Language Menu */}
+        <MenuItem
+          onClick={(e) => {
+            e.stopPropagation();
+            setLanguageAnchorEl(e.currentTarget);
+          }}
+        >
+          <ListItemIcon>
+            <LanguageIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText>
+            <TypedMessage message={messages.LANGUAGE} />
+            {': '}
+            {(() => {
+              const savedLocale = localStorage.getItem('preferredLocale');
+              const isAutoMode = !savedLocale || savedLocale === 'auto';
+              if (isAutoMode) {
+                return (
                   <>
-                    <TypedMessage message={messages.THEME_AUTO} />
-                    {` (${effectiveTheme === 'dark' ? 'Dark' : 'Light'})`}
+                    <TypedMessage message={messages.LANGUAGE_AUTO} />
+                    {` (${languageNames[currentLocale] || currentLocale.toUpperCase()})`}
                   </>
-                ) : currentTheme === 'dark' ? (
-                  <TypedMessage message={messages.THEME_DARK} />
-                ) : (
-                  <TypedMessage message={messages.THEME_LIGHT} />
-                )}
+                );
+              }
+              return (
+                languageNames[currentLocale] || currentLocale.toUpperCase()
+              );
+            })()}
+          </ListItemText>
+        </MenuItem>
+
+        {/* Theme Menu */}
+        <MenuItem
+          onClick={(e) => {
+            e.stopPropagation();
+            setThemeAnchorEl(e.currentTarget);
+          }}
+        >
+          <ListItemIcon>
+            <ThemeIcon fontSize="small" />
+          </ListItemIcon>
+          <ListItemText>
+            <TypedMessage message={messages.THEME} />
+            {': '}
+            {currentTheme === 'auto' ? (
+              <>
+                <TypedMessage message={messages.THEME_AUTO} />
+                {` (${effectiveTheme === 'dark' ? 'Dark' : 'Light'})`}
+              </>
+            ) : currentTheme === 'dark' ? (
+              <TypedMessage message={messages.THEME_DARK} />
+            ) : (
+              <TypedMessage message={messages.THEME_LIGHT} />
+            )}
+          </ListItemText>
+        </MenuItem>
+
+        {/* Logout - Only show when authenticated and authMode is not none */}
+        {authMode !== 'none' && isAuthenticated && (
+          <>
+            <Divider />
+            <MenuItem onClick={() => handleAction(onLogout)}>
+              <ListItemIcon>
+                <LogoutIcon fontSize="small" />
+              </ListItemIcon>
+              <ListItemText>
+                <TypedMessage message={messages.LOGOUT} />
               </ListItemText>
             </MenuItem>
-            <Divider />
-
-            {/* Logout - Only show when authenticated */}
-            {isAuthenticated && (
-              <MenuItem onClick={() => handleAction(onLogout)}>
-                <ListItemIcon>
-                  <LogoutIcon fontSize="small" />
-                </ListItemIcon>
-                <ListItemText>
-                  <TypedMessage message={messages.LOGOUT} />
-                </ListItemText>
-              </MenuItem>
-            )}
           </>
         )}
       </Menu>
