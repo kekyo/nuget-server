@@ -2,12 +2,12 @@
 // Copyright (c) Kouji Matsui (@kekyo@mi.kekyo.net)
 // License under MIT.
 
-import { describe, it, expect } from "vitest";
+import { describe, it, expect } from 'vitest';
 import {
   createUrlResolver,
   extractPathFromBaseUrl,
-} from "../src/utils/urlResolver";
-import { Logger } from "../src/types";
+} from '../src/utils/urlResolver';
+import { Logger } from '../src/types';
 
 // Mock logger
 const mockLogger: Logger = {
@@ -17,397 +17,397 @@ const mockLogger: Logger = {
   error: () => {},
 };
 
-describe("urlResolver - resolveUrl without fixed baseUrl", () => {
-  it("should use request protocol and host by default", () => {
+describe('urlResolver - resolveUrl without fixed baseUrl', () => {
+  it('should use request protocol and host by default', () => {
     const resolver = createUrlResolver(mockLogger);
     const request = {
-      protocol: "http",
+      protocol: 'http',
       headers: {
-        host: "example.com",
+        host: 'example.com',
       },
       socket: {},
     };
 
     const result = resolver.resolveUrl(request);
-    expect(result.baseUrl).toBe("http://example.com");
+    expect(result.baseUrl).toBe('http://example.com');
     expect(result.isFixed).toBe(false);
   });
 
-  it("should handle https protocol", () => {
+  it('should handle https protocol', () => {
     const resolver = createUrlResolver(mockLogger);
     const request = {
-      protocol: "https",
+      protocol: 'https',
       headers: {
-        host: "secure.example.com",
+        host: 'secure.example.com',
       },
       socket: {},
     };
 
     const result = resolver.resolveUrl(request);
-    expect(result.baseUrl).toBe("https://secure.example.com");
+    expect(result.baseUrl).toBe('https://secure.example.com');
     expect(result.isFixed).toBe(false);
   });
 
-  it("should use X-Forwarded headers when from trusted proxy", () => {
+  it('should use X-Forwarded headers when from trusted proxy', () => {
     const resolver = createUrlResolver(mockLogger, {
-      trustedProxies: ["192.168.1.1"],
+      trustedProxies: ['192.168.1.1'],
     });
     const request = {
-      protocol: "http",
-      ip: "192.168.1.1",
+      protocol: 'http',
+      ip: '192.168.1.1',
       headers: {
-        host: "internal.local",
-        "x-forwarded-proto": "https",
-        "x-forwarded-host": "public.example.com",
-        "x-forwarded-port": "8443",
+        host: 'internal.local',
+        'x-forwarded-proto': 'https',
+        'x-forwarded-host': 'public.example.com',
+        'x-forwarded-port': '8443',
       },
       socket: {},
     };
 
     const result = resolver.resolveUrl(request);
-    expect(result.baseUrl).toBe("https://public.example.com:8443");
+    expect(result.baseUrl).toBe('https://public.example.com:8443');
     expect(result.isFixed).toBe(false);
   });
 
-  it("should ignore X-Forwarded headers when not from trusted proxy", () => {
+  it('should ignore X-Forwarded headers when not from trusted proxy', () => {
     const resolver = createUrlResolver(mockLogger, {
-      trustedProxies: ["192.168.1.1"],
+      trustedProxies: ['192.168.1.1'],
     });
     const request = {
-      protocol: "http",
-      ip: "10.0.0.1", // Not in trusted proxies
+      protocol: 'http',
+      ip: '10.0.0.1', // Not in trusted proxies
       headers: {
-        host: "internal.local",
-        "x-forwarded-proto": "https",
-        "x-forwarded-host": "public.example.com",
+        host: 'internal.local',
+        'x-forwarded-proto': 'https',
+        'x-forwarded-host': 'public.example.com',
       },
       socket: {},
     };
 
     const result = resolver.resolveUrl(request);
-    expect(result.baseUrl).toBe("http://internal.local");
+    expect(result.baseUrl).toBe('http://internal.local');
     expect(result.isFixed).toBe(false);
   });
 
-  it("should parse RFC 7239 Forwarded header", () => {
+  it('should parse RFC 7239 Forwarded header', () => {
     const resolver = createUrlResolver(mockLogger);
     const request = {
-      protocol: "http",
+      protocol: 'http',
       headers: {
-        host: "internal.local",
-        forwarded: "proto=https;host=api.example.com;port=443",
+        host: 'internal.local',
+        forwarded: 'proto=https;host=api.example.com;port=443',
       },
       socket: {},
     };
 
     const result = resolver.resolveUrl(request);
-    expect(result.baseUrl).toBe("https://api.example.com:443");
+    expect(result.baseUrl).toBe('https://api.example.com:443');
     expect(result.isFixed).toBe(false);
   });
 
-  it("should prefer Forwarded header over X-Forwarded headers", () => {
+  it('should prefer Forwarded header over X-Forwarded headers', () => {
     const resolver = createUrlResolver(mockLogger);
     const request = {
-      protocol: "http",
+      protocol: 'http',
       headers: {
-        host: "internal.local",
-        forwarded: "proto=https;host=forwarded.example.com",
-        "x-forwarded-proto": "http",
-        "x-forwarded-host": "x-forwarded.example.com",
+        host: 'internal.local',
+        forwarded: 'proto=https;host=forwarded.example.com',
+        'x-forwarded-proto': 'http',
+        'x-forwarded-host': 'x-forwarded.example.com',
       },
       socket: {},
     };
 
     const result = resolver.resolveUrl(request);
-    expect(result.baseUrl).toBe("https://forwarded.example.com");
+    expect(result.baseUrl).toBe('https://forwarded.example.com');
     expect(result.isFixed).toBe(false);
   });
 
-  it("should handle quoted values in Forwarded header", () => {
+  it('should handle quoted values in Forwarded header', () => {
     const resolver = createUrlResolver(mockLogger);
     const request = {
-      protocol: "http",
+      protocol: 'http',
       headers: {
-        host: "internal.local",
+        host: 'internal.local',
         forwarded: 'proto="https";host="api.example.com"',
       },
       socket: {},
     };
 
     const result = resolver.resolveUrl(request);
-    expect(result.baseUrl).toBe("https://api.example.com");
+    expect(result.baseUrl).toBe('https://api.example.com');
     expect(result.isFixed).toBe(false);
   });
 
-  it("should handle X-Forwarded-For in trusted proxy check", () => {
+  it('should handle X-Forwarded-For in trusted proxy check', () => {
     const resolver = createUrlResolver(mockLogger, {
-      trustedProxies: ["192.168.1.100"],
+      trustedProxies: ['192.168.1.100'],
     });
     const request = {
-      protocol: "http",
-      ip: "10.0.0.1",
+      protocol: 'http',
+      ip: '10.0.0.1',
       headers: {
-        host: "internal.local",
-        "x-forwarded-for": "192.168.1.100, 10.0.0.1",
-        "x-forwarded-proto": "https",
-        "x-forwarded-host": "public.example.com",
+        host: 'internal.local',
+        'x-forwarded-for': '192.168.1.100, 10.0.0.1',
+        'x-forwarded-proto': 'https',
+        'x-forwarded-host': 'public.example.com',
       },
       socket: {},
     };
 
     const result = resolver.resolveUrl(request);
-    expect(result.baseUrl).toBe("https://public.example.com");
+    expect(result.baseUrl).toBe('https://public.example.com');
     expect(result.isFixed).toBe(false);
   });
 
-  it("should use socket.remoteAddress when ip is not available", () => {
+  it('should use socket.remoteAddress when ip is not available', () => {
     const resolver = createUrlResolver(mockLogger, {
-      trustedProxies: ["192.168.1.1"],
+      trustedProxies: ['192.168.1.1'],
     });
     const request = {
-      protocol: "http",
+      protocol: 'http',
       headers: {
-        host: "internal.local",
-        "x-forwarded-proto": "https",
-        "x-forwarded-host": "public.example.com",
+        host: 'internal.local',
+        'x-forwarded-proto': 'https',
+        'x-forwarded-host': 'public.example.com',
       },
       socket: {
-        remoteAddress: "192.168.1.1",
+        remoteAddress: '192.168.1.1',
       },
     };
 
     const result = resolver.resolveUrl(request);
-    expect(result.baseUrl).toBe("https://public.example.com");
+    expect(result.baseUrl).toBe('https://public.example.com');
     expect(result.isFixed).toBe(false);
   });
 
-  it("should handle missing Host header", () => {
+  it('should handle missing Host header', () => {
     const resolver = createUrlResolver(mockLogger);
     const request = {
-      protocol: "http",
+      protocol: 'http',
       headers: {},
       socket: {},
     };
 
     const result = resolver.resolveUrl(request);
-    expect(result.baseUrl).toBe("http://localhost");
+    expect(result.baseUrl).toBe('http://localhost');
     expect(result.isFixed).toBe(false);
   });
 
-  it("should not add port if host already contains it", () => {
+  it('should not add port if host already contains it', () => {
     const resolver = createUrlResolver(mockLogger);
     const request = {
-      protocol: "http",
+      protocol: 'http',
       headers: {
-        host: "example.com:8080",
-        "x-forwarded-port": "443",
+        host: 'example.com:8080',
+        'x-forwarded-port': '443',
       },
       socket: {},
     };
 
     const result = resolver.resolveUrl(request);
-    expect(result.baseUrl).toBe("http://example.com:8080");
+    expect(result.baseUrl).toBe('http://example.com:8080');
     expect(result.isFixed).toBe(false);
   });
 
-  it("should allow all proxies when trustedProxies is empty", () => {
+  it('should allow all proxies when trustedProxies is empty', () => {
     const resolver = createUrlResolver(mockLogger, { trustedProxies: [] });
     const request = {
-      protocol: "http",
-      ip: "10.0.0.1",
+      protocol: 'http',
+      ip: '10.0.0.1',
       headers: {
-        host: "internal.local",
-        "x-forwarded-proto": "https",
-        "x-forwarded-host": "public.example.com",
+        host: 'internal.local',
+        'x-forwarded-proto': 'https',
+        'x-forwarded-host': 'public.example.com',
       },
       socket: {},
     };
 
     const result = resolver.resolveUrl(request);
-    expect(result.baseUrl).toBe("https://public.example.com");
+    expect(result.baseUrl).toBe('https://public.example.com');
     expect(result.isFixed).toBe(false);
   });
 });
 
-describe("urlResolver - resolveUrl with fixed baseUrl", () => {
-  it("should always return fixed baseUrl", () => {
+describe('urlResolver - resolveUrl with fixed baseUrl', () => {
+  it('should always return fixed baseUrl', () => {
     const resolver = createUrlResolver(mockLogger, {
-      baseUrl: "https://api.example.com",
+      baseUrl: 'https://api.example.com',
     });
     const request = {
-      protocol: "http",
+      protocol: 'http',
       headers: {
-        host: "localhost:3000",
+        host: 'localhost:3000',
       },
       socket: {},
     };
 
     const result = resolver.resolveUrl(request);
-    expect(result.baseUrl).toBe("https://api.example.com");
+    expect(result.baseUrl).toBe('https://api.example.com');
     expect(result.isFixed).toBe(true);
   });
 
-  it("should remove trailing slash from fixed baseUrl", () => {
+  it('should remove trailing slash from fixed baseUrl', () => {
     const resolver = createUrlResolver(mockLogger, {
-      baseUrl: "https://api.example.com/",
+      baseUrl: 'https://api.example.com/',
     });
     const request = {
-      protocol: "http",
+      protocol: 'http',
       headers: {},
       socket: {},
     };
 
     const result = resolver.resolveUrl(request);
-    expect(result.baseUrl).toBe("https://api.example.com");
+    expect(result.baseUrl).toBe('https://api.example.com');
     expect(result.isFixed).toBe(true);
   });
 
-  it("should ignore X-Forwarded headers when baseUrl is fixed", () => {
+  it('should ignore X-Forwarded headers when baseUrl is fixed', () => {
     const resolver = createUrlResolver(mockLogger, {
-      baseUrl: "https://api.example.com",
-      trustedProxies: ["192.168.1.1"],
+      baseUrl: 'https://api.example.com',
+      trustedProxies: ['192.168.1.1'],
     });
     const request = {
-      protocol: "http",
-      ip: "192.168.1.1",
+      protocol: 'http',
+      ip: '192.168.1.1',
       headers: {
-        host: "internal.local",
-        "x-forwarded-proto": "http",
-        "x-forwarded-host": "other.example.com",
+        host: 'internal.local',
+        'x-forwarded-proto': 'http',
+        'x-forwarded-host': 'other.example.com',
       },
       socket: {},
     };
 
     const result = resolver.resolveUrl(request);
-    expect(result.baseUrl).toBe("https://api.example.com");
+    expect(result.baseUrl).toBe('https://api.example.com');
     expect(result.isFixed).toBe(true);
   });
 });
 
-describe("urlResolver - isFixedUrl", () => {
-  it("should return true when baseUrl is provided", () => {
+describe('urlResolver - isFixedUrl', () => {
+  it('should return true when baseUrl is provided', () => {
     const resolver = createUrlResolver(mockLogger, {
-      baseUrl: "https://api.example.com",
+      baseUrl: 'https://api.example.com',
     });
     expect(resolver.isFixedUrl()).toBe(true);
   });
 
-  it("should return false when baseUrl is not provided", () => {
+  it('should return false when baseUrl is not provided', () => {
     const resolver = createUrlResolver(mockLogger);
     expect(resolver.isFixedUrl()).toBe(false);
   });
 
-  it("should return false when baseUrl is empty string", () => {
-    const resolver = createUrlResolver(mockLogger, { baseUrl: "" });
+  it('should return false when baseUrl is empty string', () => {
+    const resolver = createUrlResolver(mockLogger, { baseUrl: '' });
     expect(resolver.isFixedUrl()).toBe(false);
   });
 });
 
-describe("urlResolver - extractPathFromBaseUrl", () => {
-  it("should extract path from baseUrl with path", async () => {
-    expect(extractPathFromBaseUrl("https://example.com/nuget")).toBe("/nuget");
-    expect(extractPathFromBaseUrl("https://example.com/api/v2")).toBe(
-      "/api/v2",
+describe('urlResolver - extractPathFromBaseUrl', () => {
+  it('should extract path from baseUrl with path', async () => {
+    expect(extractPathFromBaseUrl('https://example.com/nuget')).toBe('/nuget');
+    expect(extractPathFromBaseUrl('https://example.com/api/v2')).toBe(
+      '/api/v2'
     );
-    expect(extractPathFromBaseUrl("https://example.com/packages/")).toBe(
-      "/packages",
+    expect(extractPathFromBaseUrl('https://example.com/packages/')).toBe(
+      '/packages'
     );
   });
 
-  it("should return empty string for baseUrl without path", async () => {
-    expect(extractPathFromBaseUrl("https://example.com")).toBe("");
-    expect(extractPathFromBaseUrl("https://example.com/")).toBe("");
+  it('should return empty string for baseUrl without path', async () => {
+    expect(extractPathFromBaseUrl('https://example.com')).toBe('');
+    expect(extractPathFromBaseUrl('https://example.com/')).toBe('');
   });
 
-  it("should handle undefined baseUrl", async () => {
-    expect(extractPathFromBaseUrl(undefined)).toBe("");
+  it('should handle undefined baseUrl', async () => {
+    expect(extractPathFromBaseUrl(undefined)).toBe('');
   });
 
-  it("should handle invalid URLs", async () => {
-    expect(extractPathFromBaseUrl("not-a-url")).toBe("");
+  it('should handle invalid URLs', async () => {
+    expect(extractPathFromBaseUrl('not-a-url')).toBe('');
   });
 });
 
-describe("urlResolver - extractPathPrefix", () => {
-  it("should extract path prefix from fixed baseUrl", () => {
+describe('urlResolver - extractPathPrefix', () => {
+  it('should extract path prefix from fixed baseUrl', () => {
     const resolver = createUrlResolver(mockLogger, {
-      baseUrl: "https://example.com/nuget",
+      baseUrl: 'https://example.com/nuget',
     });
     const request = {
-      protocol: "http",
-      headers: { host: "localhost" },
+      protocol: 'http',
+      headers: { host: 'localhost' },
       socket: {},
     };
 
-    expect(resolver.extractPathPrefix(request)).toBe("/nuget");
+    expect(resolver.extractPathPrefix(request)).toBe('/nuget');
   });
 
-  it("should extract path prefix from x-forwarded-path header", () => {
+  it('should extract path prefix from x-forwarded-path header', () => {
     const resolver = createUrlResolver(mockLogger, {
-      trustedProxies: ["192.168.1.1"],
+      trustedProxies: ['192.168.1.1'],
     });
     const request = {
-      protocol: "http",
-      ip: "192.168.1.1",
+      protocol: 'http',
+      ip: '192.168.1.1',
       headers: {
-        host: "localhost",
-        "x-forwarded-path": "/api/v2",
+        host: 'localhost',
+        'x-forwarded-path': '/api/v2',
       },
       socket: {},
     };
 
-    expect(resolver.extractPathPrefix(request)).toBe("/api/v2");
+    expect(resolver.extractPathPrefix(request)).toBe('/api/v2');
   });
 
-  it("should ignore x-forwarded-path when not from trusted proxy", () => {
+  it('should ignore x-forwarded-path when not from trusted proxy', () => {
     const resolver = createUrlResolver(mockLogger, {
-      trustedProxies: ["192.168.1.1"],
+      trustedProxies: ['192.168.1.1'],
     });
     const request = {
-      protocol: "http",
-      ip: "10.0.0.1", // Not trusted
+      protocol: 'http',
+      ip: '10.0.0.1', // Not trusted
       headers: {
-        host: "localhost",
-        "x-forwarded-path": "/api/v2",
+        host: 'localhost',
+        'x-forwarded-path': '/api/v2',
       },
       socket: {},
     };
 
-    expect(resolver.extractPathPrefix(request)).toBe("");
+    expect(resolver.extractPathPrefix(request)).toBe('');
   });
 
-  it("should prefer fixed baseUrl over x-forwarded-path", () => {
+  it('should prefer fixed baseUrl over x-forwarded-path', () => {
     const resolver = createUrlResolver(mockLogger, {
-      baseUrl: "https://example.com/nuget",
-      trustedProxies: ["192.168.1.1"],
+      baseUrl: 'https://example.com/nuget',
+      trustedProxies: ['192.168.1.1'],
     });
     const request = {
-      protocol: "http",
-      ip: "192.168.1.1",
+      protocol: 'http',
+      ip: '192.168.1.1',
       headers: {
-        host: "localhost",
-        "x-forwarded-path": "/api/v2",
+        host: 'localhost',
+        'x-forwarded-path': '/api/v2',
       },
       socket: {},
     };
 
-    expect(resolver.extractPathPrefix(request)).toBe("/nuget");
+    expect(resolver.extractPathPrefix(request)).toBe('/nuget');
   });
 
-  it("should handle path with trailing slash", () => {
+  it('should handle path with trailing slash', () => {
     const resolver = createUrlResolver(mockLogger, {
-      trustedProxies: ["192.168.1.1"],
+      trustedProxies: ['192.168.1.1'],
     });
     const request = {
-      protocol: "http",
-      ip: "192.168.1.1",
+      protocol: 'http',
+      ip: '192.168.1.1',
       headers: {
-        host: "localhost",
-        "x-forwarded-path": "/api/v2/",
+        host: 'localhost',
+        'x-forwarded-path': '/api/v2/',
       },
       socket: {},
     };
 
-    expect(resolver.extractPathPrefix(request)).toBe("/api/v2");
+    expect(resolver.extractPathPrefix(request)).toBe('/api/v2');
   });
 });

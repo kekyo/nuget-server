@@ -201,6 +201,13 @@ export const messages = {
     fallback: "Login failed" 
   } as SimpleMessageItem,
   /**
+   * Messgae: "Successfully logged in as {username}"
+   */
+  LOGIN_SUCCESS: { 
+    key: "LOGIN_SUCCESS", 
+    fallback: "Successfully logged in as {username}" 
+  } as MessageItem<{ username: string }>,
+  /**
    * Messgae: "Network error. Please try again."
    */
   NETWORK_ERROR_TRY_AGAIN: { 
@@ -689,6 +696,13 @@ export const messages = {
   CLICK_TO_COPY_CLIPBOARD: { 
     key: "CLICK_TO_COPY_CLIPBOARD", 
     fallback: "Click to copy to clipboard" 
+  } as SimpleMessageItem,
+  /**
+   * Messgae: "Copied to clipboard!"
+   */
+  COPIED_TO_CLIPBOARD: { 
+    key: "COPIED_TO_CLIPBOARD", 
+    fallback: "Copied to clipboard!" 
   } as SimpleMessageItem,
   /**
    * Messgae: "Details:"

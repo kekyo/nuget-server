@@ -2,7 +2,7 @@
 // Copyright (c) Kouji Matsui (@kekyo@mi.kekyo.net)
 // License under MIT.
 
-import { useState, useEffect } from "react";
+import { useState, useEffect } from 'react';
 import {
   CssBaseline,
   ThemeProvider,
@@ -10,41 +10,41 @@ import {
   useMediaQuery,
   Box,
   Container,
-} from "@mui/material";
-import LoginDialog from "./components/LoginDialog";
-import { apiFetch } from "./utils/apiClient";
+} from '@mui/material';
+import LoginDialog from './components/LoginDialog';
+import { apiFetch } from './utils/apiClient';
 
 const LoginApp = () => {
-  const prefersDarkMode = useMediaQuery("(prefers-color-scheme: dark)");
+  const prefersDarkMode = useMediaQuery('(prefers-color-scheme: dark)');
   const [loginDialogOpen, setLoginDialogOpen] = useState(false);
-  const [realm, setRealm] = useState("NuGet Server");
+  const [realm, setRealm] = useState('NuGet Server');
 
   const theme = createTheme({
     palette: {
-      mode: prefersDarkMode ? "dark" : "light",
+      mode: prefersDarkMode ? 'dark' : 'light',
       primary: {
-        main: "#1976d2",
+        main: '#1976d2',
       },
       secondary: {
-        main: "#dc004e",
+        main: '#dc004e',
       },
     },
     typography: {
       fontFamily: [
-        "-apple-system",
-        "BlinkMacSystemFont",
+        '-apple-system',
+        'BlinkMacSystemFont',
         '"Segoe UI"',
-        "Roboto",
+        'Roboto',
         '"Helvetica Neue"',
-        "Arial",
-        "sans-serif",
-      ].join(","),
+        'Arial',
+        'sans-serif',
+      ].join(','),
     },
     components: {
       MuiButton: {
         styleOverrides: {
           root: {
-            textTransform: "none",
+            textTransform: 'none',
           },
         },
       },
@@ -54,18 +54,18 @@ const LoginApp = () => {
   useEffect(() => {
     const fetchServerConfig = async () => {
       try {
-        const response = await apiFetch("api/config", {
-          credentials: "same-origin",
+        const response = await apiFetch('api/config', {
+          credentials: 'same-origin',
         });
         if (response.ok) {
           const config = await response.json();
-          setRealm(config.realm || "NuGet Server");
+          setRealm(config.realm || 'NuGet Server');
           if (config.realm) {
             document.title = config.realm;
           }
         }
       } catch (error) {
-        console.error("Failed to fetch server config:", error);
+        console.error('Failed to fetch server config:', error);
       }
     };
 
@@ -76,7 +76,7 @@ const LoginApp = () => {
 
   const handleLoginSuccess = () => {
     // Redirect to main application after successful login
-    window.location.href = ".";
+    window.location.href = '.';
   };
 
   const handleCloseLoginDialog = () => {
@@ -89,10 +89,10 @@ const LoginApp = () => {
       <CssBaseline />
       <Box
         sx={{
-          minHeight: "100vh",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
+          minHeight: '100vh',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
         }}
       >
         <Container maxWidth="sm">

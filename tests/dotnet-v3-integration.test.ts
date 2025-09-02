@@ -2,20 +2,20 @@
  * dotnet restore V3 API Integration Tests
  */
 
-import { describe, test, expect } from "vitest";
-import path from "node:path";
-import { promises as fs } from "fs";
-import AdmZip from "adm-zip";
-import { startFastifyServer } from "../src/server.js";
-import { createConsoleLogger } from "../src/logger.js";
-import { Logger, ServerConfig } from "../src/types.js";
+import { describe, test, expect } from 'vitest';
+import path from 'node:path';
+import { promises as fs } from 'fs';
+import AdmZip from 'adm-zip';
+import { startFastifyServer } from '../src/server.js';
+import { createConsoleLogger } from '../src/logger.js';
+import { Logger, ServerConfig } from '../src/types.js';
 import {
   createTestDirectory,
   getTestPort,
   testGlobalLogLevel,
   waitForServerReady,
-} from "./helpers/test-helper.js";
-import { pathExists } from "./helpers/fs-utils.js";
+} from './helpers/test-helper.js';
+import { pathExists } from './helpers/fs-utils.js';
 import {
   createTestProject,
   addNuGetSource,
@@ -23,23 +23,23 @@ import {
   runDotNetRestore,
   verifyPackageRestored,
   clearNuGetCache,
-} from "./helpers/dotnet.js";
+} from './helpers/dotnet.js';
 
-describe("dotnet restore V3 API Integration Tests", () => {
+describe('dotnet restore V3 API Integration Tests', () => {
   // Helper to start server for a specific test
   const startTestServer = async (
-    authMode: "none" | "publish" | "full",
-    testName: string,
+    authMode: 'none' | 'publish' | 'full',
+    testName: string
   ) => {
     const testBaseDir = await createTestDirectory(
       `dotnet-v3-integration-${authMode}`,
-      testName,
+      testName
     );
     const testConfigDir = testBaseDir;
-    const testPackagesDir = path.join(testBaseDir, "packages");
+    const testPackagesDir = path.join(testBaseDir, 'packages');
     const logger = createConsoleLogger(
-      "dotnet-v3-integration",
-      testGlobalLogLevel,
+      'dotnet-v3-integration',
+      testGlobalLogLevel
     );
 
     // Create packages directory
@@ -49,13 +49,13 @@ describe("dotnet restore V3 API Integration Tests", () => {
     await setupTestPackages(logger, testPackagesDir);
 
     // Create test users if needed
-    if (authMode !== "none") {
+    if (authMode !== 'none') {
       await createTestUsers(testConfigDir);
     }
 
     // Generate unique port
     const serverPort = getTestPort(
-      authMode === "none" ? 9000 : authMode === "publish" ? 9100 : 9200,
+      authMode === 'none' ? 9000 : authMode === 'publish' ? 9100 : 9200
     );
 
     // Start server
@@ -70,7 +70,7 @@ describe("dotnet restore V3 API Integration Tests", () => {
     };
 
     logger.info(
-      `Starting server with authMode=${authMode} on port ${serverPort}`,
+      `Starting server with authMode=${authMode} on port ${serverPort}`
     );
     const server = await startFastifyServer(testConfig, logger);
     try {
@@ -78,7 +78,7 @@ describe("dotnet restore V3 API Integration Tests", () => {
       try {
         await waitForServerReady(serverPort, authMode, 30, 500);
         logger.info(
-          `Server ready after polling /v3/index.json (authMode=${authMode})`,
+          `Server ready after polling /v3/index.json (authMode=${authMode})`
         );
       } catch (error) {
         logger.error(`Server readiness check failed: ${error}`);
@@ -103,21 +103,21 @@ describe("dotnet restore V3 API Integration Tests", () => {
   const createTestUsers = async (testConfigDir: string) => {
     const testUsers = [
       {
-        id: "test-admin-dotnet",
-        username: "testadmindotnet",
-        passwordHash: "pq1IBF6VQHli4o6e3rSbU1S8gDw=", // password: adminpass (SHA1)
-        salt: "test-salt-admin-dotnet",
-        apiPasswordHash: "ilM/nZT2xLm3TDFrC60Lm3yuYhQ=", // api password: admin-api-key-123 (SHA1)
-        apiPasswordSalt: "test-api-salt-admin-dotnet",
-        role: "admin",
-        createdAt: "2024-01-01T00:00:00Z",
-        updatedAt: "2024-01-01T00:00:00Z",
+        id: 'test-admin-dotnet',
+        username: 'testadmindotnet',
+        passwordHash: 'pq1IBF6VQHli4o6e3rSbU1S8gDw=', // password: adminpass (SHA1)
+        salt: 'test-salt-admin-dotnet',
+        apiPasswordHash: 'ilM/nZT2xLm3TDFrC60Lm3yuYhQ=', // api password: admin-api-key-123 (SHA1)
+        apiPasswordSalt: 'test-api-salt-admin-dotnet',
+        role: 'admin',
+        createdAt: '2024-01-01T00:00:00Z',
+        updatedAt: '2024-01-01T00:00:00Z',
       },
     ];
 
     await fs.writeFile(
-      path.join(testConfigDir, "users.json"),
-      JSON.stringify(testUsers, null, 2),
+      path.join(testConfigDir, 'users.json'),
+      JSON.stringify(testUsers, null, 2)
     );
   };
 
@@ -125,15 +125,15 @@ describe("dotnet restore V3 API Integration Tests", () => {
   const extractNuspecFromNupkg = async (
     nupkgPath: string,
     targetDir: string,
-    packageId: string,
+    packageId: string
   ): Promise<void> => {
     const zip = new AdmZip(nupkgPath);
     const entries = zip.getEntries();
 
     for (const entry of entries) {
       if (
-        entry.entryName.endsWith(".nuspec") &&
-        !entry.entryName.includes("/")
+        entry.entryName.endsWith('.nuspec') &&
+        !entry.entryName.includes('/')
       ) {
         const nuspecContent = entry.getData();
         const normalizedFileName = `${packageId}.nuspec`;
@@ -148,13 +148,13 @@ describe("dotnet restore V3 API Integration Tests", () => {
 
   // Setup packages from fixtures
   const setupTestPackages = async (logger: Logger, testPackagesDir: string) => {
-    const fixturesDir = path.join(process.cwd(), "tests/fixtures/packages");
+    const fixturesDir = path.join(process.cwd(), 'tests/fixtures/packages');
 
     try {
       const files = await fs.readdir(fixturesDir);
 
       for (const file of files) {
-        if (file.endsWith(".nupkg")) {
+        if (file.endsWith('.nupkg')) {
           const match = file.match(/^(.+?)\.(\d+\.\d+\.\d+)\.nupkg$/);
           if (match) {
             const [, packageId, version] = match;
@@ -182,16 +182,16 @@ describe("dotnet restore V3 API Integration Tests", () => {
 
   // ===== authMode=none tests =====
 
-  test("[authMode=none] should perform basic dotnet restore successfully", async () => {
+  test('[authMode=none] should perform basic dotnet restore successfully', async () => {
     const { server, testBaseDir, serverPort, logger } = await startTestServer(
-      "none",
-      "basic-dotnet-restore",
+      'none',
+      'basic-dotnet-restore'
     );
 
     try {
-      const packageId = "FlashCap";
-      const packageVersion = "1.10.0";
-      const dotnetDir = path.join(testBaseDir, "dotnet");
+      const packageId = 'FlashCap';
+      const packageVersion = '1.10.0';
+      const dotnetDir = path.join(testBaseDir, 'dotnet');
 
       await createTestProject(dotnetDir, packageId, packageVersion);
       await addNuGetSource(dotnetDir, `http://localhost:${serverPort}`);
@@ -199,7 +199,7 @@ describe("dotnet restore V3 API Integration Tests", () => {
       // Debug: Show project files before restore
       try {
         const projectFiles = await fs.readdir(dotnetDir);
-        logger.info(`Project directory contents: ${projectFiles.join(", ")}`);
+        logger.info(`Project directory contents: ${projectFiles.join(', ')}`);
       } catch (error) {
         logger.warn(`Could not read project directory: ${error}`);
       }
@@ -208,7 +208,7 @@ describe("dotnet restore V3 API Integration Tests", () => {
 
       if (!restoreResult.success) {
         logger.error(
-          `Restore failed with exit code: ${restoreResult.exitCode}`,
+          `Restore failed with exit code: ${restoreResult.exitCode}`
         );
         logger.info(`Restore stdout: ${restoreResult.stdout}`);
         logger.info(`Restore stderr: ${restoreResult.stderr}`);
@@ -216,8 +216,8 @@ describe("dotnet restore V3 API Integration Tests", () => {
         // Debug: Check if NuGet.config exists and is readable
         try {
           const nugetConfig = await fs.readFile(
-            path.join(dotnetDir, "NuGet.config"),
-            "utf-8",
+            path.join(dotnetDir, 'NuGet.config'),
+            'utf-8'
           );
           logger.info(`NuGet.config content: ${nugetConfig}`);
         } catch (error) {
@@ -231,7 +231,7 @@ describe("dotnet restore V3 API Integration Tests", () => {
       const packageRestored = await verifyPackageRestored(
         dotnetDir,
         packageId,
-        packageVersion,
+        packageVersion
       );
       expect(packageRestored).toBe(true);
     } finally {
@@ -239,19 +239,19 @@ describe("dotnet restore V3 API Integration Tests", () => {
     }
   }, 60000);
 
-  test("[authMode=none] should restore FlashCap version 1.11.0", async () => {
+  test('[authMode=none] should restore FlashCap version 1.11.0', async () => {
     const { server, testBaseDir, serverPort, logger } = await startTestServer(
-      "none",
-      "restore-flashcap-1.11.0",
+      'none',
+      'restore-flashcap-1.11.0'
     );
 
     try {
       // Clear NuGet cache to ensure test isolation
       await clearNuGetCache(logger);
 
-      const packageId = "FlashCap";
-      const version = "1.11.0";
-      const dotnetDir = path.join(testBaseDir, "dotnet-test2");
+      const packageId = 'FlashCap';
+      const version = '1.11.0';
+      const dotnetDir = path.join(testBaseDir, 'dotnet-test2');
 
       await createTestProject(dotnetDir, packageId, version);
       await addNuGetSource(dotnetDir, `http://localhost:${serverPort}`);
@@ -270,7 +270,7 @@ describe("dotnet restore V3 API Integration Tests", () => {
       const packageRestored = await verifyPackageRestored(
         dotnetDir,
         packageId,
-        version,
+        version
       );
       expect(packageRestored).toBe(true);
     } finally {
@@ -278,16 +278,16 @@ describe("dotnet restore V3 API Integration Tests", () => {
     }
   }, 60000);
 
-  test("[authMode=none] should restore FlashCap version 1.10.0", async () => {
+  test('[authMode=none] should restore FlashCap version 1.10.0', async () => {
     const { server, testBaseDir, serverPort, logger } = await startTestServer(
-      "none",
-      "restore-flashcap-1.10.0",
+      'none',
+      'restore-flashcap-1.10.0'
     );
 
     try {
-      const packageId = "FlashCap";
-      const version = "1.10.0";
-      const dotnetDir = path.join(testBaseDir, "dotnet-v2");
+      const packageId = 'FlashCap';
+      const version = '1.10.0';
+      const dotnetDir = path.join(testBaseDir, 'dotnet-v2');
 
       await createTestProject(dotnetDir, packageId, version);
       await addNuGetSource(dotnetDir, `http://localhost:${serverPort}`);
@@ -306,7 +306,7 @@ describe("dotnet restore V3 API Integration Tests", () => {
       const packageRestored = await verifyPackageRestored(
         dotnetDir,
         packageId,
-        version,
+        version
       );
       expect(packageRestored).toBe(true);
     } finally {
@@ -314,49 +314,49 @@ describe("dotnet restore V3 API Integration Tests", () => {
     }
   }, 60000);
 
-  test("[authMode=none] should work after package upload (using existing fixture)", async () => {
+  test('[authMode=none] should work after package upload (using existing fixture)', async () => {
     const { server, testBaseDir, serverPort, testPackagesDir, logger } =
-      await startTestServer("none", "work-after-upload");
+      await startTestServer('none', 'work-after-upload');
 
     try {
       // Debug: Check if GitReader package exists
-      const gitReaderPath = path.join(testPackagesDir, "GitReader", "1.15.0");
+      const gitReaderPath = path.join(testPackagesDir, 'GitReader', '1.15.0');
       logger.info(`Checking GitReader package at: ${gitReaderPath}`);
       const gitReaderExists = await pathExists(gitReaderPath);
       logger.info(`GitReader package exists: ${gitReaderExists}`);
       if (gitReaderExists) {
         const files = await fs.readdir(gitReaderPath);
-        logger.info(`GitReader files: ${files.join(", ")}`);
+        logger.info(`GitReader files: ${files.join(', ')}`);
       }
 
       // Check search API response
       const searchResponse = await fetch(
-        `http://localhost:${serverPort}/v3/search?q=GitReader`,
+        `http://localhost:${serverPort}/v3/search?q=GitReader`
       );
       const searchResult = await searchResponse.json();
       logger.info(
-        `Search for GitReader: totalHits=${searchResult.totalHits}, packages=${searchResult.data.map((p: any) => p.id).join(", ")}`,
+        `Search for GitReader: totalHits=${searchResult.totalHits}, packages=${searchResult.data.map((p: any) => p.id).join(', ')}`
       );
 
       // Check registration API
       const regResponse = await fetch(
-        `http://localhost:${serverPort}/v3/registrations/gitreader/index.json`,
+        `http://localhost:${serverPort}/v3/registrations/gitreader/index.json`
       );
       logger.info(
-        `Registration API for GitReader: status=${regResponse.status}`,
+        `Registration API for GitReader: status=${regResponse.status}`
       );
       if (regResponse.status === 200) {
         const regData = await regResponse.json();
         logger.info(
-          `Registration data: ${JSON.stringify(regData).substring(0, 200)}`,
+          `Registration data: ${JSON.stringify(regData).substring(0, 200)}`
         );
       }
 
       // Since this is authMode=none, we don't actually test upload
       // Just verify restore works with existing fixtures
-      const packageId = "GitReader";
-      const packageVersion = "1.15.0";
-      const dotnetDir = path.join(testBaseDir, "dotnet");
+      const packageId = 'GitReader';
+      const packageVersion = '1.15.0';
+      const dotnetDir = path.join(testBaseDir, 'dotnet');
 
       await createTestProject(dotnetDir, packageId, packageVersion);
       await addNuGetSource(dotnetDir, `http://localhost:${serverPort}`);
@@ -364,7 +364,7 @@ describe("dotnet restore V3 API Integration Tests", () => {
       // Debug: Show project files before restore
       try {
         const projectFiles = await fs.readdir(dotnetDir);
-        logger.info(`Project directory contents: ${projectFiles.join(", ")}`);
+        logger.info(`Project directory contents: ${projectFiles.join(', ')}`);
       } catch (error) {
         logger.warn(`Could not read project directory: ${error}`);
       }
@@ -373,7 +373,7 @@ describe("dotnet restore V3 API Integration Tests", () => {
 
       if (!restoreResult.success) {
         logger.error(
-          `Restore failed with exit code: ${restoreResult.exitCode}`,
+          `Restore failed with exit code: ${restoreResult.exitCode}`
         );
         logger.info(`Restore stdout: ${restoreResult.stdout}`);
         logger.info(`Restore stderr: ${restoreResult.stderr}`);
@@ -381,8 +381,8 @@ describe("dotnet restore V3 API Integration Tests", () => {
         // Debug: Check if NuGet.config exists and is readable
         try {
           const nugetConfig = await fs.readFile(
-            path.join(dotnetDir, "NuGet.config"),
-            "utf-8",
+            path.join(dotnetDir, 'NuGet.config'),
+            'utf-8'
           );
           logger.info(`NuGet.config content: ${nugetConfig}`);
         } catch (error) {
@@ -396,7 +396,7 @@ describe("dotnet restore V3 API Integration Tests", () => {
       const packageRestored = await verifyPackageRestored(
         dotnetDir,
         packageId,
-        packageVersion,
+        packageVersion
       );
       expect(packageRestored).toBe(true);
     } finally {
@@ -406,16 +406,16 @@ describe("dotnet restore V3 API Integration Tests", () => {
 
   // ===== authMode=publish tests =====
 
-  test("[authMode=publish] should allow package retrieval without authentication", async () => {
+  test('[authMode=publish] should allow package retrieval without authentication', async () => {
     const { server, testBaseDir, serverPort, logger } = await startTestServer(
-      "publish",
-      "allow-retrieval-no-auth",
+      'publish',
+      'allow-retrieval-no-auth'
     );
 
     try {
-      const packageId = "FlashCap";
-      const packageVersion = "1.10.0";
-      const dotnetDir = path.join(testBaseDir, "dotnet");
+      const packageId = 'FlashCap';
+      const packageVersion = '1.10.0';
+      const dotnetDir = path.join(testBaseDir, 'dotnet');
 
       await createTestProject(dotnetDir, packageId, packageVersion);
       await addNuGetSource(dotnetDir, `http://localhost:${serverPort}`);
@@ -423,7 +423,7 @@ describe("dotnet restore V3 API Integration Tests", () => {
       // Debug: Show project files before restore
       try {
         const projectFiles = await fs.readdir(dotnetDir);
-        logger.info(`Project directory contents: ${projectFiles.join(", ")}`);
+        logger.info(`Project directory contents: ${projectFiles.join(', ')}`);
       } catch (error) {
         logger.warn(`Could not read project directory: ${error}`);
       }
@@ -432,7 +432,7 @@ describe("dotnet restore V3 API Integration Tests", () => {
 
       if (!restoreResult.success) {
         logger.error(
-          `Restore failed with exit code: ${restoreResult.exitCode}`,
+          `Restore failed with exit code: ${restoreResult.exitCode}`
         );
         logger.info(`Restore stdout: ${restoreResult.stdout}`);
         logger.info(`Restore stderr: ${restoreResult.stderr}`);
@@ -440,8 +440,8 @@ describe("dotnet restore V3 API Integration Tests", () => {
         // Debug: Check if NuGet.config exists and is readable
         try {
           const nugetConfig = await fs.readFile(
-            path.join(dotnetDir, "NuGet.config"),
-            "utf-8",
+            path.join(dotnetDir, 'NuGet.config'),
+            'utf-8'
           );
           logger.info(`NuGet.config content: ${nugetConfig}`);
         } catch (error) {
@@ -455,7 +455,7 @@ describe("dotnet restore V3 API Integration Tests", () => {
       const packageRestored = await verifyPackageRestored(
         dotnetDir,
         packageId,
-        packageVersion,
+        packageVersion
       );
       expect(packageRestored).toBe(true);
     } finally {
@@ -463,10 +463,10 @@ describe("dotnet restore V3 API Integration Tests", () => {
     }
   }, 60000);
 
-  test("[authMode=publish] should verify that publish API requires authentication", async () => {
+  test('[authMode=publish] should verify that publish API requires authentication', async () => {
     const { server, serverPort, logger } = await startTestServer(
-      "publish",
-      "verify-publish-requires-auth",
+      'publish',
+      'verify-publish-requires-auth'
     );
 
     try {
@@ -474,19 +474,19 @@ describe("dotnet restore V3 API Integration Tests", () => {
       const publishResponse = await fetch(
         `http://localhost:${serverPort}/api/publish`,
         {
-          method: "POST",
+          method: 'POST',
           headers: {
-            "Content-Type": "application/octet-stream",
+            'Content-Type': 'application/octet-stream',
           },
-          body: Buffer.from("dummy-package-content"),
-        },
+          body: Buffer.from('dummy-package-content'),
+        }
       );
 
       expect(publishResponse.status).toBe(401);
 
       // But V3 API should still work without auth
       const serviceIndexResponse = await fetch(
-        `http://localhost:${serverPort}/v3/index.json`,
+        `http://localhost:${serverPort}/v3/index.json`
       );
       expect(serviceIndexResponse.status).toBe(200);
     } finally {
@@ -496,10 +496,10 @@ describe("dotnet restore V3 API Integration Tests", () => {
 
   // ===== authMode=full tests =====
 
-  test("[authMode=full] should fail dotnet restore without authentication", async () => {
+  test('[authMode=full] should fail dotnet restore without authentication', async () => {
     const { server, testBaseDir, serverPort, logger } = await startTestServer(
-      "full",
-      "fail-restore-no-auth",
+      'full',
+      'fail-restore-no-auth'
     );
 
     try {
@@ -508,13 +508,13 @@ describe("dotnet restore V3 API Integration Tests", () => {
 
       // Test V3 API directly first
       const serviceIndexResponse = await fetch(
-        `http://localhost:${serverPort}/v3/index.json`,
+        `http://localhost:${serverPort}/v3/index.json`
       );
       expect(serviceIndexResponse.status).toBe(401);
 
-      const packageId = "FlashCap";
-      const packageVersion = "1.10.0";
-      const dotnetDir = path.join(testBaseDir, "dotnet");
+      const packageId = 'FlashCap';
+      const packageVersion = '1.10.0';
+      const dotnetDir = path.join(testBaseDir, 'dotnet');
 
       await createTestProject(dotnetDir, packageId, packageVersion);
       await addNuGetSource(dotnetDir, `http://localhost:${serverPort}`);
@@ -523,11 +523,11 @@ describe("dotnet restore V3 API Integration Tests", () => {
 
       // Should fail without authentication
       expect(restoreResult.success).toBe(false);
-      expect(restoreResult.stdout).toContain("401");
+      expect(restoreResult.stdout).toContain('401');
 
       // V3 API should still require auth after restore attempt
       const serviceIndexResponse2 = await fetch(
-        `http://localhost:${serverPort}/v3/index.json`,
+        `http://localhost:${serverPort}/v3/index.json`
       );
       expect(serviceIndexResponse2.status).toBe(401);
     } finally {
@@ -535,19 +535,19 @@ describe("dotnet restore V3 API Integration Tests", () => {
     }
   }, 60000);
 
-  test("[authMode=full] should succeed with authentication in NuGet.config", async () => {
+  test('[authMode=full] should succeed with authentication in NuGet.config', async () => {
     const { server, testBaseDir, serverPort, logger } = await startTestServer(
-      "full",
-      "succeed-with-auth",
+      'full',
+      'succeed-with-auth'
     );
 
     try {
       // Clear NuGet cache to ensure test isolation
       await clearNuGetCache(logger);
 
-      const packageId = "FlashCap";
-      const packageVersion = "1.10.0";
-      const dotnetDir = path.join(testBaseDir, "dotnet");
+      const packageId = 'FlashCap';
+      const packageVersion = '1.10.0';
+      const dotnetDir = path.join(testBaseDir, 'dotnet');
 
       await createTestProject(dotnetDir, packageId, packageVersion);
 
@@ -555,14 +555,14 @@ describe("dotnet restore V3 API Integration Tests", () => {
       await addNuGetSourceWithAuth(
         dotnetDir,
         `http://localhost:${serverPort}`,
-        "testadmindotnet",
-        "admin-api-key-123",
+        'testadmindotnet',
+        'admin-api-key-123'
       );
 
       // Debug: Show project files before restore
       try {
         const projectFiles = await fs.readdir(dotnetDir);
-        logger.info(`Project directory contents: ${projectFiles.join(", ")}`);
+        logger.info(`Project directory contents: ${projectFiles.join(', ')}`);
       } catch (error) {
         logger.warn(`Could not read project directory: ${error}`);
       }
@@ -571,7 +571,7 @@ describe("dotnet restore V3 API Integration Tests", () => {
 
       if (!restoreResult.success) {
         logger.error(
-          `Restore failed with exit code: ${restoreResult.exitCode}`,
+          `Restore failed with exit code: ${restoreResult.exitCode}`
         );
         logger.info(`Restore stdout: ${restoreResult.stdout}`);
         logger.info(`Restore stderr: ${restoreResult.stderr}`);
@@ -579,8 +579,8 @@ describe("dotnet restore V3 API Integration Tests", () => {
         // Debug: Check if NuGet.config exists and is readable
         try {
           const nugetConfig = await fs.readFile(
-            path.join(dotnetDir, "NuGet.config"),
-            "utf-8",
+            path.join(dotnetDir, 'NuGet.config'),
+            'utf-8'
           );
           logger.info(`NuGet.config content: ${nugetConfig}`);
         } catch (error) {
@@ -594,7 +594,7 @@ describe("dotnet restore V3 API Integration Tests", () => {
       const packageRestored = await verifyPackageRestored(
         dotnetDir,
         packageId,
-        packageVersion,
+        packageVersion
       );
       expect(packageRestored).toBe(true);
     } finally {

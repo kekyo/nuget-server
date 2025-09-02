@@ -1,4 +1,4 @@
-import { promises as fs } from "fs";
+import { promises as fs } from 'fs';
 
 /**
  * Check if buffer contains PNG file header
@@ -37,7 +37,7 @@ export const isICOHeader = (buffer: Buffer): boolean => {
  */
 export const compareBinaryFiles = async (
   file1Path: string,
-  file2Path: string,
+  file2Path: string
 ): Promise<boolean> => {
   try {
     const buffer1 = await fs.readFile(file1Path);
@@ -76,7 +76,7 @@ export const getFileStats = async (filePath: string) => {
       isPNG: isPNGHeader(buffer),
       isICO: isICOHeader(buffer),
       hasReplacementChars: hasReplacementCharacters(buffer),
-      firstBytes: buffer.slice(0, 16).toString("hex"),
+      firstBytes: buffer.slice(0, 16).toString('hex'),
     };
   } catch (error) {
     throw new Error(`Failed to read file ${filePath}: ${error}`);

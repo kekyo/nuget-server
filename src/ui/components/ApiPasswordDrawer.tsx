@@ -2,7 +2,7 @@
 // Copyright (c) Kouji Matsui (@kekyo@mi.kekyo.net)
 // License under MIT.
 
-import { useState, useEffect } from "react";
+import { useState, useEffect } from 'react';
 import {
   Drawer,
   Box,
@@ -24,17 +24,18 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-} from "@mui/material";
+} from '@mui/material';
 import {
   Close as CloseIcon,
   VpnKey as VpnKeyIcon,
   Add as AddIcon,
   Delete as DeleteIcon,
-} from "@mui/icons-material";
-import { buildAddSourceCommand } from "../utils/commandBuilder";
-import { apiFetch } from "../utils/apiClient";
-import { TypedMessage, useTypedMessage } from "typed-message";
-import { messages } from "../../generated/messages";
+} from '@mui/icons-material';
+import { buildAddSourceCommand } from '../utils/commandBuilder';
+import { apiFetch } from '../utils/apiClient';
+import { TypedMessage, useTypedMessage } from 'typed-message';
+import { useSnackbar } from 'notistack';
+import { messages } from '../../generated/messages';
 
 interface ApiPasswordDrawerProps {
   open: boolean;
@@ -63,17 +64,18 @@ const ApiPasswordDrawer = ({
   serverConfig,
 }: ApiPasswordDrawerProps) => {
   const getMessage = useTypedMessage();
+  const { enqueueSnackbar } = useSnackbar();
   const [loading, setLoading] = useState(false);
   const [apiPasswords, setApiPasswords] = useState<ApiPassword[]>([]);
   const [addDialogOpen, setAddDialogOpen] = useState(false);
-  const [newLabel, setNewLabel] = useState("");
+  const [newLabel, setNewLabel] = useState('');
   const [newApiPassword, setNewApiPassword] =
     useState<ApiPasswordAddResponse | null>(null);
   const [deleteConfirmDialog, setDeleteConfirmDialog] = useState<string | null>(
-    null,
+    null
   );
   const [error, setError] = useState<string | null>(null);
-  const [currentUsername, setCurrentUsername] = useState<string>("");
+  const [currentUsername, setCurrentUsername] = useState<string>('');
 
   // Load API passwords when drawer opens
   useEffect(() => {
@@ -87,7 +89,7 @@ const ApiPasswordDrawer = ({
       // Reset state when closing
       setNewApiPassword(null);
       setError(null);
-      setNewLabel("");
+      setNewLabel('');
     }
   }, [open, serverConfig]);
 
@@ -96,13 +98,13 @@ const ApiPasswordDrawer = ({
       setLoading(true);
       setError(null);
 
-      const response = await apiFetch("api/ui/apipasswords", {
-        method: "POST",
+      const response = await apiFetch('api/ui/apipasswords', {
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ action: "list" }),
-        credentials: "same-origin",
+        body: JSON.stringify({ action: 'list' }),
+        credentials: 'same-origin',
       });
 
       if (response.ok) {
@@ -111,12 +113,12 @@ const ApiPasswordDrawer = ({
       } else {
         const errorData = await response.json().catch(() => ({}));
         setError(
-          errorData.error || getMessage(messages.FAILED_TO_LOAD_API_PASSWORDS),
+          errorData.error || getMessage(messages.FAILED_TO_LOAD_API_PASSWORDS)
         );
       }
     } catch (err) {
       setError(
-        `${getMessage(messages.ERROR)}: ${err instanceof Error ? err.message : getMessage(messages.UNKNOWN_ERROR)}`,
+        `${getMessage(messages.ERROR)}: ${err instanceof Error ? err.message : getMessage(messages.UNKNOWN_ERROR)}`
       );
     } finally {
       setLoading(false);
@@ -125,7 +127,7 @@ const ApiPasswordDrawer = ({
 
   const handleAddApiPassword = async () => {
     if (!newLabel.trim()) {
-      setError(getMessage(messages.TABLE_LABEL) + " cannot be empty");
+      setError(getMessage(messages.TABLE_LABEL) + ' cannot be empty');
       return;
     }
 
@@ -133,32 +135,34 @@ const ApiPasswordDrawer = ({
       setLoading(true);
       setError(null);
 
-      const response = await apiFetch("api/ui/apipasswords", {
-        method: "POST",
+      const response = await apiFetch('api/ui/apipasswords', {
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ action: "add", label: newLabel.trim() }),
-        credentials: "same-origin",
+        body: JSON.stringify({ action: 'add', label: newLabel.trim() }),
+        credentials: 'same-origin',
       });
 
       if (response.ok) {
         const data: ApiPasswordAddResponse = await response.json();
         setNewApiPassword(data);
         setAddDialogOpen(false);
-        setNewLabel("");
+        setNewLabel('');
         // Reload the list
         await loadApiPasswords();
       } else {
         const errorData = await response.json().catch(() => ({}));
         setError(
-          errorData.error || getMessage(messages.API_KEY_GENERATION_FAILED),
+          errorData.error || getMessage(messages.API_KEY_GENERATION_FAILED)
         );
+        setAddDialogOpen(false);
       }
     } catch (err) {
       setError(
-        `${getMessage(messages.ERROR)}: ${err instanceof Error ? err.message : getMessage(messages.UNKNOWN_ERROR)}`,
+        `${getMessage(messages.ERROR)}: ${err instanceof Error ? err.message : getMessage(messages.UNKNOWN_ERROR)}`
       );
+      setAddDialogOpen(false);
     } finally {
       setLoading(false);
     }
@@ -169,13 +173,13 @@ const ApiPasswordDrawer = ({
       setLoading(true);
       setError(null);
 
-      const response = await apiFetch("api/ui/apipasswords", {
-        method: "POST",
+      const response = await apiFetch('api/ui/apipasswords', {
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ action: "delete", label }),
-        credentials: "same-origin",
+        body: JSON.stringify({ action: 'delete', label }),
+        credentials: 'same-origin',
       });
 
       if (response.ok) {
@@ -185,12 +189,12 @@ const ApiPasswordDrawer = ({
       } else {
         const errorData = await response.json().catch(() => ({}));
         setError(
-          errorData.error || getMessage(messages.FAILED_TO_DELETE_API_PASSWORD),
+          errorData.error || getMessage(messages.FAILED_TO_DELETE_API_PASSWORD)
         );
       }
     } catch (err) {
       setError(
-        `${getMessage(messages.ERROR)}: ${err instanceof Error ? err.message : getMessage(messages.UNKNOWN_ERROR)}`,
+        `${getMessage(messages.ERROR)}: ${err instanceof Error ? err.message : getMessage(messages.UNKNOWN_ERROR)}`
       );
     } finally {
       setLoading(false);
@@ -200,20 +204,26 @@ const ApiPasswordDrawer = ({
   const copyToClipboard = async (text: string) => {
     try {
       await navigator.clipboard.writeText(text);
+      enqueueSnackbar(getMessage(messages.COPIED_TO_CLIPBOARD), {
+        variant: 'success',
+      });
     } catch (err) {
       // Fallback for browsers without Clipboard API support
-      const textArea = document.createElement("textarea");
+      const textArea = document.createElement('textarea');
       textArea.value = text;
       document.body.appendChild(textArea);
       textArea.select();
-      document.execCommand("copy");
+      document.execCommand('copy');
       document.body.removeChild(textArea);
+      enqueueSnackbar(getMessage(messages.COPIED_TO_CLIPBOARD), {
+        variant: 'success',
+      });
     }
   };
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString() + " " + date.toLocaleTimeString();
+    return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
   };
 
   return (
@@ -226,18 +236,18 @@ const ApiPasswordDrawer = ({
         sx={{
           width: 500,
           flexShrink: 0,
-          "& .MuiDrawer-paper": {
+          '& .MuiDrawer-paper': {
             width: 500,
-            boxSizing: "border-box",
+            boxSizing: 'border-box',
           },
         }}
       >
-        <Box sx={{ p: 3, height: "100%", overflowY: "auto" }}>
+        <Box sx={{ p: 3, height: '100%', overflowY: 'auto' }}>
           <Box
             sx={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
               mb: 3,
             }}
           >
@@ -263,7 +273,7 @@ const ApiPasswordDrawer = ({
 
           {newApiPassword && (
             <Alert severity="success" sx={{ mb: 3 }}>
-              <Typography variant="body2" sx={{ fontWeight: "bold", mb: 1 }}>
+              <Typography variant="body2" sx={{ fontWeight: 'bold', mb: 1 }}>
                 <TypedMessage message={messages.NEW_API_PASSWORD_CREATED} />
               </Typography>
               <Typography variant="body2" sx={{ mb: 1 }}>
@@ -275,13 +285,13 @@ const ApiPasswordDrawer = ({
                   p: 2,
                   mt: 2,
                   bgcolor: (theme) =>
-                    theme.palette.mode === "dark" ? "grey.800" : "grey.100",
-                  border: "2px dashed",
-                  borderColor: "primary.main",
-                  cursor: "pointer",
-                  "&:hover": {
+                    theme.palette.mode === 'dark' ? 'grey.800' : 'grey.100',
+                  border: '2px dashed',
+                  borderColor: 'primary.main',
+                  cursor: 'pointer',
+                  '&:hover': {
                     bgcolor: (theme) =>
-                      theme.palette.mode === "dark" ? "grey.700" : "grey.200",
+                      theme.palette.mode === 'dark' ? 'grey.700' : 'grey.200',
                   },
                 }}
                 onClick={() => copyToClipboard(newApiPassword.apiPassword)}
@@ -289,9 +299,9 @@ const ApiPasswordDrawer = ({
                 <Typography
                   variant="body2"
                   sx={{
-                    fontFamily: "monospace",
-                    fontSize: "0.9rem",
-                    wordBreak: "break-all",
+                    fontFamily: 'monospace',
+                    fontSize: '0.9rem',
+                    wordBreak: 'break-all',
                     mb: 1,
                   }}
                 >
@@ -302,7 +312,7 @@ const ApiPasswordDrawer = ({
                 </Typography>
               </Paper>
 
-              {serverConfig.authMode === "full" && currentUsername && (
+              {serverConfig.authMode === 'full' && currentUsername && (
                 <Box sx={{ mt: 2 }}>
                   <Typography variant="caption" color="text.secondary">
                     <TypedMessage message={messages.EXAMPLE_COMMANDS} />
@@ -311,10 +321,10 @@ const ApiPasswordDrawer = ({
                     sx={{
                       p: 1,
                       mt: 1,
-                      bgcolor: "grey.900",
-                      color: "grey.100",
-                      cursor: "pointer",
-                      fontSize: "0.75rem",
+                      bgcolor: 'grey.900',
+                      color: 'grey.100',
+                      cursor: 'pointer',
+                      fontSize: '0.75rem',
                     }}
                     onClick={() =>
                       copyToClipboard(
@@ -322,16 +332,16 @@ const ApiPasswordDrawer = ({
                           serverUrl: serverConfig.serverUrl,
                           username: currentUsername,
                           apiPassword: newApiPassword.apiPassword,
-                        }),
+                        })
                       )
                     }
                   >
                     <Typography
                       variant="caption"
                       sx={{
-                        fontFamily: "monospace",
-                        fontSize: "0.75rem",
-                        wordBreak: "break-all",
+                        fontFamily: 'monospace',
+                        fontSize: '0.75rem',
+                        wordBreak: 'break-all',
                       }}
                     >
                       {buildAddSourceCommand({
@@ -348,9 +358,9 @@ const ApiPasswordDrawer = ({
 
           <Box
             sx={{
-              display: "flex",
-              justifyContent: "space-between",
-              alignItems: "center",
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
               mb: 2,
             }}
           >
@@ -364,7 +374,10 @@ const ApiPasswordDrawer = ({
               variant="contained"
               size="small"
               startIcon={<AddIcon />}
-              onClick={() => setAddDialogOpen(true)}
+              onClick={() => {
+                setNewApiPassword(null);
+                setAddDialogOpen(true);
+              }}
               disabled={loading || apiPasswords.length >= 10}
             >
               <TypedMessage message={messages.ADD_NEW} />
@@ -372,11 +385,11 @@ const ApiPasswordDrawer = ({
           </Box>
 
           {loading && !apiPasswords.length ? (
-            <Box sx={{ display: "flex", justifyContent: "center", p: 4 }}>
+            <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
               <CircularProgress />
             </Box>
           ) : apiPasswords.length === 0 ? (
-            <Paper sx={{ p: 3, textAlign: "center" }}>
+            <Paper sx={{ p: 3, textAlign: 'center' }}>
               <Typography color="text.secondary">
                 <TypedMessage message={messages.NO_API_PASSWORDS} />
               </Typography>
@@ -403,7 +416,7 @@ const ApiPasswordDrawer = ({
                       <TableCell>
                         <Typography
                           variant="body2"
-                          sx={{ fontFamily: "monospace" }}
+                          sx={{ fontFamily: 'monospace' }}
                         >
                           {apiPwd.label}
                         </Typography>
@@ -417,7 +430,10 @@ const ApiPasswordDrawer = ({
                         <IconButton
                           size="small"
                           color="error"
-                          onClick={() => setDeleteConfirmDialog(apiPwd.label)}
+                          onClick={() => {
+                            setNewApiPassword(null);
+                            setDeleteConfirmDialog(apiPwd.label);
+                          }}
                           disabled={loading}
                         >
                           <DeleteIcon fontSize="small" />
@@ -493,7 +509,7 @@ const ApiPasswordDrawer = ({
           <Typography>
             <TypedMessage
               message={messages.CONFIRM_DELETE_API_PASSWORD}
-              params={{ label: deleteConfirmDialog || "" }}
+              params={{ label: deleteConfirmDialog || '' }}
             />
           </Typography>
           <Alert severity="warning" sx={{ mt: 2 }}>

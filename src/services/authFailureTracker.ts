@@ -2,8 +2,8 @@
 // Copyright (c) Kouji Matsui (@kekyo@mi.kekyo.net)
 // License under MIT.
 
-import { delay } from "async-primitives";
-import { Logger } from "../types";
+import { delay } from 'async-primitives';
+import { Logger } from '../types';
 
 /**
  * Authentication failure entry
@@ -49,7 +49,7 @@ export interface AuthFailureTracker {
  * @returns Auth failure tracker service instance
  */
 export const createAuthFailureTracker = (
-  config: AuthFailureTrackerConfig,
+  config: AuthFailureTrackerConfig
 ): AuthFailureTracker => {
   const { logger } = config;
   const enabled = config.enabled ?? true;
@@ -66,23 +66,23 @@ export const createAuthFailureTracker = (
    */
   const getClientIp = (request: any): string => {
     // Check X-Forwarded-For header first (for proxied requests)
-    const forwardedFor = request.headers["x-forwarded-for"];
+    const forwardedFor = request.headers['x-forwarded-for'];
     if (forwardedFor) {
       // Take the first IP in the chain
-      const ips = forwardedFor.split(",").map((ip: string) => ip.trim());
+      const ips = forwardedFor.split(',').map((ip: string) => ip.trim());
       if (ips.length > 0 && ips[0]) {
         return ips[0];
       }
     }
 
     // Check X-Real-IP header
-    const realIp = request.headers["x-real-ip"];
+    const realIp = request.headers['x-real-ip'];
     if (realIp) {
       return realIp;
     }
 
     // Fall back to socket remote address
-    return request.socket?.remoteAddress || "unknown";
+    return request.socket?.remoteAddress || 'unknown';
   };
 
   /**
@@ -151,7 +151,7 @@ export const createAuthFailureTracker = (
       const ip = getClientIp(request);
 
       // Track by IP
-      if (ip && ip !== "unknown") {
+      if (ip && ip !== 'unknown') {
         const ipEntry = ipFailures.get(ip) || {
           count: 0,
           firstAttempt: now,
@@ -169,7 +169,7 @@ export const createAuthFailureTracker = (
         ipFailures.set(ip, ipEntry);
 
         logger.warn(
-          `Auth failure recorded for IP ${ip}: attempt #${ipEntry.count}`,
+          `Auth failure recorded for IP ${ip}: attempt #${ipEntry.count}`
         );
       }
 
@@ -192,7 +192,7 @@ export const createAuthFailureTracker = (
         userFailures.set(username, userEntry);
 
         logger.warn(
-          `Auth failure recorded for user ${username}: attempt #${userEntry.count}`,
+          `Auth failure recorded for user ${username}: attempt #${userEntry.count}`
         );
       }
     },
@@ -210,7 +210,7 @@ export const createAuthFailureTracker = (
       let failureCount = 0;
 
       // Get max failure count from IP or username
-      if (ip && ip !== "unknown") {
+      if (ip && ip !== 'unknown') {
         const ipEntry = ipFailures.get(ip);
         if (ipEntry) {
           failureCount = Math.max(failureCount, ipEntry.count);
@@ -234,7 +234,7 @@ export const createAuthFailureTracker = (
 
       if (delayMs > 0) {
         logger.info(
-          `Applying ${delayMs}ms delay for auth failure #${failureCount} (IP: ${ip}, user: ${username || "N/A"})`,
+          `Applying ${delayMs}ms delay for auth failure #${failureCount} (IP: ${ip}, user: ${username || 'N/A'})`
         );
         await delay(delayMs);
       }
@@ -253,7 +253,7 @@ export const createAuthFailureTracker = (
       const ip = getClientIp(request);
 
       // Clear IP failures
-      if (ip && ip !== "unknown" && ipFailures.has(ip)) {
+      if (ip && ip !== 'unknown' && ipFailures.has(ip)) {
         ipFailures.delete(ip);
         logger.debug(`Cleared auth failure tracking for IP: ${ip}`);
       }
@@ -276,7 +276,7 @@ export const createAuthFailureTracker = (
       const ip = getClientIp(request);
       let failureCount = 0;
 
-      if (ip && ip !== "unknown") {
+      if (ip && ip !== 'unknown') {
         const ipEntry = ipFailures.get(ip);
         if (ipEntry) {
           failureCount = Math.max(failureCount, ipEntry.count);
@@ -311,7 +311,7 @@ export const createAuthFailureTracker = (
       stopCleanupTimer();
       ipFailures.clear();
       userFailures.clear();
-      logger.debug("Auth failure tracker destroyed");
+      logger.debug('Auth failure tracker destroyed');
     },
   };
 };
@@ -320,10 +320,10 @@ export const createAuthFailureTracker = (
  * Create auth failure tracker from environment variables
  */
 export const createAuthFailureTrackerFromEnv = (
-  logger: Logger,
+  logger: Logger
 ): AuthFailureTracker => {
   const enabled =
-    process.env.NUGET_SERVER_AUTH_FAILURE_DELAY_ENABLED !== "false";
+    process.env.NUGET_SERVER_AUTH_FAILURE_DELAY_ENABLED !== 'false';
   const maxDelay = process.env.NUGET_SERVER_AUTH_FAILURE_MAX_DELAY
     ? parseInt(process.env.NUGET_SERVER_AUTH_FAILURE_MAX_DELAY, 10)
     : undefined;

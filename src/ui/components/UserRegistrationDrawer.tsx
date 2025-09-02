@@ -2,7 +2,7 @@
 // Copyright (c) Kouji Matsui (@kekyo@mi.kekyo.net)
 // License under MIT.
 
-import { useState } from "react";
+import { useState } from 'react';
 import {
   Drawer,
   Box,
@@ -18,17 +18,17 @@ import {
   InputLabel,
   Select,
   MenuItem,
-} from "@mui/material";
+} from '@mui/material';
 import {
   Close as CloseIcon,
   PersonAdd as PersonAddIcon,
   CheckCircle as SuccessIcon,
   Error as ErrorIcon,
-} from "@mui/icons-material";
-import { PasswordStrengthIndicator } from "./PasswordStrengthIndicator";
-import { apiFetch } from "../utils/apiClient";
-import { TypedMessage, useTypedMessage } from "typed-message";
-import { messages } from "../../generated/messages";
+} from '@mui/icons-material';
+import { PasswordStrengthIndicator } from './PasswordStrengthIndicator';
+import { apiFetch } from '../utils/apiClient';
+import { TypedMessage, useTypedMessage } from 'typed-message';
+import { messages } from '../../generated/messages';
 
 interface UserRegistrationDrawerProps {
   open: boolean;
@@ -42,7 +42,7 @@ interface RegistrationResult {
   apiPassword?: string;
 }
 
-type UserRole = "read" | "publish" | "admin";
+type UserRole = 'read' | 'publish' | 'admin';
 
 const UserRegistrationDrawer = ({
   open,
@@ -50,10 +50,10 @@ const UserRegistrationDrawer = ({
   onRegistrationSuccess,
 }: UserRegistrationDrawerProps) => {
   const getMessage = useTypedMessage();
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [role, setRole] = useState<UserRole>("read");
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [role, setRole] = useState<UserRole>('read');
   const [registering, setRegistering] = useState(false);
   const [result, setResult] = useState<RegistrationResult | null>(null);
 
@@ -96,22 +96,22 @@ const UserRegistrationDrawer = ({
 
     try {
       // Use Fastify user management endpoint
-      const endpoint = "api/ui/users";
+      const endpoint = 'api/ui/users';
 
       // Prepare request body
       const requestBody = {
-        action: "create",
+        action: 'create',
         username,
         password,
         role,
       };
 
       const response = await apiFetch(endpoint, {
-        method: "POST",
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
-        credentials: "same-origin",
+        credentials: 'same-origin',
         body: JSON.stringify(requestBody),
       });
 
@@ -147,60 +147,46 @@ const UserRegistrationDrawer = ({
   };
 
   const handleClose = () => {
-    setUsername("");
-    setPassword("");
-    setConfirmPassword("");
-    setRole("read");
+    setUsername('');
+    setPassword('');
+    setConfirmPassword('');
+    setRole('read');
     setRegistering(false);
     setResult(null);
     onClose();
   };
 
   const resetForm = () => {
-    setUsername("");
-    setPassword("");
-    setConfirmPassword("");
-    setRole("read");
+    setUsername('');
+    setPassword('');
+    setConfirmPassword('');
+    setRole('read');
     setResult(null);
   };
 
   const getRoleDescription = (role: UserRole): string => {
     switch (role) {
-      case "read":
+      case 'read':
         return getMessage(messages.ROLE_READONLY_DESC);
-      case "publish":
+      case 'publish':
         return getMessage(messages.ROLE_PUBLISH_DESC);
-      case "admin":
+      case 'admin':
         return getMessage(messages.ROLE_ADMIN_DESC);
       default:
-        return "";
+        return '';
     }
   };
 
   const getRoleDisplayName = (role: UserRole): string => {
     switch (role) {
-      case "read":
+      case 'read':
         return getMessage(messages.ROLE_READONLY_SHORT);
-      case "publish":
+      case 'publish':
         return getMessage(messages.ROLE_PUBLISH_SHORT);
-      case "admin":
+      case 'admin':
         return getMessage(messages.ROLE_ADMIN_SHORT);
       default:
         return role;
-    }
-  };
-
-  const copyToClipboard = async (text: string) => {
-    try {
-      await navigator.clipboard.writeText(text);
-    } catch (err) {
-      // Fallback for older browsers
-      const textArea = document.createElement("textarea");
-      textArea.value = text;
-      document.body.appendChild(textArea);
-      textArea.select();
-      document.execCommand("copy");
-      document.body.removeChild(textArea);
     }
   };
 
@@ -213,18 +199,18 @@ const UserRegistrationDrawer = ({
       sx={{
         width: 400,
         flexShrink: 0,
-        "& .MuiDrawer-paper": {
+        '& .MuiDrawer-paper': {
           width: 400,
-          boxSizing: "border-box",
+          boxSizing: 'border-box',
         },
       }}
     >
-      <Box sx={{ p: 3, height: "100%" }}>
+      <Box sx={{ p: 3, height: '100%' }}>
         <Box
           sx={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
             mb: 3,
           }}
         >
@@ -303,7 +289,7 @@ const UserRegistrationDrawer = ({
             </FormControl>
 
             <Paper
-              sx={{ p: 2, mb: 3, bgcolor: "background.default" }}
+              sx={{ p: 2, mb: 3, bgcolor: 'background.default' }}
               variant="outlined"
               elevation={0}
             >
@@ -335,7 +321,7 @@ const UserRegistrationDrawer = ({
         ) : (
           <Box>
             <Alert
-              severity={result.success ? "success" : "error"}
+              severity={result.success ? 'success' : 'error'}
               icon={result.success ? <SuccessIcon /> : <ErrorIcon />}
               sx={{ mb: 3 }}
             >
@@ -353,7 +339,7 @@ const UserRegistrationDrawer = ({
                 </Typography>
                 <Typography
                   variant="body1"
-                  sx={{ fontWeight: "medium", mb: 1 }}
+                  sx={{ fontWeight: 'medium', mb: 1 }}
                 >
                   {getMessage(messages.USERNAME)}: {username}
                 </Typography>
@@ -364,70 +350,6 @@ const UserRegistrationDrawer = ({
                 >
                   {getMessage(messages.ROLE)}: {getRoleDisplayName(role)}
                 </Typography>
-
-                {result.apiPassword && (
-                  <>
-                    <Alert severity="warning" sx={{ mb: 2 }}>
-                      <Typography
-                        variant="body2"
-                        sx={{ fontWeight: "bold", mb: 1 }}
-                      >
-                        <TypedMessage
-                          message={messages.IMPORTANT_SAVE_API_PASSWORD}
-                        />
-                      </Typography>
-                      <Typography variant="body2">
-                        <TypedMessage
-                          message={messages.API_PASSWORD_SHOWN_ONCE}
-                        />
-                      </Typography>
-                    </Alert>
-
-                    <Typography
-                      variant="body2"
-                      color="text.secondary"
-                      gutterBottom
-                    >
-                      <TypedMessage message={messages.API_PASSWORD_LABEL} />
-                    </Typography>
-                    <Paper
-                      sx={{
-                        p: 2,
-                        bgcolor: (theme) =>
-                          theme.palette.mode === "dark"
-                            ? "grey.800"
-                            : "grey.100",
-                        border: "2px dashed",
-                        borderColor: "primary.main",
-                        cursor: "pointer",
-                        "&:hover": {
-                          bgcolor: (theme) =>
-                            theme.palette.mode === "dark"
-                              ? "grey.700"
-                              : "grey.200",
-                        },
-                      }}
-                      onClick={() => copyToClipboard(result.apiPassword!)}
-                    >
-                      <Typography
-                        variant="body2"
-                        sx={{
-                          fontFamily: "monospace",
-                          fontSize: "0.9rem",
-                          wordBreak: "break-all",
-                          mb: 1,
-                        }}
-                      >
-                        {result.apiPassword}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        <TypedMessage
-                          message={messages.CLICK_TO_COPY_CLIPBOARD}
-                        />
-                      </Typography>
-                    </Paper>
-                  </>
-                )}
               </Paper>
             )}
 
@@ -447,9 +369,9 @@ const UserRegistrationDrawer = ({
                   <Typography
                     variant="body2"
                     sx={{
-                      fontFamily: "monospace",
-                      fontSize: "0.75rem",
-                      whiteSpace: "pre-wrap",
+                      fontFamily: 'monospace',
+                      fontSize: '0.75rem',
+                      whiteSpace: 'pre-wrap',
                     }}
                   >
                     {result.message}
@@ -458,7 +380,7 @@ const UserRegistrationDrawer = ({
               </Box>
             )}
 
-            <Box sx={{ display: "flex", gap: 1 }}>
+            <Box sx={{ display: 'flex', gap: 1 }}>
               <Button variant="outlined" onClick={resetForm} sx={{ flex: 1 }}>
                 <TypedMessage message={messages.REGISTER_ANOTHER} />
               </Button>

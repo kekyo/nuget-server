@@ -2,22 +2,22 @@
 // Copyright (c) Kouji Matsui (@kekyo@mi.kekyo.net)
 // License under MIT.
 
-import { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
-import { join } from "path";
-import { mkdir, unlink, writeFile, copyFile } from "fs/promises";
-import { tmpdir } from "os";
-import { randomUUID } from "crypto";
-import xml2js from "xml2js";
-import AdmZip from "adm-zip";
-import { PackageMetadata } from "../../../services/metadataService";
-import { Logger, DuplicatePackagePolicy } from "../../../types";
-import { AuthService } from "../../../services/authService";
+import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
+import { join } from 'path';
+import { mkdir, unlink, writeFile, copyFile } from 'fs/promises';
+import { tmpdir } from 'os';
+import { randomUUID } from 'crypto';
+import xml2js from 'xml2js';
+import AdmZip from 'adm-zip';
+import { PackageMetadata } from '../../../services/metadataService';
+import { Logger, DuplicatePackagePolicy } from '../../../types';
+import { AuthService } from '../../../services/authService';
 import {
   createConditionalHybridAuthMiddleware,
   FastifyAuthConfig,
   AuthenticatedFastifyRequest,
-} from "../../../middleware/fastifyAuth";
-import { createUrlResolver } from "../../../utils/urlResolver";
+} from '../../../middleware/fastifyAuth';
+import { createUrlResolver } from '../../../utils/urlResolver';
 
 /**
  * Service interface for handling package uploads
@@ -25,9 +25,9 @@ import { createUrlResolver } from "../../../utils/urlResolver";
 export interface PackageUploadService {
   addPackage(
     metadata: PackageMetadata,
-    policy?: DuplicatePackagePolicy,
+    policy?: DuplicatePackagePolicy
   ): Promise<{
-    action: "added" | "overwritten" | "ignored" | "error";
+    action: 'added' | 'overwritten' | 'ignored' | 'error';
     message?: string;
   }>;
 }
@@ -58,7 +58,7 @@ export interface PublishResponse {
  */
 export const registerPublishRoutes = async (
   fastify: FastifyInstance,
-  config: PublishRoutesConfig,
+  config: PublishRoutesConfig
 ) => {
   const {
     packagesRoot,
@@ -66,7 +66,7 @@ export const registerPublishRoutes = async (
     authConfig,
     logger,
     urlResolver,
-    duplicatePackagePolicy = "ignore",
+    duplicatePackagePolicy = 'ignore',
   } = config;
 
   let packageUploadService: PackageUploadService | null = null;
@@ -78,7 +78,7 @@ export const registerPublishRoutes = async (
   // Helper to create conditional auth middleware based on authMode
   const createAuthHandler = () => {
     const authMode = authService.getAuthMode();
-    if (authMode === "none") {
+    if (authMode === 'none') {
       // No authentication required for publish
       return null;
     }
@@ -93,7 +93,7 @@ export const registerPublishRoutes = async (
 
   // POST /api/publish - Package upload endpoint
   fastify.post(
-    "/publish",
+    '/publish',
     {
       preHandler:
         authPreHandler.length > 0
@@ -102,14 +102,14 @@ export const registerPublishRoutes = async (
               async (request: FastifyRequest, reply: FastifyReply) => {
                 // Check role permissions for non-none auth modes
                 const authRequest = request as AuthenticatedFastifyRequest;
-                if (authService.getAuthMode() !== "none") {
+                if (authService.getAuthMode() !== 'none') {
                   if (
                     !authRequest.user ||
-                    !["publish", "admin"].includes(authRequest.user.role)
+                    !['publish', 'admin'].includes(authRequest.user.role)
                   ) {
                     return reply
                       .status(403)
-                      .send({ error: "Publish permission required" });
+                      .send({ error: 'Publish permission required' });
                   }
                 }
               },
@@ -123,14 +123,14 @@ export const registerPublishRoutes = async (
         if (!packageUploadService) {
           return reply
             .status(500)
-            .send({ error: "Package upload service not initialized" });
+            .send({ error: 'Package upload service not initialized' });
         }
 
         // Get the parsed buffer body
         const packageData = request.body as Buffer;
 
         if (!packageData || packageData.length === 0) {
-          return reply.status(400).send({ error: "No package data received" });
+          return reply.status(400).send({ error: 'No package data received' });
         }
 
         // Create temporary file for the package data
@@ -144,28 +144,28 @@ export const registerPublishRoutes = async (
         } catch (error) {
           return reply
             .status(400)
-            .send({ error: "Invalid package format - not a valid ZIP file" });
+            .send({ error: 'Invalid package format - not a valid ZIP file' });
         }
 
         // Extract nuspec file
         const nuspecEntry = zip
           .getEntries()
-          .find((entry) => entry.entryName.endsWith(".nuspec"));
+          .find((entry) => entry.entryName.endsWith('.nuspec'));
         if (!nuspecEntry) {
           return reply
             .status(400)
-            .send({ error: "Package does not contain a .nuspec file" });
+            .send({ error: 'Package does not contain a .nuspec file' });
         }
 
         // Parse nuspec
-        const nuspecContent = nuspecEntry.getData().toString("utf8");
+        const nuspecContent = nuspecEntry.getData().toString('utf8');
         let packageMetadata: PackageMetadata;
 
         try {
           packageMetadata = await parseNuspec(nuspecContent);
         } catch (error) {
           return reply.status(400).send({
-            error: "Failed to parse .nuspec file: " + (error as Error).message,
+            error: 'Failed to parse .nuspec file: ' + (error as Error).message,
           });
         }
 
@@ -182,11 +182,11 @@ export const registerPublishRoutes = async (
           // Check with metadata service first to handle duplicate policy
           const result = await packageUploadService.addPackage(
             packageMetadata,
-            duplicatePackagePolicy,
+            duplicatePackagePolicy
           );
 
           // Handle the result based on the action
-          if (result.action === "error") {
+          if (result.action === 'error') {
             // For "error" policy, return 409 Conflict
             return reply.status(409).send({
               error:
@@ -195,15 +195,15 @@ export const registerPublishRoutes = async (
             });
           }
 
-          if (result.action === "ignored") {
+          if (result.action === 'ignored') {
             // For "ignore" policy, return 200 OK without saving files
             const response: PublishResponse = {
-              message: "Package already exists and was ignored",
+              message: 'Package already exists and was ignored',
               id: packageId,
               version: version,
             };
             logger.info(
-              `Package already exists, ignored: ${packageId} ${version}`,
+              `Package already exists, ignored: ${packageId} ${version}`
             );
             return reply.status(200).send(response);
           }
@@ -228,21 +228,21 @@ export const registerPublishRoutes = async (
               if (iconEntry) {
                 const iconData = iconEntry.getData();
                 const iconExtension =
-                  packageMetadata.icon.split(".").pop()?.toLowerCase() || "png";
+                  packageMetadata.icon.split('.').pop()?.toLowerCase() || 'png';
                 const iconFileName = `icon.${iconExtension}`;
                 const iconPath = join(packageDir, iconFileName);
                 await writeFile(iconPath, iconData);
                 logger.info(
-                  `Extracted icon: ${iconFileName} for package ${packageId} ${version}`,
+                  `Extracted icon: ${iconFileName} for package ${packageId} ${version}`
                 );
               } else {
                 logger.warn(
-                  `Icon file ${packageMetadata.icon} specified in nuspec but not found in package ${packageId} ${version}`,
+                  `Icon file ${packageMetadata.icon} specified in nuspec but not found in package ${packageId} ${version}`
                 );
               }
             } catch (error) {
               logger.error(
-                `Failed to extract icon for package ${packageId} ${version}: ${error}`,
+                `Failed to extract icon for package ${packageId} ${version}: ${error}`
               );
             }
           }
@@ -250,25 +250,25 @@ export const registerPublishRoutes = async (
           // Prepare response based on action
           const response: PublishResponse = {
             message:
-              result.action === "overwritten"
-                ? "Package uploaded successfully (replaced existing version)"
-                : "Package uploaded successfully",
+              result.action === 'overwritten'
+                ? 'Package uploaded successfully (replaced existing version)'
+                : 'Package uploaded successfully',
             id: packageId,
             version: version,
           };
 
           logger.info(
-            `Package ${result.action === "overwritten" ? "overwritten" : "uploaded"} successfully: ${packageId} ${version}`,
+            `Package ${result.action === 'overwritten' ? 'overwritten' : 'uploaded'} successfully: ${packageId} ${version}`
           );
           return reply.status(201).send(response);
         } catch (error) {
           return reply.status(500).send({
-            error: "Failed to save package: " + (error as Error).message,
+            error: 'Failed to save package: ' + (error as Error).message,
           });
         }
       } catch (error) {
         logger.error(`Package upload error: ${error}`);
-        return reply.status(500).send({ error: "Internal server error" });
+        return reply.status(500).send({ error: 'Internal server error' });
       } finally {
         // Clean up temporary file
         if (tempFilePath) {
@@ -276,15 +276,15 @@ export const registerPublishRoutes = async (
             await unlink(tempFilePath);
           } catch (error) {
             logger.error(
-              `Failed to clean up temporary file: ${tempFilePath} - ${error}`,
+              `Failed to clean up temporary file: ${tempFilePath} - ${error}`
             );
           }
         }
       }
-    },
+    }
   );
 
-  logger.info("Package publish API routes registered successfully");
+  logger.info('Package publish API routes registered successfully');
 
   return { setPackageUploadService };
 };
@@ -301,11 +301,11 @@ const parseNuspec = async (nuspecContent: string): Promise<PackageMetadata> => {
 
   const metadata = result.package?.metadata;
   if (!metadata) {
-    throw new Error("Invalid nuspec format - missing metadata section");
+    throw new Error('Invalid nuspec format - missing metadata section');
   }
 
   if (!metadata.id || !metadata.version) {
-    throw new Error("Invalid nuspec format - missing id or version");
+    throw new Error('Invalid nuspec format - missing id or version');
   }
 
   // Extract dependencies
@@ -313,7 +313,7 @@ const parseNuspec = async (nuspecContent: string): Promise<PackageMetadata> => {
 
   // Extract tags
   const tags = metadata.tags
-    ? typeof metadata.tags === "string"
+    ? typeof metadata.tags === 'string'
       ? metadata.tags.split(/[\s,]+/).filter((t: string) => t)
       : []
     : [];
@@ -325,7 +325,7 @@ const parseNuspec = async (nuspecContent: string): Promise<PackageMetadata> => {
     description: metadata.description,
     licenseUrl: metadata.licenseUrl,
     licenseExpression:
-      typeof metadata.license === "object"
+      typeof metadata.license === 'object'
         ? metadata.license._
         : metadata.license,
     projectUrl: metadata.projectUrl,
@@ -335,7 +335,7 @@ const parseNuspec = async (nuspecContent: string): Promise<PackageMetadata> => {
     dependencies,
     published: new Date(),
     listed: true,
-    packageContentUrl: "", // Will be set later
+    packageContentUrl: '', // Will be set later
   };
 };
 

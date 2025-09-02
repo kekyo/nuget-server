@@ -2,12 +2,12 @@
 // Copyright (c) Kouji Matsui (@kekyo@mi.kekyo.net)
 // License under MIT.
 
-import { useState, useEffect } from "react";
-import { LinearProgress, Box, Typography, Skeleton } from "@mui/material";
+import { useState, useEffect } from 'react';
+import { LinearProgress, Box, Typography, Skeleton } from '@mui/material';
 import {
   checkPasswordStrength,
   PasswordStrengthResult,
-} from "../../utils/passwordStrength";
+} from '../../utils/passwordStrength';
 
 interface PasswordStrengthIndicatorProps {
   password: string;
@@ -32,11 +32,11 @@ export const PasswordStrengthIndicator = ({
       try {
         const result = checkPasswordStrength(
           password,
-          username ? [username] : [],
+          username ? [username] : []
         );
         setStrength(result);
       } catch (error) {
-        console.error("Failed to check password strength:", error);
+        console.error('Failed to check password strength:', error);
       } finally {
         setLoading(false);
       }
@@ -58,7 +58,7 @@ export const PasswordStrengthIndicator = ({
     );
   }
 
-  const colors = ["#f44336", "#ff9800", "#ffc107", "#8bc34a", "#4caf50"];
+  const colors = ['#f44336', '#ff9800', '#ffc107', '#8bc34a', '#4caf50'];
   const color = colors[strength.score];
 
   return (
@@ -69,11 +69,11 @@ export const PasswordStrengthIndicator = ({
         sx={{
           height: 6,
           borderRadius: 3,
-          backgroundColor: "#e0e0e0",
-          "& .MuiLinearProgress-bar": { backgroundColor: color },
+          backgroundColor: '#e0e0e0',
+          '& .MuiLinearProgress-bar': { backgroundColor: color },
         }}
       />
-      <Box sx={{ display: "flex", justifyContent: "space-between", mt: 0.5 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 0.5 }}>
         <Typography variant="caption" sx={{ color }}>
           {strength.strength}
         </Typography>

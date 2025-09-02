@@ -2,13 +2,13 @@
 // Copyright (c) Kouji Matsui (@kekyo@mi.kekyo.net)
 // License under MIT.
 
-import { join } from "path";
-import { mkdir, writeFile, access } from "fs/promises";
-import { constants } from "fs";
-import AdmZip from "adm-zip";
-import xml2js from "xml2js";
-import { createNuGetClient } from "./nugetClient";
-import { Logger } from "../types";
+import { join } from 'path';
+import { mkdir, writeFile, access } from 'fs/promises';
+import { constants } from 'fs';
+import AdmZip from 'adm-zip';
+import xml2js from 'xml2js';
+import { createNuGetClient } from './nugetClient';
+import { Logger } from '../types';
 
 /**
  * Package information for import
@@ -69,7 +69,7 @@ export interface ImportService {
  * Parse nuspec XML to extract package metadata
  */
 const parseNuspec = async (
-  nuspecContent: string,
+  nuspecContent: string
 ): Promise<{
   id: string;
   version: string;
@@ -80,7 +80,7 @@ const parseNuspec = async (
 
   const metadata = result.package?.metadata;
   if (!metadata) {
-    throw new Error("Invalid nuspec: missing metadata");
+    throw new Error('Invalid nuspec: missing metadata');
   }
 
   return {
@@ -96,13 +96,13 @@ const parseNuspec = async (
 const packageExists = async (
   packageDir: string,
   packageId: string,
-  version: string,
+  version: string
 ): Promise<boolean> => {
   const packagePath = join(
     packageDir,
     packageId,
     version,
-    `${packageId}.${version}.nupkg`,
+    `${packageId}.${version}.nupkg`
   );
 
   try {
@@ -119,26 +119,26 @@ const packageExists = async (
 const savePackage = async (
   packageData: Buffer,
   packageDir: string,
-  logger: Logger,
+  logger: Logger
 ): Promise<void> => {
   // Validate package format
   let zip: AdmZip;
   try {
     zip = new AdmZip(packageData);
   } catch (error) {
-    throw new Error("Invalid package format - not a valid ZIP file");
+    throw new Error('Invalid package format - not a valid ZIP file');
   }
 
   // Extract nuspec
   const nuspecEntry = zip
     .getEntries()
-    .find((entry) => entry.entryName.endsWith(".nuspec"));
+    .find((entry) => entry.entryName.endsWith('.nuspec'));
 
   if (!nuspecEntry) {
-    throw new Error("Package does not contain a .nuspec file");
+    throw new Error('Package does not contain a .nuspec file');
   }
 
-  const nuspecContent = nuspecEntry.getData().toString("utf8");
+  const nuspecContent = nuspecEntry.getData().toString('utf8');
   const metadata = await parseNuspec(nuspecContent);
 
   // Create package directory
@@ -148,7 +148,7 @@ const savePackage = async (
   // Save nupkg file
   const nupkgPath = join(
     versionDir,
-    `${metadata.id}.${metadata.version}.nupkg`,
+    `${metadata.id}.${metadata.version}.nupkg`
   );
   await writeFile(nupkgPath, packageData);
 
@@ -166,17 +166,17 @@ const savePackage = async (
       if (iconEntry) {
         const iconData = iconEntry.getData();
         const iconExtension =
-          metadata.icon.split(".").pop()?.toLowerCase() || "png";
+          metadata.icon.split('.').pop()?.toLowerCase() || 'png';
         const iconFileName = `icon.${iconExtension}`;
         const iconPath = join(versionDir, iconFileName);
         await writeFile(iconPath, iconData);
         logger.debug(
-          `Extracted icon: ${iconFileName} for ${metadata.id} ${metadata.version}`,
+          `Extracted icon: ${iconFileName} for ${metadata.id} ${metadata.version}`
         );
       }
     } catch (error) {
       logger.warn(
-        `Failed to extract icon for ${metadata.id} ${metadata.version}: ${error}`,
+        `Failed to extract icon for ${metadata.id} ${metadata.version}: ${error}`
       );
     }
   }
@@ -188,7 +188,7 @@ const savePackage = async (
  * @returns Import service instance
  */
 export const createImportService = (
-  config: ImportServiceConfig,
+  config: ImportServiceConfig
 ): ImportService => {
   const { sourceUrl, username, password, packageDir, logger, onProgress } =
     config;
@@ -204,28 +204,28 @@ export const createImportService = (
      * Discover all packages from the source server
      */
     discoverPackages: async (): Promise<PackageToImport[]> => {
-      logger.info("Fetching service index...");
+      logger.info('Fetching service index...');
       const serviceIndex = await client.getServiceIndex();
 
       // Find required service URLs
       const searchService = serviceIndex.resources.find((r) => {
-        const types = Array.isArray(r["@type"]) ? r["@type"] : [r["@type"]];
-        return types.some((t) => t.includes("SearchQueryService"));
+        const types = Array.isArray(r['@type']) ? r['@type'] : [r['@type']];
+        return types.some((t) => t.includes('SearchQueryService'));
       });
 
       const packageBaseService = serviceIndex.resources.find((r) => {
-        const types = Array.isArray(r["@type"]) ? r["@type"] : [r["@type"]];
-        return types.some((t) => t.includes("PackageBaseAddress"));
+        const types = Array.isArray(r['@type']) ? r['@type'] : [r['@type']];
+        return types.some((t) => t.includes('PackageBaseAddress'));
       });
 
       if (!searchService || !packageBaseService) {
-        throw new Error("Required NuGet services not found in service index");
+        throw new Error('Required NuGet services not found in service index');
       }
 
-      const searchUrl = searchService["@id"].replace(/\/$/, "");
-      const packageBaseUrl = packageBaseService["@id"].replace(/\/$/, "");
+      const searchUrl = searchService['@id'].replace(/\/$/, '');
+      const packageBaseUrl = packageBaseService['@id'].replace(/\/$/, '');
 
-      logger.info("Discovering packages...");
+      logger.info('Discovering packages...');
 
       // Search for all packages
       const allPackages: PackageToImport[] = [];
@@ -243,7 +243,7 @@ export const createImportService = (
             logger.debug(`Getting versions for ${pkg.id}...`);
             const versions = await client.getPackageVersions(
               packageBaseUrl,
-              pkg.id,
+              pkg.id
             );
             allPackages.push({
               id: pkg.id,
@@ -259,10 +259,10 @@ export const createImportService = (
 
       const totalVersions = allPackages.reduce(
         (sum, p) => sum + p.versions.length,
-        0,
+        0
       );
       logger.info(
-        `Found ${allPackages.length} packages with ${totalVersions} total versions`,
+        `Found ${allPackages.length} packages with ${totalVersions} total versions`
       );
 
       return allPackages;
@@ -272,20 +272,20 @@ export const createImportService = (
      * Import packages from the source server
      */
     importPackages: async (
-      packages: PackageToImport[],
+      packages: PackageToImport[]
     ): Promise<ImportResult> => {
       const serviceIndex = await client.getServiceIndex();
 
       const packageContentService = serviceIndex.resources.find((r) => {
-        const types = Array.isArray(r["@type"]) ? r["@type"] : [r["@type"]];
-        return types.some((t) => t.includes("PackageBaseAddress"));
+        const types = Array.isArray(r['@type']) ? r['@type'] : [r['@type']];
+        return types.some((t) => t.includes('PackageBaseAddress'));
       });
 
       if (!packageContentService) {
-        throw new Error("Package content service not found");
+        throw new Error('Package content service not found');
       }
 
-      const packageContentUrl = packageContentService["@id"].replace(/\/$/, "");
+      const packageContentUrl = packageContentService['@id'].replace(/\/$/, '');
 
       const result: ImportResult = {
         totalPackages: packages.length,
@@ -313,7 +313,7 @@ export const createImportService = (
             let overwrite = false;
             if (await packageExists(packageDir, pkg.id, version)) {
               logger.debug(
-                `Overwriting existing package: ${pkg.id}@${version}`,
+                `Overwriting existing package: ${pkg.id}@${version}`
               );
               overwrite = true;
             }
@@ -324,7 +324,7 @@ export const createImportService = (
             const packageData = await client.downloadPackage(
               packageContentUrl,
               pkg.id,
-              version,
+              version
             );
 
             // Save to disk
@@ -334,11 +334,11 @@ export const createImportService = (
             progress.downloadedVersions++;
 
             logger.info(
-              `Successfully imported ${pkg.id}@${version}${overwrite ? " (overwrite)" : ""}`,
+              `Successfully imported ${pkg.id}@${version}${overwrite ? ' (overwrite)' : ''}`
             );
           } catch (error: any) {
             logger.error(
-              `Failed to import ${pkg.id}@${version}: ${error.message}`,
+              `Failed to import ${pkg.id}@${version}: ${error.message}`
             );
             result.failedVersions++;
             progress.failedVersions++;

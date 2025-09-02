@@ -14,33 +14,33 @@ export const makeAuthenticatedRequest = async (
     auth?: string; // format: "username:password"
     body?: Buffer | Uint8Array | string | object;
     headers?: Record<string, string>;
-  } = {},
+  } = {}
 ): Promise<Response> => {
-  const { method = "GET", auth, body, headers = {} } = options;
+  const { method = 'GET', auth, body, headers = {} } = options;
 
   if (auth) {
-    headers["Authorization"] = `Basic ${Buffer.from(auth).toString("base64")}`;
+    headers['Authorization'] = `Basic ${Buffer.from(auth).toString('base64')}`;
   }
 
   let requestBody: BodyInit | undefined;
 
   if (body) {
     if (
-      typeof body === "object" &&
+      typeof body === 'object' &&
       !(body instanceof Buffer) &&
       !(body instanceof Uint8Array)
     ) {
       // JSON object
-      headers["Content-Type"] = "application/json";
+      headers['Content-Type'] = 'application/json';
       requestBody = JSON.stringify(body);
-    } else if (typeof body === "string") {
+    } else if (typeof body === 'string') {
       // String body
-      headers["Content-Type"] = headers["Content-Type"] || "text/plain";
+      headers['Content-Type'] = headers['Content-Type'] || 'text/plain';
       requestBody = body;
     } else {
       // Buffer or Uint8Array - convert Buffer to Uint8Array for fetch API compatibility
-      headers["Content-Type"] =
-        headers["Content-Type"] || "application/octet-stream";
+      headers['Content-Type'] =
+        headers['Content-Type'] || 'application/octet-stream';
       // Convert Buffer to Uint8Array and cast to any to handle TypeScript's strict type checking
       // This is safe because Uint8Array is a valid BodyInit type at runtime
       requestBody = (
@@ -72,7 +72,7 @@ export const makeAuthenticatedRequestWithRetry = async (
     maxRetries?: number;
     retryDelay?: number;
     expectStatus?: number; // Expected status code
-  } = {},
+  } = {}
 ): Promise<Response> => {
   const {
     maxRetries = 3,

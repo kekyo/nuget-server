@@ -1,8 +1,8 @@
-import { spawn } from "child_process";
-import { promises as fs } from "fs";
-import path from "path";
-import { Logger } from "../../src/types";
-import { ensureDir } from "./fs-utils";
+import { spawn } from 'child_process';
+import { promises as fs } from 'fs';
+import path from 'path';
+import { Logger } from '../../src/types';
+import { ensureDir } from './fs-utils';
 
 export interface DotNetRestoreResult {
   success: boolean;
@@ -18,40 +18,40 @@ export interface DotNetRestoreResult {
 const spawnAsync = (
   command: string,
   args: string[],
-  options: { cwd?: string; env?: Record<string, string>; timeout?: number },
+  options: { cwd?: string; env?: Record<string, string>; timeout?: number }
 ): Promise<{ stdout: string; stderr: string; exitCode: number | null }> => {
   return new Promise((resolve, reject) => {
     const child = spawn(command, args, {
       cwd: options.cwd,
       env: { ...process.env, ...options.env },
-      stdio: "pipe",
+      stdio: 'pipe',
     });
 
-    let stdout = "";
-    let stderr = "";
+    let stdout = '';
+    let stderr = '';
     let timeoutId: NodeJS.Timeout | undefined;
 
     if (options.timeout) {
       timeoutId = setTimeout(() => {
-        child.kill("SIGTERM");
+        child.kill('SIGTERM');
         reject(new Error(`Command timed out after ${options.timeout}ms`));
       }, options.timeout);
     }
 
-    child.stdout?.on("data", (data) => {
+    child.stdout?.on('data', (data) => {
       stdout += data.toString();
     });
 
-    child.stderr?.on("data", (data) => {
+    child.stderr?.on('data', (data) => {
       stderr += data.toString();
     });
 
-    child.on("close", (code) => {
+    child.on('close', (code) => {
       if (timeoutId) clearTimeout(timeoutId);
       resolve({ stdout, stderr, exitCode: code });
     });
 
-    child.on("error", (error) => {
+    child.on('error', (error) => {
       if (timeoutId) clearTimeout(timeoutId);
       reject(error);
     });
@@ -63,17 +63,17 @@ export const clearNuGetCache = async (logger: Logger): Promise<void> => {
     // Check if dotnet command is available first
     const dotnetPath = process.env.HOME
       ? `${process.env.HOME}/.dotnet`
-      : "/usr/local/share/dotnet";
+      : '/usr/local/share/dotnet';
     const env = {
-      PATH: `${dotnetPath}:${process.env.PATH || ""}`,
+      PATH: `${dotnetPath}:${process.env.PATH || ''}`,
       DOTNET_ROOT: dotnetPath,
     };
 
-    await spawnAsync("dotnet", ["nuget", "locals", "all", "--clear"], {
+    await spawnAsync('dotnet', ['nuget', 'locals', 'all', '--clear'], {
       timeout: 30000,
       env,
     });
-    logger.info("NuGet cache cleared successfully");
+    logger.info('NuGet cache cleared successfully');
   } catch (error: any) {
     // Log detailed error information but don't fail the test
     logger.warn(`Failed to clear NuGet cache: ${error.message}`);
@@ -83,7 +83,7 @@ export const clearNuGetCache = async (logger: Logger): Promise<void> => {
 export const createTestProject = async (
   dotnetDir: string,
   packageId: string,
-  packageVersion: string,
+  packageVersion: string
 ): Promise<void> => {
   await ensureDir(dotnetDir);
 
@@ -101,13 +101,13 @@ export const createTestProject = async (
   </ItemGroup>
 </Project>`;
 
-  const csprojPath = path.join(dotnetDir, "TestProject.csproj");
+  const csprojPath = path.join(dotnetDir, 'TestProject.csproj');
   await fs.writeFile(csprojPath, csprojContent);
 };
 
 export const addNuGetSource = async (
   dotnetDir: string,
-  serverUrl: string,
+  serverUrl: string
 ): Promise<void> => {
   // WARNING: DO NOT REMOVE `<clear />`, we MUST test on only local-nuget-server.
   const nugetConfigContent = `<?xml version="1.0" encoding="utf-8"?>
@@ -118,7 +118,7 @@ export const addNuGetSource = async (
   </packageSources>
 </configuration>`;
 
-  const nugetConfigPath = path.join(dotnetDir, "NuGet.config");
+  const nugetConfigPath = path.join(dotnetDir, 'NuGet.config');
   await fs.writeFile(nugetConfigPath, nugetConfigContent);
 };
 
@@ -126,7 +126,7 @@ export const addNuGetSourceWithAuth = async (
   dotnetDir: string,
   serverUrl: string,
   username: string,
-  password: string,
+  password: string
 ): Promise<void> => {
   // WARNING: DO NOT REMOVE `<clear />`, we MUST test on only local-nuget-server.
   const nugetConfigContent = `<?xml version="1.0" encoding="utf-8"?>
@@ -143,50 +143,50 @@ export const addNuGetSourceWithAuth = async (
   </packageSourceCredentials>
 </configuration>`;
 
-  const nugetConfigPath = path.join(dotnetDir, "NuGet.config");
+  const nugetConfigPath = path.join(dotnetDir, 'NuGet.config');
   await fs.writeFile(nugetConfigPath, nugetConfigContent);
 };
 
 export const runDotNetRestore = async (
   logger: Logger,
-  projectDir: string,
+  projectDir: string
 ): Promise<DotNetRestoreResult> => {
   try {
     // Set up environment variables for dotnet CLI
     const dotnetPath = process.env.HOME
       ? `${process.env.HOME}/.dotnet`
-      : "/usr/local/share/dotnet";
+      : '/usr/local/share/dotnet';
     const env = {
-      PATH: `${dotnetPath}:${process.env.PATH || ""}`,
+      PATH: `${dotnetPath}:${process.env.PATH || ''}`,
       DOTNET_ROOT: dotnetPath,
-      DOTNET_CLI_TELEMETRY_OPTOUT: "1", // Disable telemetry for cleaner output
-      DOTNET_SKIP_FIRST_TIME_EXPERIENCE: "1",
+      DOTNET_CLI_TELEMETRY_OPTOUT: '1', // Disable telemetry for cleaner output
+      DOTNET_SKIP_FIRST_TIME_EXPERIENCE: '1',
     };
 
     // Log debug information
     logger.info(
-      `Running dotnet restore with environment: ${projectDir}, ${dotnetPath}, ${env.PATH?.substring(0, 200)}...`,
+      `Running dotnet restore with environment: ${projectDir}, ${dotnetPath}, ${env.PATH?.substring(0, 200)}...`
     );
 
     // First check if dotnet is available
     try {
-      const versionResult = await spawnAsync("dotnet", ["--version"], {
+      const versionResult = await spawnAsync('dotnet', ['--version'], {
         env,
         timeout: 10000,
       });
-      logger.info("dotnet version:" + versionResult.stdout.trim());
+      logger.info('dotnet version:' + versionResult.stdout.trim());
     } catch (versionError) {
-      logger.warn("dotnet version check failed: " + versionError);
+      logger.warn('dotnet version check failed: ' + versionError);
     }
 
     const result = await spawnAsync(
-      "dotnet",
-      ["restore", "--no-cache", "--force", "--verbosity", "normal"],
+      'dotnet',
+      ['restore', '--no-cache', '--force', '--verbosity', 'normal'],
       {
         cwd: projectDir,
         timeout: 60000, // 60 seconds timeout
         env,
-      },
+      }
     );
 
     return {
@@ -202,14 +202,14 @@ export const runDotNetRestore = async (
     return {
       success: false,
       exitCode: 1,
-      stdout: "",
-      stderr: error.message || "Unknown error",
+      stdout: '',
+      stderr: error.message || 'Unknown error',
     };
   }
 };
 
 export const extractPackageRequestsFromRestoreOutput = (
-  output: string,
+  output: string
 ): Array<{
   packageId: string;
   version: string;
@@ -220,7 +220,7 @@ export const extractPackageRequestsFromRestoreOutput = (
     version: string;
     source: string;
   }> = [];
-  const lines = output.split("\n");
+  const lines = output.split('\n');
 
   for (const line of lines) {
     // Look for package download patterns in dotnet restore output
@@ -253,12 +253,12 @@ export const extractPackageRequestsFromRestoreOutput = (
 export const verifyPackageRestored = async (
   projectDir: string,
   packageId: string,
-  version: string,
+  version: string
 ): Promise<boolean> => {
   try {
     // Check project.assets.json for package details
-    const assetsPath = path.join(projectDir, "obj/project.assets.json");
-    const assetsContent = await fs.readFile(assetsPath, "utf-8");
+    const assetsPath = path.join(projectDir, 'obj/project.assets.json');
+    const assetsContent = await fs.readFile(assetsPath, 'utf-8');
     const assets = JSON.parse(assetsContent);
 
     // Check if package is in libraries section
@@ -268,8 +268,8 @@ export const verifyPackageRestored = async (
     }
 
     // Check project.nuget.cache for restore success
-    const cachePath = path.join(projectDir, "obj/project.nuget.cache");
-    const cacheContent = await fs.readFile(cachePath, "utf-8");
+    const cachePath = path.join(projectDir, 'obj/project.nuget.cache');
+    const cacheContent = await fs.readFile(cachePath, 'utf-8');
     const cache = JSON.parse(cacheContent);
 
     return cache.success === true;

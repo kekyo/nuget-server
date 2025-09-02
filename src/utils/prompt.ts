@@ -2,7 +2,7 @@
 // Copyright (c) Kouji Matsui (@kekyo@mi.kekyo.net)
 // License under MIT.
 
-import * as readline from "readline";
+import * as readline from 'readline';
 
 /**
  * Prompts for user input with optional default value
@@ -10,14 +10,14 @@ import * as readline from "readline";
 export const promptInput = (
   rl: readline.Interface,
   prompt: string,
-  defaultValue?: string,
+  defaultValue?: string
 ): Promise<string> => {
   return new Promise((resolve) => {
     const displayPrompt = defaultValue
       ? `${prompt} [${defaultValue}]: `
       : `${prompt}: `;
     rl.question(displayPrompt, (answer) => {
-      resolve(answer.trim() || defaultValue || "");
+      resolve(answer.trim() || defaultValue || '');
     });
   });
 };
@@ -38,8 +38,8 @@ export const promptPassword = (prompt: string): Promise<string> => {
 
       process.stdout.write(`${prompt}: `);
 
-      rl.once("line", (input) => {
-        process.stdout.write("\n");
+      rl.once('line', (input) => {
+        process.stdout.write('\n');
         rl.close();
         resolve(input);
       });
@@ -55,38 +55,38 @@ export const promptPassword = (prompt: string): Promise<string> => {
     process.stdin.setRawMode(true);
     process.stdin.resume();
 
-    let password = "";
+    let password = '';
 
     const onData = (chunk: Buffer) => {
-      const str = chunk.toString("utf8");
+      const str = chunk.toString('utf8');
 
       // Handle multiple characters (e.g., from paste)
       for (let i = 0; i < str.length; i++) {
         const char = str[i];
 
         switch (char) {
-          case "\u0003": // Ctrl+C
-            process.stdout.write("\n");
+          case '\u0003': // Ctrl+C
+            process.stdout.write('\n');
             process.stdin.setRawMode(false);
             process.stdin.pause();
-            process.stdin.removeListener("data", onData);
-            reject(new Error("Cancelled by user"));
+            process.stdin.removeListener('data', onData);
+            reject(new Error('Cancelled by user'));
             return;
 
-          case "\r":
-          case "\n": // Enter
-            process.stdout.write("\n");
+          case '\r':
+          case '\n': // Enter
+            process.stdout.write('\n');
             process.stdin.setRawMode(false);
             process.stdin.pause();
-            process.stdin.removeListener("data", onData);
+            process.stdin.removeListener('data', onData);
             resolve(password);
             return;
 
-          case "\u007F": // Backspace (DEL)
-          case "\b": // Backspace (BS)
+          case '\u007F': // Backspace (DEL)
+          case '\b': // Backspace (BS)
             if (password.length > 0) {
               password = password.slice(0, -1);
-              process.stdout.write("\b \b"); // Move back, write space, move back again
+              process.stdout.write('\b \b'); // Move back, write space, move back again
             }
             break;
 
@@ -94,14 +94,14 @@ export const promptPassword = (prompt: string): Promise<string> => {
             // Only accept printable characters
             if (char && char.charCodeAt(0) >= 32 && char.charCodeAt(0) < 127) {
               password += char;
-              process.stdout.write("*");
+              process.stdout.write('*');
             }
             break;
         }
       }
     };
 
-    process.stdin.on("data", onData);
+    process.stdin.on('data', onData);
   });
 };
 
@@ -111,16 +111,16 @@ export const promptPassword = (prompt: string): Promise<string> => {
 export const promptConfirm = (
   rl: readline.Interface,
   prompt: string,
-  defaultValue: boolean = false,
+  defaultValue: boolean = false
 ): Promise<boolean> => {
   return new Promise((resolve) => {
-    const defaultStr = defaultValue ? "Y/n" : "y/N";
+    const defaultStr = defaultValue ? 'Y/n' : 'y/N';
     rl.question(`${prompt} [${defaultStr}]: `, (answer) => {
       const normalized = answer.trim().toLowerCase();
-      if (normalized === "") {
+      if (normalized === '') {
         resolve(defaultValue);
       } else {
-        resolve(normalized === "y" || normalized === "yes");
+        resolve(normalized === 'y' || normalized === 'yes');
       }
     });
   });

@@ -1,16 +1,16 @@
-import { describe, test, expect, beforeEach, afterEach } from "vitest";
-import fs from "fs/promises";
-import path from "path";
-import AdmZip from "adm-zip";
-import { startFastifyServer, FastifyServerInstance } from "../src/server";
-import { createConsoleLogger } from "../src/logger";
-import { ServerConfig } from "../src/types";
+import { describe, test, expect, beforeEach, afterEach } from 'vitest';
+import fs from 'fs/promises';
+import path from 'path';
+import AdmZip from 'adm-zip';
+import { startFastifyServer, FastifyServerInstance } from '../src/server';
+import { createConsoleLogger } from '../src/logger';
+import { ServerConfig } from '../src/types';
 import {
   createTestDirectory,
   getTestPort,
   testGlobalLogLevel,
   waitForServerReady,
-} from "./helpers/test-helper.js";
+} from './helpers/test-helper.js';
 
 /**
  * Fastify UI Backend API Tests - Phase 4
@@ -25,17 +25,17 @@ import {
  * - Authentication requirements based on authMode
  * - Session-based authentication integration
  */
-describe("Fastify UI Backend API - Phase 4 Tests", () => {
+describe('Fastify UI Backend API - Phase 4 Tests', () => {
   let testBaseDir: string;
   let testConfigDir: string;
   let testPackagesDir: string;
   let serverPort: number;
-  const logger = createConsoleLogger("fastify-ui-api", testGlobalLogLevel);
+  const logger = createConsoleLogger('fastify-ui-api', testGlobalLogLevel);
 
   // Helper to start server with specific auth mode
   const startServerWithAuth = (
-    authMode: "none" | "publish" | "full",
-    port: number,
+    authMode: 'none' | 'publish' | 'full',
+    port: number
   ): Promise<FastifyServerInstance> => {
     const config: ServerConfig = {
       port,
@@ -53,25 +53,25 @@ describe("Fastify UI Backend API - Phase 4 Tests", () => {
   const loginAndGetSession = async (
     username: string,
     password: string,
-    port: number,
+    port: number
   ): Promise<string> => {
     const loginResponse = await fetch(
       `http://localhost:${port}/api/auth/login`,
       {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ username, password }),
-      },
+      }
     );
 
     if (loginResponse.status !== 200) {
       throw new Error(`Login failed with status ${loginResponse.status}`);
     }
 
-    const cookies = loginResponse.headers.get("set-cookie") || "";
-    const sessionToken = cookies.match(/sessionToken=([^;]+)/)?.[1] || "";
+    const cookies = loginResponse.headers.get('set-cookie') || '';
+    const sessionToken = cookies.match(/sessionToken=([^;]+)/)?.[1] || '';
     if (!sessionToken) {
-      throw new Error("No session token in login response");
+      throw new Error('No session token in login response');
     }
     return sessionToken;
   };
@@ -80,43 +80,43 @@ describe("Fastify UI Backend API - Phase 4 Tests", () => {
   const createTestUsers = async () => {
     const testUsers = [
       {
-        id: "test-admin-ui",
-        username: "testadminui",
-        passwordHash: "PSRt9HqDyLtH7LC8iUnS7F9ObKU=", // password: "adminpass"
-        salt: "test-salt-admin-ui",
-        apiPasswordHash: "fEE9WeQqltjkrNwKP6WZb4lPLJ0=", // apiPassword: "admin-api-key-123"
-        apiPasswordSalt: "test-api-salt-admin-ui",
-        role: "admin",
-        createdAt: "2024-01-01T00:00:00Z",
-        updatedAt: "2024-01-01T00:00:00Z",
+        id: 'test-admin-ui',
+        username: 'testadminui',
+        passwordHash: 'PSRt9HqDyLtH7LC8iUnS7F9ObKU=', // password: "adminpass"
+        salt: 'test-salt-admin-ui',
+        apiPasswordHash: 'fEE9WeQqltjkrNwKP6WZb4lPLJ0=', // apiPassword: "admin-api-key-123"
+        apiPasswordSalt: 'test-api-salt-admin-ui',
+        role: 'admin',
+        createdAt: '2024-01-01T00:00:00Z',
+        updatedAt: '2024-01-01T00:00:00Z',
       },
       {
-        id: "test-publish-ui",
-        username: "testpublishui",
-        passwordHash: "OxSWKpMyC4Ycbk6AVlacKvtFzp4=", // password: "publishpass"
-        salt: "test-salt-publish-ui",
-        apiPasswordHash: "kRHDw5YZn/Ic+ynzwmVQvFdFCJw=", // apiPassword: "publish-api-key-123"
-        apiPasswordSalt: "test-api-salt-publish-ui",
-        role: "publish",
-        createdAt: "2024-01-01T00:00:00Z",
-        updatedAt: "2024-01-01T00:00:00Z",
+        id: 'test-publish-ui',
+        username: 'testpublishui',
+        passwordHash: 'OxSWKpMyC4Ycbk6AVlacKvtFzp4=', // password: "publishpass"
+        salt: 'test-salt-publish-ui',
+        apiPasswordHash: 'kRHDw5YZn/Ic+ynzwmVQvFdFCJw=', // apiPassword: "publish-api-key-123"
+        apiPasswordSalt: 'test-api-salt-publish-ui',
+        role: 'publish',
+        createdAt: '2024-01-01T00:00:00Z',
+        updatedAt: '2024-01-01T00:00:00Z',
       },
       {
-        id: "test-read-ui",
-        username: "testreadui",
-        passwordHash: "kB94DvNnBYRvYaV/ZGoHQCyK1/k=", // password: "readpass"
-        salt: "test-salt-read-ui",
-        apiPasswordHash: "DRkROp0nFzqicoShFhroRDxemVE=", // apiPassword: "read-api-key-123"
-        apiPasswordSalt: "test-api-salt-read-ui",
-        role: "read",
-        createdAt: "2024-01-01T00:00:00Z",
-        updatedAt: "2024-01-01T00:00:00Z",
+        id: 'test-read-ui',
+        username: 'testreadui',
+        passwordHash: 'kB94DvNnBYRvYaV/ZGoHQCyK1/k=', // password: "readpass"
+        salt: 'test-salt-read-ui',
+        apiPasswordHash: 'DRkROp0nFzqicoShFhroRDxemVE=', // apiPassword: "read-api-key-123"
+        apiPasswordSalt: 'test-api-salt-read-ui',
+        role: 'read',
+        createdAt: '2024-01-01T00:00:00Z',
+        updatedAt: '2024-01-01T00:00:00Z',
       },
     ];
 
     await fs.writeFile(
-      path.join(testConfigDir, "users.json"),
-      JSON.stringify(testUsers, null, 2),
+      path.join(testConfigDir, 'users.json'),
+      JSON.stringify(testUsers, null, 2)
     );
   };
 
@@ -124,17 +124,17 @@ describe("Fastify UI Backend API - Phase 4 Tests", () => {
     // Use actual test package from fixtures
     const sourcePackage = path.join(
       __dirname,
-      "fixtures",
-      "packages",
-      "FlashCap.1.10.0.nupkg",
+      'fixtures',
+      'packages',
+      'FlashCap.1.10.0.nupkg'
     );
-    const packageDir = path.join(testPackagesDir, "FlashCap", "1.10.0");
+    const packageDir = path.join(testPackagesDir, 'FlashCap', '1.10.0');
     await fs.mkdir(packageDir, { recursive: true });
 
     // Copy the nupkg file
     await fs.copyFile(
       sourcePackage,
-      path.join(packageDir, "FlashCap.1.10.0.nupkg"),
+      path.join(packageDir, 'FlashCap.1.10.0.nupkg')
     );
 
     // Extract necessary files from the nupkg using AdmZip
@@ -143,32 +143,32 @@ describe("Fastify UI Backend API - Phase 4 Tests", () => {
 
     // Extract and copy the nuspec file
     const nuspecEntry = zipEntries.find(
-      (entry) => entry.entryName === "FlashCap.nuspec",
+      (entry) => entry.entryName === 'FlashCap.nuspec'
     );
     if (nuspecEntry) {
       await fs.writeFile(
-        path.join(packageDir, "FlashCap.nuspec"),
-        nuspecEntry.getData(),
+        path.join(packageDir, 'FlashCap.nuspec'),
+        nuspecEntry.getData()
       );
     }
 
     // Extract and copy icon file if exists
     const iconEntry = zipEntries.find(
-      (entry) => entry.entryName === "FlashCap.100.png",
+      (entry) => entry.entryName === 'FlashCap.100.png'
     );
     if (iconEntry) {
       await fs.writeFile(
-        path.join(packageDir, "icon.png"),
-        iconEntry.getData(),
+        path.join(packageDir, 'icon.png'),
+        iconEntry.getData()
       );
     }
   };
 
   beforeEach(async (fn) => {
     // Create isolated test directory for each test
-    testBaseDir = await createTestDirectory("fastify-ui-api", fn.task.name);
+    testBaseDir = await createTestDirectory('fastify-ui-api', fn.task.name);
     testConfigDir = testBaseDir;
-    testPackagesDir = path.join(testBaseDir, "packages");
+    testPackagesDir = path.join(testBaseDir, 'packages');
 
     // Create test directories and data
     await fs.mkdir(testPackagesDir, { recursive: true });
@@ -180,14 +180,14 @@ describe("Fastify UI Backend API - Phase 4 Tests", () => {
   }, 30000);
 
   // POST /api/ui/config tests
-  test("POST /api/ui/config - should return server configuration without authentication (authMode: none)", async () => {
+  test('POST /api/ui/config - should return server configuration without authentication (authMode: none)', async () => {
     const config: ServerConfig = {
       port: serverPort,
       packageDir: testPackagesDir,
       configDir: testConfigDir,
-      realm: "Test Fastify UI Server - None",
+      realm: 'Test Fastify UI Server - None',
       logLevel: testGlobalLogLevel,
-      authMode: "none",
+      authMode: 'none',
       passwordStrengthCheck: false,
     };
 
@@ -196,39 +196,39 @@ describe("Fastify UI Backend API - Phase 4 Tests", () => {
       const response = await fetch(
         `http://localhost:${serverPort}/api/ui/config`,
         {
-          method: "POST",
+          method: 'POST',
           headers: {
-            "Content-Type": "application/json",
+            'Content-Type': 'application/json',
           },
           body: JSON.stringify({}),
-        },
+        }
       );
 
       expect(response.status).toBe(200);
 
       const data = await response.json();
-      expect(data).toHaveProperty("realm");
-      expect(data).toHaveProperty("name", "nuget-server");
-      expect(data).toHaveProperty("version");
-      expect(data).toHaveProperty("authMode", "none");
-      expect(data).toHaveProperty("authEnabled");
-      expect(data.authEnabled).toHaveProperty("general", false);
-      expect(data.authEnabled).toHaveProperty("publish", false);
-      expect(data.authEnabled).toHaveProperty("admin", false);
-      expect(data).toHaveProperty("currentUser", null); // No authentication
+      expect(data).toHaveProperty('realm');
+      expect(data).toHaveProperty('name', 'nuget-server');
+      expect(data).toHaveProperty('version');
+      expect(data).toHaveProperty('authMode', 'none');
+      expect(data).toHaveProperty('authEnabled');
+      expect(data.authEnabled).toHaveProperty('general', false);
+      expect(data.authEnabled).toHaveProperty('publish', false);
+      expect(data.authEnabled).toHaveProperty('admin', false);
+      expect(data).toHaveProperty('currentUser', null); // No authentication
     } finally {
       await server.close();
     }
   }, 30000);
 
-  test("POST /api/ui/config - should detect session authentication in config", async () => {
+  test('POST /api/ui/config - should detect session authentication in config', async () => {
     const config: ServerConfig = {
       port: serverPort,
       packageDir: testPackagesDir,
       configDir: testConfigDir,
-      realm: "Test Fastify UI Server - Full",
+      realm: 'Test Fastify UI Server - Full',
       logLevel: testGlobalLogLevel,
-      authMode: "full",
+      authMode: 'full',
       passwordStrengthCheck: false,
     };
 
@@ -238,93 +238,93 @@ describe("Fastify UI Backend API - Phase 4 Tests", () => {
       const loginResponse = await fetch(
         `http://localhost:${serverPort}/api/auth/login`,
         {
-          method: "POST",
+          method: 'POST',
           headers: {
-            "Content-Type": "application/json",
+            'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            username: "testadminui",
-            password: "adminpass",
+            username: 'testadminui',
+            password: 'adminpass',
           }),
-        },
+        }
       );
 
       expect(loginResponse.status).toBe(200);
-      const cookies = loginResponse.headers.get("set-cookie") || "";
+      const cookies = loginResponse.headers.get('set-cookie') || '';
       const sessionToken = cookies.match(/sessionToken=([^;]+)/)?.[1];
 
       // Use session to access config
       const configResponse = await fetch(
         `http://localhost:${serverPort}/api/ui/config`,
         {
-          method: "POST",
+          method: 'POST',
           headers: {
-            "Content-Type": "application/json",
+            'Content-Type': 'application/json',
             Cookie: `sessionToken=${sessionToken}`,
           },
           body: JSON.stringify({}),
-        },
+        }
       );
 
       expect(configResponse.status).toBe(200);
       const data = await configResponse.json();
       expect(data.currentUser).toBeTruthy();
-      expect(data.currentUser.username).toBe("testadminui");
-      expect(data.currentUser.role).toBe("admin");
+      expect(data.currentUser.username).toBe('testadminui');
+      expect(data.currentUser.role).toBe('admin');
       expect(data.currentUser.authenticated).toBe(true);
     } finally {
       await server.close();
     }
   }, 30000);
 
-  test("POST /api/ui/config - should detect Basic authentication in config", async () => {
+  test('POST /api/ui/config - should detect Basic authentication in config', async () => {
     const config: ServerConfig = {
       port: serverPort,
       packageDir: testPackagesDir,
       configDir: testConfigDir,
-      realm: "Test Fastify UI Server - Full",
+      realm: 'Test Fastify UI Server - Full',
       logLevel: testGlobalLogLevel,
-      authMode: "full",
+      authMode: 'full',
       passwordStrengthCheck: false,
     };
 
     const server = await startFastifyServer(config, logger);
     try {
       // Use Basic authentication to access config
-      const credentials = Buffer.from("testadminui:admin-api-key-123").toString(
-        "base64",
+      const credentials = Buffer.from('testadminui:admin-api-key-123').toString(
+        'base64'
       );
       const configResponse = await fetch(
         `http://localhost:${serverPort}/api/ui/config`,
         {
-          method: "POST",
+          method: 'POST',
           headers: {
-            "Content-Type": "application/json",
+            'Content-Type': 'application/json',
             Authorization: `Basic ${credentials}`,
           },
           body: JSON.stringify({}),
-        },
+        }
       );
 
       expect(configResponse.status).toBe(200);
       const data = await configResponse.json();
       expect(data.currentUser).toBeTruthy();
-      expect(data.currentUser.username).toBe("testadminui");
-      expect(data.currentUser.role).toBe("admin");
+      expect(data.currentUser.username).toBe('testadminui');
+      expect(data.currentUser.role).toBe('admin');
       expect(data.currentUser.authenticated).toBe(true);
     } finally {
       await server.close();
     }
   }, 30000);
 
-  test("POST /api/ui/config - should return config without authentication in authMode=full", async () => {
+  test('POST /api/ui/config - should return config without authentication in authMode=full', async () => {
     const config: ServerConfig = {
       port: serverPort,
       packageDir: testPackagesDir,
       configDir: testConfigDir,
-      realm: "Test Fastify UI Server - Full Auth",
+      realm: 'Test Fastify UI Server - Full Auth',
       logLevel: testGlobalLogLevel,
-      authMode: "full",
+      authMode: 'full',
       passwordStrengthCheck: false,
     };
 
@@ -334,33 +334,33 @@ describe("Fastify UI Backend API - Phase 4 Tests", () => {
       const response = await fetch(
         `http://localhost:${serverPort}/api/ui/config`,
         {
-          method: "POST",
+          method: 'POST',
           headers: {
-            "Content-Type": "application/json",
+            'Content-Type': 'application/json',
           },
           body: JSON.stringify({}),
-        },
+        }
       );
 
       // Should succeed without authentication even in authMode=full
       expect(response.status).toBe(200);
 
       const data = await response.json();
-      expect(data).toHaveProperty("authMode", "full");
-      expect(data).toHaveProperty("currentUser", null); // Not authenticated
+      expect(data).toHaveProperty('authMode', 'full');
+      expect(data).toHaveProperty('currentUser', null); // Not authenticated
     } finally {
       await server.close();
     }
   }, 30000);
 
-  test("POST /api/ui/config - should handle browser Accept headers correctly", async () => {
+  test('POST /api/ui/config - should handle browser Accept headers correctly', async () => {
     const config: ServerConfig = {
       port: serverPort,
       packageDir: testPackagesDir,
       configDir: testConfigDir,
-      realm: "Test Fastify UI Server - Full Auth",
+      realm: 'Test Fastify UI Server - Full Auth',
       logLevel: testGlobalLogLevel,
-      authMode: "full",
+      authMode: 'full',
       passwordStrengthCheck: false,
     };
 
@@ -370,40 +370,40 @@ describe("Fastify UI Backend API - Phase 4 Tests", () => {
       const response = await fetch(
         `http://localhost:${serverPort}/api/ui/config`,
         {
-          method: "POST",
+          method: 'POST',
           headers: {
-            "Content-Type": "application/json",
-            Accept: "*/*", // Browser default
+            'Content-Type': 'application/json',
+            Accept: '*/*', // Browser default
           },
           body: JSON.stringify({}),
-        },
+        }
       );
 
       // Should not return 401
       expect(response.status).toBe(200);
 
       // Should not have WWW-Authenticate header
-      expect(response.headers.get("www-authenticate")).toBeNull();
+      expect(response.headers.get('www-authenticate')).toBeNull();
     } finally {
       await server.close();
     }
   }, 30000);
 
   // POST /api/ui/users tests
-  test("POST /api/ui/users - should require session authentication for user management", async () => {
-    const server = await startServerWithAuth("publish", serverPort);
+  test('POST /api/ui/users - should require session authentication for user management', async () => {
+    const server = await startServerWithAuth('publish', serverPort);
     try {
       const response = await fetch(
         `http://localhost:${serverPort}/api/ui/users`,
         {
-          method: "POST",
+          method: 'POST',
           headers: {
-            "Content-Type": "application/json",
+            'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            action: "list",
+            action: 'list',
           }),
-        },
+        }
       );
 
       expect(response.status).toBe(401);
@@ -412,100 +412,100 @@ describe("Fastify UI Backend API - Phase 4 Tests", () => {
     }
   }, 30000);
 
-  test("POST /api/ui/users - should list users with admin session authentication", async () => {
-    const server = await startServerWithAuth("publish", serverPort);
+  test('POST /api/ui/users - should list users with admin session authentication', async () => {
+    const server = await startServerWithAuth('publish', serverPort);
     try {
       const sessionToken = await loginAndGetSession(
-        "testadminui",
-        "adminpass",
-        serverPort,
+        'testadminui',
+        'adminpass',
+        serverPort
       );
 
       const response = await fetch(
         `http://localhost:${serverPort}/api/ui/users`,
         {
-          method: "POST",
+          method: 'POST',
           headers: {
-            "Content-Type": "application/json",
+            'Content-Type': 'application/json',
             Cookie: `sessionToken=${sessionToken}`,
           },
           body: JSON.stringify({
-            action: "list",
+            action: 'list',
           }),
-        },
+        }
       );
 
       expect(response.status).toBe(200);
       const data = await response.json();
-      expect(data).toHaveProperty("users");
+      expect(data).toHaveProperty('users');
       expect(Array.isArray(data.users)).toBe(true);
       expect(data.users.length).toBeGreaterThan(0);
-      expect(data.users[0]).toHaveProperty("username");
-      expect(data.users[0]).toHaveProperty("role");
+      expect(data.users[0]).toHaveProperty('username');
+      expect(data.users[0]).toHaveProperty('role');
     } finally {
       await server.close();
     }
   }, 30000);
 
-  test("POST /api/ui/users - should create a new user with admin session authentication", async () => {
-    const server = await startServerWithAuth("publish", serverPort);
+  test('POST /api/ui/users - should create a new user with admin session authentication', async () => {
+    const server = await startServerWithAuth('publish', serverPort);
     try {
       const sessionToken = await loginAndGetSession(
-        "testadminui",
-        "adminpass",
-        serverPort,
+        'testadminui',
+        'adminpass',
+        serverPort
       );
 
       const response = await fetch(
         `http://localhost:${serverPort}/api/ui/users`,
         {
-          method: "POST",
+          method: 'POST',
           headers: {
-            "Content-Type": "application/json",
+            'Content-Type': 'application/json',
             Cookie: `sessionToken=${sessionToken}`,
           },
           body: JSON.stringify({
-            action: "create",
-            username: "newuser",
-            password: "newpass123",
-            role: "read",
+            action: 'create',
+            username: 'newuser',
+            password: 'newpass123',
+            role: 'read',
           }),
-        },
+        }
       );
 
       expect(response.status).toBe(201);
       const data = await response.json();
-      expect(data).toHaveProperty("user");
-      expect(data.user.username).toBe("newuser");
-      expect(data.user.role).toBe("read");
+      expect(data).toHaveProperty('user');
+      expect(data.user.username).toBe('newuser');
+      expect(data.user.role).toBe('read');
       // API password is no longer returned on user creation
-      expect(data).not.toHaveProperty("apiPassword");
+      expect(data).not.toHaveProperty('apiPassword');
     } finally {
       await server.close();
     }
   }, 30000);
 
-  test("POST /api/ui/users - should delete a user with admin session authentication", async () => {
-    const server = await startServerWithAuth("publish", serverPort);
+  test('POST /api/ui/users - should delete a user with admin session authentication', async () => {
+    const server = await startServerWithAuth('publish', serverPort);
     try {
       const sessionToken = await loginAndGetSession(
-        "testadminui",
-        "adminpass",
-        serverPort,
+        'testadminui',
+        'adminpass',
+        serverPort
       );
 
       // First create a user to delete
       await fetch(`http://localhost:${serverPort}/api/ui/users`, {
-        method: "POST",
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
           Cookie: `sessionToken=${sessionToken}`,
         },
         body: JSON.stringify({
-          action: "create",
-          username: "userToDelete",
-          password: "temp123",
-          role: "read",
+          action: 'create',
+          username: 'userToDelete',
+          password: 'temp123',
+          role: 'read',
         }),
       });
 
@@ -513,49 +513,49 @@ describe("Fastify UI Backend API - Phase 4 Tests", () => {
       const response = await fetch(
         `http://localhost:${serverPort}/api/ui/users`,
         {
-          method: "POST",
+          method: 'POST',
           headers: {
-            "Content-Type": "application/json",
+            'Content-Type': 'application/json',
             Cookie: `sessionToken=${sessionToken}`,
           },
           body: JSON.stringify({
-            action: "delete",
-            username: "userToDelete",
+            action: 'delete',
+            username: 'userToDelete',
           }),
-        },
+        }
       );
 
       expect(response.status).toBe(200);
       const data = await response.json();
-      expect(data).toHaveProperty("success", true);
-      expect(data).toHaveProperty("message", "User deleted successfully");
+      expect(data).toHaveProperty('success', true);
+      expect(data).toHaveProperty('message', 'User deleted successfully');
     } finally {
       await server.close();
     }
   }, 30000);
 
-  test("POST /api/ui/users - should reject non-admin user for user management", async () => {
-    const server = await startServerWithAuth("publish", serverPort);
+  test('POST /api/ui/users - should reject non-admin user for user management', async () => {
+    const server = await startServerWithAuth('publish', serverPort);
     try {
       // Login as publish user (not admin)
       const publishSessionToken = await loginAndGetSession(
-        "testpublishui",
-        "publishpass",
-        serverPort,
+        'testpublishui',
+        'publishpass',
+        serverPort
       );
 
       const response = await fetch(
         `http://localhost:${serverPort}/api/ui/users`,
         {
-          method: "POST",
+          method: 'POST',
           headers: {
-            "Content-Type": "application/json",
+            'Content-Type': 'application/json',
             Cookie: `sessionToken=${publishSessionToken}`,
           },
           body: JSON.stringify({
-            action: "list",
+            action: 'list',
           }),
-        },
+        }
       );
 
       expect(response.status).toBe(403);
@@ -565,25 +565,25 @@ describe("Fastify UI Backend API - Phase 4 Tests", () => {
   }, 30000);
 });
 
-describe("Fastify UI API - POST /api/ui/apipassword (session required)", () => {
+describe('Fastify UI API - POST /api/ui/apipassword (session required)', () => {
   let testBaseDir: string;
   let testConfigDir: string;
   let testPackagesDir: string;
   let serverPort: number;
   let sessionToken: string;
   const logger = createConsoleLogger(
-    "fastify-ui-api-apikey",
-    testGlobalLogLevel,
+    'fastify-ui-api-apikey',
+    testGlobalLogLevel
   );
 
   beforeEach(async (fn) => {
     // Create isolated test directory for each test
     testBaseDir = await createTestDirectory(
-      "fastify-ui-api-apikey",
-      fn.task.name,
+      'fastify-ui-api-apikey',
+      fn.task.name
     );
     testConfigDir = testBaseDir;
-    testPackagesDir = path.join(testBaseDir, "packages");
+    testPackagesDir = path.join(testBaseDir, 'packages');
 
     // Create test directories and data
     await fs.mkdir(testPackagesDir, { recursive: true });
@@ -599,9 +599,9 @@ describe("Fastify UI API - POST /api/ui/apipassword (session required)", () => {
       port: serverPort,
       packageDir: testPackagesDir,
       configDir: testConfigDir,
-      realm: "Test Fastify UI Server - Full",
+      realm: 'Test Fastify UI Server - Full',
       logLevel: testGlobalLogLevel,
-      authMode: "full",
+      authMode: 'full',
       passwordStrengthCheck: false,
     };
 
@@ -611,20 +611,20 @@ describe("Fastify UI API - POST /api/ui/apipassword (session required)", () => {
       const loginResponse = await fetch(
         `http://localhost:${serverPort}/api/auth/login`,
         {
-          method: "POST",
+          method: 'POST',
           headers: {
-            "Content-Type": "application/json",
+            'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            username: "testpublishui",
-            password: "publishpass",
+            username: 'testpublishui',
+            password: 'publishpass',
           }),
-        },
+        }
       );
 
       expect(loginResponse.status).toBe(200);
-      const cookies = loginResponse.headers.get("set-cookie") || "";
-      sessionToken = cookies.match(/sessionToken=([^;]+)/)?.[1] || "";
+      const cookies = loginResponse.headers.get('set-cookie') || '';
+      sessionToken = cookies.match(/sessionToken=([^;]+)/)?.[1] || '';
       expect(sessionToken).toBeTruthy();
     } catch (error: any) {
       await server.close();
@@ -638,43 +638,43 @@ describe("Fastify UI API - POST /api/ui/apipassword (session required)", () => {
   const createTestUsers = async () => {
     const testUsers = [
       {
-        id: "test-admin-ui",
-        username: "testadminui",
-        passwordHash: "PSRt9HqDyLtH7LC8iUnS7F9ObKU=", // password: "adminpass"
-        salt: "test-salt-admin-ui",
-        apiPasswordHash: "fEE9WeQqltjkrNwKP6WZb4lPLJ0=", // apiPassword: "admin-api-key-123"
-        apiPasswordSalt: "test-api-salt-admin-ui",
-        role: "admin",
-        createdAt: "2024-01-01T00:00:00Z",
-        updatedAt: "2024-01-01T00:00:00Z",
+        id: 'test-admin-ui',
+        username: 'testadminui',
+        passwordHash: 'PSRt9HqDyLtH7LC8iUnS7F9ObKU=', // password: "adminpass"
+        salt: 'test-salt-admin-ui',
+        apiPasswordHash: 'fEE9WeQqltjkrNwKP6WZb4lPLJ0=', // apiPassword: "admin-api-key-123"
+        apiPasswordSalt: 'test-api-salt-admin-ui',
+        role: 'admin',
+        createdAt: '2024-01-01T00:00:00Z',
+        updatedAt: '2024-01-01T00:00:00Z',
       },
       {
-        id: "test-publish-ui",
-        username: "testpublishui",
-        passwordHash: "OxSWKpMyC4Ycbk6AVlacKvtFzp4=", // password: "publishpass"
-        salt: "test-salt-publish-ui",
-        apiPasswordHash: "kRHDw5YZn/Ic+ynzwmVQvFdFCJw=", // apiPassword: "publish-api-key-123"
-        apiPasswordSalt: "test-api-salt-publish-ui",
-        role: "publish",
-        createdAt: "2024-01-01T00:00:00Z",
-        updatedAt: "2024-01-01T00:00:00Z",
+        id: 'test-publish-ui',
+        username: 'testpublishui',
+        passwordHash: 'OxSWKpMyC4Ycbk6AVlacKvtFzp4=', // password: "publishpass"
+        salt: 'test-salt-publish-ui',
+        apiPasswordHash: 'kRHDw5YZn/Ic+ynzwmVQvFdFCJw=', // apiPassword: "publish-api-key-123"
+        apiPasswordSalt: 'test-api-salt-publish-ui',
+        role: 'publish',
+        createdAt: '2024-01-01T00:00:00Z',
+        updatedAt: '2024-01-01T00:00:00Z',
       },
       {
-        id: "test-read-ui",
-        username: "testreadui",
-        passwordHash: "kB94DvNnBYRvYaV/ZGoHQCyK1/k=", // password: "readpass"
-        salt: "test-salt-read-ui",
-        apiPasswordHash: "DRkROp0nFzqicoShFhroRDxemVE=", // apiPassword: "read-api-key-123"
-        apiPasswordSalt: "test-api-salt-read-ui",
-        role: "read",
-        createdAt: "2024-01-01T00:00:00Z",
-        updatedAt: "2024-01-01T00:00:00Z",
+        id: 'test-read-ui',
+        username: 'testreadui',
+        passwordHash: 'kB94DvNnBYRvYaV/ZGoHQCyK1/k=', // password: "readpass"
+        salt: 'test-salt-read-ui',
+        apiPasswordHash: 'DRkROp0nFzqicoShFhroRDxemVE=', // apiPassword: "read-api-key-123"
+        apiPasswordSalt: 'test-api-salt-read-ui',
+        role: 'read',
+        createdAt: '2024-01-01T00:00:00Z',
+        updatedAt: '2024-01-01T00:00:00Z',
       },
     ];
 
     await fs.writeFile(
-      path.join(testConfigDir, "users.json"),
-      JSON.stringify(testUsers, null, 2),
+      path.join(testConfigDir, 'users.json'),
+      JSON.stringify(testUsers, null, 2)
     );
   };
 
@@ -682,17 +682,17 @@ describe("Fastify UI API - POST /api/ui/apipassword (session required)", () => {
     // Use actual test package from fixtures
     const sourcePackage = path.join(
       __dirname,
-      "fixtures",
-      "packages",
-      "FlashCap.1.10.0.nupkg",
+      'fixtures',
+      'packages',
+      'FlashCap.1.10.0.nupkg'
     );
-    const packageDir = path.join(testPackagesDir, "FlashCap", "1.10.0");
+    const packageDir = path.join(testPackagesDir, 'FlashCap', '1.10.0');
     await fs.mkdir(packageDir, { recursive: true });
 
     // Copy the nupkg file
     await fs.copyFile(
       sourcePackage,
-      path.join(packageDir, "FlashCap.1.10.0.nupkg"),
+      path.join(packageDir, 'FlashCap.1.10.0.nupkg')
     );
 
     // Extract necessary files from the nupkg using AdmZip
@@ -701,39 +701,39 @@ describe("Fastify UI API - POST /api/ui/apipassword (session required)", () => {
 
     // Extract and copy the nuspec file
     const nuspecEntry = zipEntries.find(
-      (entry) => entry.entryName === "FlashCap.nuspec",
+      (entry) => entry.entryName === 'FlashCap.nuspec'
     );
     if (nuspecEntry) {
       await fs.writeFile(
-        path.join(packageDir, "FlashCap.nuspec"),
-        nuspecEntry.getData(),
+        path.join(packageDir, 'FlashCap.nuspec'),
+        nuspecEntry.getData()
       );
     }
 
     // Extract and copy icon file if exists
     const iconEntry = zipEntries.find(
-      (entry) => entry.entryName === "FlashCap.100.png",
+      (entry) => entry.entryName === 'FlashCap.100.png'
     );
     if (iconEntry) {
       await fs.writeFile(
-        path.join(packageDir, "icon.png"),
-        iconEntry.getData(),
+        path.join(packageDir, 'icon.png'),
+        iconEntry.getData()
       );
     }
   };
 
-  test("should require session authentication for API password regeneration", async () => {
+  test('should require session authentication for API password regeneration', async () => {
     const server = await createServerAndEnvironment();
     try {
       const response = await fetch(
         `http://localhost:${serverPort}/api/ui/apipassword`,
         {
-          method: "POST",
+          method: 'POST',
           headers: {
-            "Content-Type": "application/json",
+            'Content-Type': 'application/json',
           },
           body: JSON.stringify({}),
-        },
+        }
       );
 
       expect(response.status).toBe(401);
@@ -742,26 +742,26 @@ describe("Fastify UI API - POST /api/ui/apipassword (session required)", () => {
     }
   }, 30000);
 
-  test("should regenerate API password with session authentication", async () => {
+  test('should regenerate API password with session authentication', async () => {
     const server = await createServerAndEnvironment();
     try {
       const response = await fetch(
         `http://localhost:${serverPort}/api/ui/apipassword`,
         {
-          method: "POST",
+          method: 'POST',
           headers: {
-            "Content-Type": "application/json",
+            'Content-Type': 'application/json',
             Cookie: `sessionToken=${sessionToken}`,
           },
           body: JSON.stringify({}),
-        },
+        }
       );
 
       expect(response.status).toBe(200);
       const data = await response.json();
-      expect(data).toHaveProperty("apiPassword");
-      expect(data).toHaveProperty("username", "testpublishui");
-      expect(typeof data.apiPassword).toBe("string");
+      expect(data).toHaveProperty('apiPassword');
+      expect(data).toHaveProperty('username', 'testpublishui');
+      expect(typeof data.apiPassword).toBe('string');
       expect(data.apiPassword.length).toBeGreaterThan(0);
     } finally {
       await server.close();
@@ -769,7 +769,7 @@ describe("Fastify UI API - POST /api/ui/apipassword (session required)", () => {
   }, 30000);
 });
 
-describe("Fastify UI API - POST /api/ui/password (session required)", () => {
+describe('Fastify UI API - POST /api/ui/password (session required)', () => {
   let testBaseDir: string;
   let testConfigDir: string;
   let testPackagesDir: string;
@@ -777,18 +777,18 @@ describe("Fastify UI API - POST /api/ui/password (session required)", () => {
   let sessionToken: string;
   let adminSessionToken: string;
   const logger = createConsoleLogger(
-    "fastify-ui-api-password",
-    testGlobalLogLevel,
+    'fastify-ui-api-password',
+    testGlobalLogLevel
   );
 
   beforeEach(async (fn) => {
     // Create isolated test directory for each test
     testBaseDir = await createTestDirectory(
-      "fastify-ui-api-password",
-      fn.task.name,
+      'fastify-ui-api-password',
+      fn.task.name
     );
     testConfigDir = testBaseDir;
-    testPackagesDir = path.join(testBaseDir, "packages");
+    testPackagesDir = path.join(testBaseDir, 'packages');
 
     // Create test directories and data
     await fs.mkdir(testPackagesDir, { recursive: true });
@@ -804,9 +804,9 @@ describe("Fastify UI API - POST /api/ui/password (session required)", () => {
       port: serverPort,
       packageDir: testPackagesDir,
       configDir: testConfigDir,
-      realm: "Test Fastify UI Server - Full",
+      realm: 'Test Fastify UI Server - Full',
       logLevel: testGlobalLogLevel,
-      authMode: "full",
+      authMode: 'full',
       passwordStrengthCheck: false,
     };
 
@@ -816,40 +816,40 @@ describe("Fastify UI API - POST /api/ui/password (session required)", () => {
       const loginResponse = await fetch(
         `http://localhost:${serverPort}/api/auth/login`,
         {
-          method: "POST",
+          method: 'POST',
           headers: {
-            "Content-Type": "application/json",
+            'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            username: "testpublishui",
-            password: "publishpass",
+            username: 'testpublishui',
+            password: 'publishpass',
           }),
-        },
+        }
       );
 
       expect(loginResponse.status).toBe(200);
-      const cookies = loginResponse.headers.get("set-cookie") || "";
-      sessionToken = cookies.match(/sessionToken=([^;]+)/)?.[1] || "";
+      const cookies = loginResponse.headers.get('set-cookie') || '';
+      sessionToken = cookies.match(/sessionToken=([^;]+)/)?.[1] || '';
       expect(sessionToken).toBeTruthy();
 
       // Also login as admin for admin tests
       const adminLoginResponse = await fetch(
         `http://localhost:${serverPort}/api/auth/login`,
         {
-          method: "POST",
+          method: 'POST',
           headers: {
-            "Content-Type": "application/json",
+            'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            username: "testadminui",
-            password: "adminpass",
+            username: 'testadminui',
+            password: 'adminpass',
           }),
-        },
+        }
       );
 
       expect(adminLoginResponse.status).toBe(200);
-      const adminCookies = adminLoginResponse.headers.get("set-cookie") || "";
-      adminSessionToken = adminCookies.match(/sessionToken=([^;]+)/)?.[1] || "";
+      const adminCookies = adminLoginResponse.headers.get('set-cookie') || '';
+      adminSessionToken = adminCookies.match(/sessionToken=([^;]+)/)?.[1] || '';
       expect(adminSessionToken).toBeTruthy();
 
       return server;
@@ -863,43 +863,43 @@ describe("Fastify UI API - POST /api/ui/password (session required)", () => {
   const createTestUsers = async () => {
     const testUsers = [
       {
-        id: "test-admin-ui",
-        username: "testadminui",
-        passwordHash: "PSRt9HqDyLtH7LC8iUnS7F9ObKU=", // password: "adminpass"
-        salt: "test-salt-admin-ui",
-        apiPasswordHash: "fEE9WeQqltjkrNwKP6WZb4lPLJ0=", // apiPassword: "admin-api-key-123"
-        apiPasswordSalt: "test-api-salt-admin-ui",
-        role: "admin",
-        createdAt: "2024-01-01T00:00:00Z",
-        updatedAt: "2024-01-01T00:00:00Z",
+        id: 'test-admin-ui',
+        username: 'testadminui',
+        passwordHash: 'PSRt9HqDyLtH7LC8iUnS7F9ObKU=', // password: "adminpass"
+        salt: 'test-salt-admin-ui',
+        apiPasswordHash: 'fEE9WeQqltjkrNwKP6WZb4lPLJ0=', // apiPassword: "admin-api-key-123"
+        apiPasswordSalt: 'test-api-salt-admin-ui',
+        role: 'admin',
+        createdAt: '2024-01-01T00:00:00Z',
+        updatedAt: '2024-01-01T00:00:00Z',
       },
       {
-        id: "test-publish-ui",
-        username: "testpublishui",
-        passwordHash: "OxSWKpMyC4Ycbk6AVlacKvtFzp4=", // password: "publishpass"
-        salt: "test-salt-publish-ui",
-        apiPasswordHash: "kRHDw5YZn/Ic+ynzwmVQvFdFCJw=", // apiPassword: "publish-api-key-123"
-        apiPasswordSalt: "test-api-salt-publish-ui",
-        role: "publish",
-        createdAt: "2024-01-01T00:00:00Z",
-        updatedAt: "2024-01-01T00:00:00Z",
+        id: 'test-publish-ui',
+        username: 'testpublishui',
+        passwordHash: 'OxSWKpMyC4Ycbk6AVlacKvtFzp4=', // password: "publishpass"
+        salt: 'test-salt-publish-ui',
+        apiPasswordHash: 'kRHDw5YZn/Ic+ynzwmVQvFdFCJw=', // apiPassword: "publish-api-key-123"
+        apiPasswordSalt: 'test-api-salt-publish-ui',
+        role: 'publish',
+        createdAt: '2024-01-01T00:00:00Z',
+        updatedAt: '2024-01-01T00:00:00Z',
       },
       {
-        id: "test-read-ui",
-        username: "testreadui",
-        passwordHash: "kB94DvNnBYRvYaV/ZGoHQCyK1/k=", // password: "readpass"
-        salt: "test-salt-read-ui",
-        apiPasswordHash: "DRkROp0nFzqicoShFhroRDxemVE=", // apiPassword: "read-api-key-123"
-        apiPasswordSalt: "test-api-salt-read-ui",
-        role: "read",
-        createdAt: "2024-01-01T00:00:00Z",
-        updatedAt: "2024-01-01T00:00:00Z",
+        id: 'test-read-ui',
+        username: 'testreadui',
+        passwordHash: 'kB94DvNnBYRvYaV/ZGoHQCyK1/k=', // password: "readpass"
+        salt: 'test-salt-read-ui',
+        apiPasswordHash: 'DRkROp0nFzqicoShFhroRDxemVE=', // apiPassword: "read-api-key-123"
+        apiPasswordSalt: 'test-api-salt-read-ui',
+        role: 'read',
+        createdAt: '2024-01-01T00:00:00Z',
+        updatedAt: '2024-01-01T00:00:00Z',
       },
     ];
 
     await fs.writeFile(
-      path.join(testConfigDir, "users.json"),
-      JSON.stringify(testUsers, null, 2),
+      path.join(testConfigDir, 'users.json'),
+      JSON.stringify(testUsers, null, 2)
     );
   };
 
@@ -907,17 +907,17 @@ describe("Fastify UI API - POST /api/ui/password (session required)", () => {
     // Use actual test package from fixtures
     const sourcePackage = path.join(
       __dirname,
-      "fixtures",
-      "packages",
-      "FlashCap.1.10.0.nupkg",
+      'fixtures',
+      'packages',
+      'FlashCap.1.10.0.nupkg'
     );
-    const packageDir = path.join(testPackagesDir, "FlashCap", "1.10.0");
+    const packageDir = path.join(testPackagesDir, 'FlashCap', '1.10.0');
     await fs.mkdir(packageDir, { recursive: true });
 
     // Copy the nupkg file
     await fs.copyFile(
       sourcePackage,
-      path.join(packageDir, "FlashCap.1.10.0.nupkg"),
+      path.join(packageDir, 'FlashCap.1.10.0.nupkg')
     );
 
     // Extract necessary files from the nupkg using AdmZip
@@ -926,42 +926,42 @@ describe("Fastify UI API - POST /api/ui/password (session required)", () => {
 
     // Extract and copy the nuspec file
     const nuspecEntry = zipEntries.find(
-      (entry) => entry.entryName === "FlashCap.nuspec",
+      (entry) => entry.entryName === 'FlashCap.nuspec'
     );
     if (nuspecEntry) {
       await fs.writeFile(
-        path.join(packageDir, "FlashCap.nuspec"),
-        nuspecEntry.getData(),
+        path.join(packageDir, 'FlashCap.nuspec'),
+        nuspecEntry.getData()
       );
     }
 
     // Extract and copy icon file if exists
     const iconEntry = zipEntries.find(
-      (entry) => entry.entryName === "FlashCap.100.png",
+      (entry) => entry.entryName === 'FlashCap.100.png'
     );
     if (iconEntry) {
       await fs.writeFile(
-        path.join(packageDir, "icon.png"),
-        iconEntry.getData(),
+        path.join(packageDir, 'icon.png'),
+        iconEntry.getData()
       );
     }
   };
 
-  test("should require session authentication for password change", async () => {
+  test('should require session authentication for password change', async () => {
     const server = await createServerAndEnvironment();
     try {
       const response = await fetch(
         `http://localhost:${serverPort}/api/ui/password`,
         {
-          method: "POST",
+          method: 'POST',
           headers: {
-            "Content-Type": "application/json",
+            'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            currentPassword: "publishpass",
-            newPassword: "newpass123",
+            currentPassword: 'publishpass',
+            newPassword: 'newpass123',
           }),
-        },
+        }
       );
 
       expect(response.status).toBe(401);
@@ -970,102 +970,102 @@ describe("Fastify UI API - POST /api/ui/password (session required)", () => {
     }
   }, 30000);
 
-  test("should change own password with session authentication", async () => {
+  test('should change own password with session authentication', async () => {
     const server = await createServerAndEnvironment();
     try {
       const response = await fetch(
         `http://localhost:${serverPort}/api/ui/password`,
         {
-          method: "POST",
+          method: 'POST',
           headers: {
-            "Content-Type": "application/json",
+            'Content-Type': 'application/json',
             Cookie: `sessionToken=${sessionToken}`,
           },
           body: JSON.stringify({
-            currentPassword: "publishpass",
-            newPassword: "newpass123",
+            currentPassword: 'publishpass',
+            newPassword: 'newpass123',
           }),
-        },
+        }
       );
 
       expect(response.status).toBe(200);
       const data = await response.json();
-      expect(data).toHaveProperty("success", true);
-      expect(data).toHaveProperty("message", "Password updated successfully");
+      expect(data).toHaveProperty('success', true);
+      expect(data).toHaveProperty('message', 'Password updated successfully');
     } finally {
       await server.close();
     }
   }, 30000);
 
-  test("should reject incorrect current password", async () => {
+  test('should reject incorrect current password', async () => {
     const server = await createServerAndEnvironment();
     try {
       const response = await fetch(
         `http://localhost:${serverPort}/api/ui/password`,
         {
-          method: "POST",
+          method: 'POST',
           headers: {
-            "Content-Type": "application/json",
+            'Content-Type': 'application/json',
             Cookie: `sessionToken=${sessionToken}`,
           },
           body: JSON.stringify({
-            currentPassword: "wrongpassword",
-            newPassword: "newpass123",
+            currentPassword: 'wrongpassword',
+            newPassword: 'newpass123',
           }),
-        },
+        }
       );
 
       expect(response.status).toBe(401);
       const data = await response.json();
-      expect(data).toHaveProperty("error", "Current password is incorrect");
+      expect(data).toHaveProperty('error', 'Current password is incorrect');
     } finally {
       await server.close();
     }
   }, 30000);
 
-  test("should allow admin to change other user password", async () => {
+  test('should allow admin to change other user password', async () => {
     const server = await createServerAndEnvironment();
     try {
       const response = await fetch(
         `http://localhost:${serverPort}/api/ui/password`,
         {
-          method: "POST",
+          method: 'POST',
           headers: {
-            "Content-Type": "application/json",
+            'Content-Type': 'application/json',
             Cookie: `sessionToken=${adminSessionToken}`,
           },
           body: JSON.stringify({
-            username: "testpublishui",
-            newPassword: "adminSetPassword",
+            username: 'testpublishui',
+            newPassword: 'adminSetPassword',
           }),
-        },
+        }
       );
 
       expect(response.status).toBe(200);
       const data = await response.json();
-      expect(data).toHaveProperty("success", true);
-      expect(data).toHaveProperty("message", "Password updated successfully");
+      expect(data).toHaveProperty('success', true);
+      expect(data).toHaveProperty('message', 'Password updated successfully');
     } finally {
       await server.close();
     }
   }, 30000);
 
-  test("should reject non-admin user changing other user password", async () => {
+  test('should reject non-admin user changing other user password', async () => {
     const server = await createServerAndEnvironment();
     try {
       const response = await fetch(
         `http://localhost:${serverPort}/api/ui/password`,
         {
-          method: "POST",
+          method: 'POST',
           headers: {
-            "Content-Type": "application/json",
+            'Content-Type': 'application/json',
             Cookie: `sessionToken=${sessionToken}`,
           },
           body: JSON.stringify({
-            username: "testadminui",
-            newPassword: "hackattempt",
+            username: 'testadminui',
+            newPassword: 'hackattempt',
           }),
-        },
+        }
       );
 
       expect(response.status).toBe(403);
@@ -1075,21 +1075,21 @@ describe("Fastify UI API - POST /api/ui/password (session required)", () => {
   }, 30000);
 });
 
-describe("Fastify UI API - GET /api/ui/icon/{id}/{version} (auth based on mode)", () => {
+describe('Fastify UI API - GET /api/ui/icon/{id}/{version} (auth based on mode)', () => {
   let testBaseDir: string;
   let testConfigDir: string;
   let testPackagesDir: string;
   let serverPort: number;
-  const logger = createConsoleLogger("fastify-ui-api-icon", testGlobalLogLevel);
+  const logger = createConsoleLogger('fastify-ui-api-icon', testGlobalLogLevel);
 
   beforeEach(async (fn) => {
     // Create isolated test directory for each test
     testBaseDir = await createTestDirectory(
-      "fastify-ui-api-icon",
-      fn.task.name,
+      'fastify-ui-api-icon',
+      fn.task.name
     );
     testConfigDir = testBaseDir;
-    testPackagesDir = path.join(testBaseDir, "packages");
+    testPackagesDir = path.join(testBaseDir, 'packages');
 
     // Create test directories and data
     await fs.mkdir(testPackagesDir, { recursive: true });
@@ -1104,43 +1104,43 @@ describe("Fastify UI API - GET /api/ui/icon/{id}/{version} (auth based on mode)"
   const createTestUsers = async () => {
     const testUsers = [
       {
-        id: "test-admin-ui",
-        username: "testadminui",
-        passwordHash: "PSRt9HqDyLtH7LC8iUnS7F9ObKU=", // password: "adminpass"
-        salt: "test-salt-admin-ui",
-        apiPasswordHash: "fEE9WeQqltjkrNwKP6WZb4lPLJ0=", // apiPassword: "admin-api-key-123"
-        apiPasswordSalt: "test-api-salt-admin-ui",
-        role: "admin",
-        createdAt: "2024-01-01T00:00:00Z",
-        updatedAt: "2024-01-01T00:00:00Z",
+        id: 'test-admin-ui',
+        username: 'testadminui',
+        passwordHash: 'PSRt9HqDyLtH7LC8iUnS7F9ObKU=', // password: "adminpass"
+        salt: 'test-salt-admin-ui',
+        apiPasswordHash: 'fEE9WeQqltjkrNwKP6WZb4lPLJ0=', // apiPassword: "admin-api-key-123"
+        apiPasswordSalt: 'test-api-salt-admin-ui',
+        role: 'admin',
+        createdAt: '2024-01-01T00:00:00Z',
+        updatedAt: '2024-01-01T00:00:00Z',
       },
       {
-        id: "test-publish-ui",
-        username: "testpublishui",
-        passwordHash: "OxSWKpMyC4Ycbk6AVlacKvtFzp4=", // password: "publishpass"
-        salt: "test-salt-publish-ui",
-        apiPasswordHash: "kRHDw5YZn/Ic+ynzwmVQvFdFCJw=", // apiPassword: "publish-api-key-123"
-        apiPasswordSalt: "test-api-salt-publish-ui",
-        role: "publish",
-        createdAt: "2024-01-01T00:00:00Z",
-        updatedAt: "2024-01-01T00:00:00Z",
+        id: 'test-publish-ui',
+        username: 'testpublishui',
+        passwordHash: 'OxSWKpMyC4Ycbk6AVlacKvtFzp4=', // password: "publishpass"
+        salt: 'test-salt-publish-ui',
+        apiPasswordHash: 'kRHDw5YZn/Ic+ynzwmVQvFdFCJw=', // apiPassword: "publish-api-key-123"
+        apiPasswordSalt: 'test-api-salt-publish-ui',
+        role: 'publish',
+        createdAt: '2024-01-01T00:00:00Z',
+        updatedAt: '2024-01-01T00:00:00Z',
       },
       {
-        id: "test-read-ui",
-        username: "testreadui",
-        passwordHash: "kB94DvNnBYRvYaV/ZGoHQCyK1/k=", // password: "readpass"
-        salt: "test-salt-read-ui",
-        apiPasswordHash: "DRkROp0nFzqicoShFhroRDxemVE=", // apiPassword: "read-api-key-123"
-        apiPasswordSalt: "test-api-salt-read-ui",
-        role: "read",
-        createdAt: "2024-01-01T00:00:00Z",
-        updatedAt: "2024-01-01T00:00:00Z",
+        id: 'test-read-ui',
+        username: 'testreadui',
+        passwordHash: 'kB94DvNnBYRvYaV/ZGoHQCyK1/k=', // password: "readpass"
+        salt: 'test-salt-read-ui',
+        apiPasswordHash: 'DRkROp0nFzqicoShFhroRDxemVE=', // apiPassword: "read-api-key-123"
+        apiPasswordSalt: 'test-api-salt-read-ui',
+        role: 'read',
+        createdAt: '2024-01-01T00:00:00Z',
+        updatedAt: '2024-01-01T00:00:00Z',
       },
     ];
 
     await fs.writeFile(
-      path.join(testConfigDir, "users.json"),
-      JSON.stringify(testUsers, null, 2),
+      path.join(testConfigDir, 'users.json'),
+      JSON.stringify(testUsers, null, 2)
     );
   };
 
@@ -1148,17 +1148,17 @@ describe("Fastify UI API - GET /api/ui/icon/{id}/{version} (auth based on mode)"
     // Use actual test package from fixtures
     const sourcePackage = path.join(
       __dirname,
-      "fixtures",
-      "packages",
-      "FlashCap.1.10.0.nupkg",
+      'fixtures',
+      'packages',
+      'FlashCap.1.10.0.nupkg'
     );
-    const packageDir = path.join(testPackagesDir, "FlashCap", "1.10.0");
+    const packageDir = path.join(testPackagesDir, 'FlashCap', '1.10.0');
     await fs.mkdir(packageDir, { recursive: true });
 
     // Copy the nupkg file
     await fs.copyFile(
       sourcePackage,
-      path.join(packageDir, "FlashCap.1.10.0.nupkg"),
+      path.join(packageDir, 'FlashCap.1.10.0.nupkg')
     );
 
     // Extract necessary files from the nupkg using AdmZip
@@ -1167,48 +1167,48 @@ describe("Fastify UI API - GET /api/ui/icon/{id}/{version} (auth based on mode)"
 
     // Extract and copy the nuspec file
     const nuspecEntry = zipEntries.find(
-      (entry) => entry.entryName === "FlashCap.nuspec",
+      (entry) => entry.entryName === 'FlashCap.nuspec'
     );
     if (nuspecEntry) {
       await fs.writeFile(
-        path.join(packageDir, "FlashCap.nuspec"),
-        nuspecEntry.getData(),
+        path.join(packageDir, 'FlashCap.nuspec'),
+        nuspecEntry.getData()
       );
     }
 
     // Extract and copy icon file if exists
     const iconEntry = zipEntries.find(
-      (entry) => entry.entryName === "FlashCap.100.png",
+      (entry) => entry.entryName === 'FlashCap.100.png'
     );
     if (iconEntry) {
       await fs.writeFile(
-        path.join(packageDir, "icon.png"),
-        iconEntry.getData(),
+        path.join(packageDir, 'icon.png'),
+        iconEntry.getData()
       );
     }
   };
 
-  test("should serve icon without authentication (authMode: none)", async () => {
+  test('should serve icon without authentication (authMode: none)', async () => {
     const config: ServerConfig = {
       port: serverPort,
       packageDir: testPackagesDir,
       configDir: testConfigDir,
-      realm: "Test Fastify UI Server - None",
+      realm: 'Test Fastify UI Server - None',
       logLevel: testGlobalLogLevel,
-      authMode: "none",
+      authMode: 'none',
       passwordStrengthCheck: false,
     };
 
     const server = await startFastifyServer(config, logger);
     try {
-      await waitForServerReady(serverPort, "none");
+      await waitForServerReady(serverPort, 'none');
 
       const response = await fetch(
-        `http://localhost:${serverPort}/api/ui/icon/FlashCap/1.10.0`,
+        `http://localhost:${serverPort}/api/ui/icon/FlashCap/1.10.0`
       );
 
       expect(response.status).toBe(200);
-      expect(response.headers.get("content-type")).toBe("image/png");
+      expect(response.headers.get('content-type')).toBe('image/png');
       const buffer = await response.arrayBuffer();
       expect(buffer.byteLength).toBeGreaterThan(0);
     } finally {
@@ -1216,27 +1216,27 @@ describe("Fastify UI API - GET /api/ui/icon/{id}/{version} (auth based on mode)"
     }
   }, 30000);
 
-  test("should serve icon without authentication (authMode: publish)", async () => {
+  test('should serve icon without authentication (authMode: publish)', async () => {
     const config: ServerConfig = {
       port: serverPort,
       packageDir: testPackagesDir,
       configDir: testConfigDir,
-      realm: "Test Fastify UI Server - Publish",
+      realm: 'Test Fastify UI Server - Publish',
       logLevel: testGlobalLogLevel,
-      authMode: "publish",
+      authMode: 'publish',
       passwordStrengthCheck: false,
     };
 
     const server = await startFastifyServer(config, logger);
     try {
-      await waitForServerReady(serverPort, "publish");
+      await waitForServerReady(serverPort, 'publish');
 
       const response = await fetch(
-        `http://localhost:${serverPort}/api/ui/icon/FlashCap/1.10.0`,
+        `http://localhost:${serverPort}/api/ui/icon/FlashCap/1.10.0`
       );
 
       expect(response.status).toBe(200);
-      expect(response.headers.get("content-type")).toBe("image/png");
+      expect(response.headers.get('content-type')).toBe('image/png');
       // Consume response body to prevent stream hanging
       const buffer = await response.arrayBuffer();
       expect(buffer.byteLength).toBeGreaterThan(0);
@@ -1245,24 +1245,24 @@ describe("Fastify UI API - GET /api/ui/icon/{id}/{version} (auth based on mode)"
     }
   }, 30000);
 
-  test("should require authentication for icon (authMode: full)", async () => {
+  test('should require authentication for icon (authMode: full)', async () => {
     const config: ServerConfig = {
       port: serverPort,
       packageDir: testPackagesDir,
       configDir: testConfigDir,
-      realm: "Test Fastify UI Server - Full",
+      realm: 'Test Fastify UI Server - Full',
       logLevel: testGlobalLogLevel,
-      authMode: "full",
+      authMode: 'full',
       passwordStrengthCheck: false,
     };
 
     const server = await startFastifyServer(config, logger);
     try {
-      await waitForServerReady(serverPort, "full");
+      await waitForServerReady(serverPort, 'full');
 
       // Without authentication
       const response = await fetch(
-        `http://localhost:${serverPort}/api/ui/icon/FlashCap/1.10.0`,
+        `http://localhost:${serverPort}/api/ui/icon/FlashCap/1.10.0`
       );
       expect(response.status).toBe(401);
 
@@ -1270,19 +1270,19 @@ describe("Fastify UI API - GET /api/ui/icon/{id}/{version} (auth based on mode)"
       const loginResponse = await fetch(
         `http://localhost:${serverPort}/api/auth/login`,
         {
-          method: "POST",
+          method: 'POST',
           headers: {
-            "Content-Type": "application/json",
+            'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            username: "testadminui",
-            password: "adminpass",
+            username: 'testadminui',
+            password: 'adminpass',
           }),
-        },
+        }
       );
 
       expect(loginResponse.status).toBe(200);
-      const cookies = loginResponse.headers.get("set-cookie") || "";
+      const cookies = loginResponse.headers.get('set-cookie') || '';
       const sessionToken = cookies.match(/sessionToken=([^;]+)/)?.[1];
 
       const authResponse = await fetch(
@@ -1291,11 +1291,11 @@ describe("Fastify UI API - GET /api/ui/icon/{id}/{version} (auth based on mode)"
           headers: {
             Cookie: `sessionToken=${sessionToken}`,
           },
-        },
+        }
       );
 
       expect(authResponse.status).toBe(200);
-      expect(authResponse.headers.get("content-type")).toBe("image/png");
+      expect(authResponse.headers.get('content-type')).toBe('image/png');
       // Consume response body to prevent stream hanging
       const authBuffer = await authResponse.arrayBuffer();
       expect(authBuffer.byteLength).toBeGreaterThan(0);
@@ -1304,23 +1304,23 @@ describe("Fastify UI API - GET /api/ui/icon/{id}/{version} (auth based on mode)"
     }
   }, 30000);
 
-  test("should return 404 for non-existent icon", async () => {
+  test('should return 404 for non-existent icon', async () => {
     const config: ServerConfig = {
       port: serverPort,
       packageDir: testPackagesDir,
       configDir: testConfigDir,
-      realm: "Test Fastify UI Server - None",
+      realm: 'Test Fastify UI Server - None',
       logLevel: testGlobalLogLevel,
-      authMode: "none",
+      authMode: 'none',
       passwordStrengthCheck: false,
     };
 
     const server = await startFastifyServer(config, logger);
     try {
-      await waitForServerReady(serverPort, "none");
+      await waitForServerReady(serverPort, 'none');
 
       const response = await fetch(
-        `http://localhost:${serverPort}/api/ui/icon/nonexistent/1.0.0`,
+        `http://localhost:${serverPort}/api/ui/icon/nonexistent/1.0.0`
       );
 
       expect(response.status).toBe(404);
@@ -1330,24 +1330,24 @@ describe("Fastify UI API - GET /api/ui/icon/{id}/{version} (auth based on mode)"
   }, 30000);
 });
 
-describe("Fastify UI API - POST /api/publish (hybrid auth based on mode)", () => {
+describe('Fastify UI API - POST /api/publish (hybrid auth based on mode)', () => {
   let testBaseDir: string;
   let testConfigDir: string;
   let testPackagesDir: string;
   let serverPort: number;
   const logger = createConsoleLogger(
-    "fastify-ui-api-publish",
-    testGlobalLogLevel,
+    'fastify-ui-api-publish',
+    testGlobalLogLevel
   );
 
   beforeEach(async (fn) => {
     // Create isolated test directory for each test
     testBaseDir = await createTestDirectory(
-      "fastify-ui-api-publish",
-      fn.task.name,
+      'fastify-ui-api-publish',
+      fn.task.name
     );
     testConfigDir = testBaseDir;
-    testPackagesDir = path.join(testBaseDir, "packages");
+    testPackagesDir = path.join(testBaseDir, 'packages');
 
     // Create test directories and data
     await fs.mkdir(testPackagesDir, { recursive: true });
@@ -1362,43 +1362,43 @@ describe("Fastify UI API - POST /api/publish (hybrid auth based on mode)", () =>
   const createTestUsers = async () => {
     const testUsers = [
       {
-        id: "test-admin-ui",
-        username: "testadminui",
-        passwordHash: "PSRt9HqDyLtH7LC8iUnS7F9ObKU=", // password: "adminpass"
-        salt: "test-salt-admin-ui",
-        apiPasswordHash: "fEE9WeQqltjkrNwKP6WZb4lPLJ0=", // apiPassword: "admin-api-key-123"
-        apiPasswordSalt: "test-api-salt-admin-ui",
-        role: "admin",
-        createdAt: "2024-01-01T00:00:00Z",
-        updatedAt: "2024-01-01T00:00:00Z",
+        id: 'test-admin-ui',
+        username: 'testadminui',
+        passwordHash: 'PSRt9HqDyLtH7LC8iUnS7F9ObKU=', // password: "adminpass"
+        salt: 'test-salt-admin-ui',
+        apiPasswordHash: 'fEE9WeQqltjkrNwKP6WZb4lPLJ0=', // apiPassword: "admin-api-key-123"
+        apiPasswordSalt: 'test-api-salt-admin-ui',
+        role: 'admin',
+        createdAt: '2024-01-01T00:00:00Z',
+        updatedAt: '2024-01-01T00:00:00Z',
       },
       {
-        id: "test-publish-ui",
-        username: "testpublishui",
-        passwordHash: "OxSWKpMyC4Ycbk6AVlacKvtFzp4=", // password: "publishpass"
-        salt: "test-salt-publish-ui",
-        apiPasswordHash: "kRHDw5YZn/Ic+ynzwmVQvFdFCJw=", // apiPassword: "publish-api-key-123"
-        apiPasswordSalt: "test-api-salt-publish-ui",
-        role: "publish",
-        createdAt: "2024-01-01T00:00:00Z",
-        updatedAt: "2024-01-01T00:00:00Z",
+        id: 'test-publish-ui',
+        username: 'testpublishui',
+        passwordHash: 'OxSWKpMyC4Ycbk6AVlacKvtFzp4=', // password: "publishpass"
+        salt: 'test-salt-publish-ui',
+        apiPasswordHash: 'kRHDw5YZn/Ic+ynzwmVQvFdFCJw=', // apiPassword: "publish-api-key-123"
+        apiPasswordSalt: 'test-api-salt-publish-ui',
+        role: 'publish',
+        createdAt: '2024-01-01T00:00:00Z',
+        updatedAt: '2024-01-01T00:00:00Z',
       },
       {
-        id: "test-read-ui",
-        username: "testreadui",
-        passwordHash: "kB94DvNnBYRvYaV/ZGoHQCyK1/k=", // password: "readpass"
-        salt: "test-salt-read-ui",
-        apiPasswordHash: "DRkROp0nFzqicoShFhroRDxemVE=", // apiPassword: "read-api-key-123"
-        apiPasswordSalt: "test-api-salt-read-ui",
-        role: "read",
-        createdAt: "2024-01-01T00:00:00Z",
-        updatedAt: "2024-01-01T00:00:00Z",
+        id: 'test-read-ui',
+        username: 'testreadui',
+        passwordHash: 'kB94DvNnBYRvYaV/ZGoHQCyK1/k=', // password: "readpass"
+        salt: 'test-salt-read-ui',
+        apiPasswordHash: 'DRkROp0nFzqicoShFhroRDxemVE=', // apiPassword: "read-api-key-123"
+        apiPasswordSalt: 'test-api-salt-read-ui',
+        role: 'read',
+        createdAt: '2024-01-01T00:00:00Z',
+        updatedAt: '2024-01-01T00:00:00Z',
       },
     ];
 
     await fs.writeFile(
-      path.join(testConfigDir, "users.json"),
-      JSON.stringify(testUsers, null, 2),
+      path.join(testConfigDir, 'users.json'),
+      JSON.stringify(testUsers, null, 2)
     );
   };
 
@@ -1406,17 +1406,17 @@ describe("Fastify UI API - POST /api/publish (hybrid auth based on mode)", () =>
     // Use actual test package from fixtures
     const sourcePackage = path.join(
       __dirname,
-      "fixtures",
-      "packages",
-      "FlashCap.1.10.0.nupkg",
+      'fixtures',
+      'packages',
+      'FlashCap.1.10.0.nupkg'
     );
-    const packageDir = path.join(testPackagesDir, "FlashCap", "1.10.0");
+    const packageDir = path.join(testPackagesDir, 'FlashCap', '1.10.0');
     await fs.mkdir(packageDir, { recursive: true });
 
     // Copy the nupkg file
     await fs.copyFile(
       sourcePackage,
-      path.join(packageDir, "FlashCap.1.10.0.nupkg"),
+      path.join(packageDir, 'FlashCap.1.10.0.nupkg')
     );
 
     // Extract necessary files from the nupkg using AdmZip
@@ -1425,35 +1425,35 @@ describe("Fastify UI API - POST /api/publish (hybrid auth based on mode)", () =>
 
     // Extract and copy the nuspec file
     const nuspecEntry = zipEntries.find(
-      (entry) => entry.entryName === "FlashCap.nuspec",
+      (entry) => entry.entryName === 'FlashCap.nuspec'
     );
     if (nuspecEntry) {
       await fs.writeFile(
-        path.join(packageDir, "FlashCap.nuspec"),
-        nuspecEntry.getData(),
+        path.join(packageDir, 'FlashCap.nuspec'),
+        nuspecEntry.getData()
       );
     }
 
     // Extract and copy icon file if exists
     const iconEntry = zipEntries.find(
-      (entry) => entry.entryName === "FlashCap.100.png",
+      (entry) => entry.entryName === 'FlashCap.100.png'
     );
     if (iconEntry) {
       await fs.writeFile(
-        path.join(packageDir, "icon.png"),
-        iconEntry.getData(),
+        path.join(packageDir, 'icon.png'),
+        iconEntry.getData()
       );
     }
   };
 
-  test("should allow publish without authentication (authMode: none)", async () => {
+  test('should allow publish without authentication (authMode: none)', async () => {
     const config: ServerConfig = {
       port: serverPort,
       packageDir: testPackagesDir,
       configDir: testConfigDir,
-      realm: "Test Fastify UI Server - None",
+      realm: 'Test Fastify UI Server - None',
       logLevel: testGlobalLogLevel,
-      authMode: "none",
+      authMode: 'none',
       passwordStrengthCheck: false,
     };
 
@@ -1462,41 +1462,41 @@ describe("Fastify UI API - POST /api/publish (hybrid auth based on mode)", () =>
       // Use a fixture package for testing
       const fixturePackagePath = path.join(
         __dirname,
-        "fixtures",
-        "packages",
-        "GitReader.1.15.0.nupkg",
+        'fixtures',
+        'packages',
+        'GitReader.1.15.0.nupkg'
       );
       const testPackageBuffer = await fs.readFile(fixturePackagePath);
 
       const response = await fetch(
         `http://localhost:${serverPort}/api/publish`,
         {
-          method: "POST",
+          method: 'POST',
           headers: {
-            "Content-Type": "application/octet-stream",
+            'Content-Type': 'application/octet-stream',
           },
           body: new Uint8Array(testPackageBuffer),
-        },
+        }
       );
 
       expect(response.status).toBe(201);
       const data = await response.json();
-      expect(data).toHaveProperty("message", "Package uploaded successfully");
-      expect(data).toHaveProperty("id", "GitReader");
-      expect(data).toHaveProperty("version", "1.15.0");
+      expect(data).toHaveProperty('message', 'Package uploaded successfully');
+      expect(data).toHaveProperty('id', 'GitReader');
+      expect(data).toHaveProperty('version', '1.15.0');
     } finally {
       await server.close();
     }
   }, 30000);
 
-  test("should require authentication for publish (authMode: publish)", async () => {
+  test('should require authentication for publish (authMode: publish)', async () => {
     const config: ServerConfig = {
       port: serverPort,
       packageDir: testPackagesDir,
       configDir: testConfigDir,
-      realm: "Test Fastify UI Server - Publish",
+      realm: 'Test Fastify UI Server - Publish',
       logLevel: testGlobalLogLevel,
-      authMode: "publish",
+      authMode: 'publish',
       passwordStrengthCheck: false,
     };
 
@@ -1505,9 +1505,9 @@ describe("Fastify UI API - POST /api/publish (hybrid auth based on mode)", () =>
       // Use a fixture package for testing
       const fixturePackagePath = path.join(
         __dirname,
-        "fixtures",
-        "packages",
-        "GitReader.1.15.0.nupkg",
+        'fixtures',
+        'packages',
+        'GitReader.1.15.0.nupkg'
       );
       const testPackageBuffer = await fs.readFile(fixturePackagePath);
 
@@ -1515,12 +1515,12 @@ describe("Fastify UI API - POST /api/publish (hybrid auth based on mode)", () =>
       const response = await fetch(
         `http://localhost:${serverPort}/api/publish`,
         {
-          method: "POST",
+          method: 'POST',
           headers: {
-            "Content-Type": "application/octet-stream",
+            'Content-Type': 'application/octet-stream',
           },
           body: new Uint8Array(testPackageBuffer),
-        },
+        }
       );
 
       expect(response.status).toBe(401);
@@ -1529,14 +1529,14 @@ describe("Fastify UI API - POST /api/publish (hybrid auth based on mode)", () =>
     }
   }, 30000);
 
-  test("should allow publish with session authentication (authMode: publish)", async () => {
+  test('should allow publish with session authentication (authMode: publish)', async () => {
     const config: ServerConfig = {
       port: serverPort,
       packageDir: testPackagesDir,
       configDir: testConfigDir,
-      realm: "Test Fastify UI Server - Publish",
+      realm: 'Test Fastify UI Server - Publish',
       logLevel: testGlobalLogLevel,
-      authMode: "publish",
+      authMode: 'publish',
       passwordStrengthCheck: false,
     };
 
@@ -1546,60 +1546,60 @@ describe("Fastify UI API - POST /api/publish (hybrid auth based on mode)", () =>
       const loginResponse = await fetch(
         `http://localhost:${serverPort}/api/auth/login`,
         {
-          method: "POST",
+          method: 'POST',
           headers: {
-            "Content-Type": "application/json",
+            'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            username: "testpublishui",
-            password: "publishpass",
+            username: 'testpublishui',
+            password: 'publishpass',
           }),
-        },
+        }
       );
 
       expect(loginResponse.status).toBe(200);
-      const cookies = loginResponse.headers.get("set-cookie") || "";
+      const cookies = loginResponse.headers.get('set-cookie') || '';
       const sessionToken = cookies.match(/sessionToken=([^;]+)/)?.[1];
 
       // Use a fixture package for testing
       const fixturePackagePath = path.join(
         __dirname,
-        "fixtures",
-        "packages",
-        "GitReader.1.15.0.nupkg",
+        'fixtures',
+        'packages',
+        'GitReader.1.15.0.nupkg'
       );
       const testPackageBuffer = await fs.readFile(fixturePackagePath);
 
       const response = await fetch(
         `http://localhost:${serverPort}/api/publish`,
         {
-          method: "POST",
+          method: 'POST',
           headers: {
-            "Content-Type": "application/octet-stream",
+            'Content-Type': 'application/octet-stream',
             Cookie: `sessionToken=${sessionToken}`,
           },
           body: new Uint8Array(testPackageBuffer),
-        },
+        }
       );
 
       expect(response.status).toBe(201);
       const data = await response.json();
-      expect(data).toHaveProperty("message", "Package uploaded successfully");
-      expect(data).toHaveProperty("id", "GitReader");
-      expect(data).toHaveProperty("version", "1.15.0");
+      expect(data).toHaveProperty('message', 'Package uploaded successfully');
+      expect(data).toHaveProperty('id', 'GitReader');
+      expect(data).toHaveProperty('version', '1.15.0');
     } finally {
       await server.close();
     }
   }, 30000);
 
-  test("should allow publish with Basic authentication (authMode: publish)", async () => {
+  test('should allow publish with Basic authentication (authMode: publish)', async () => {
     const config: ServerConfig = {
       port: serverPort,
       packageDir: testPackagesDir,
       configDir: testConfigDir,
-      realm: "Test Fastify UI Server - Publish",
+      realm: 'Test Fastify UI Server - Publish',
       logLevel: testGlobalLogLevel,
-      authMode: "publish",
+      authMode: 'publish',
       passwordStrengthCheck: false,
     };
 
@@ -1608,46 +1608,46 @@ describe("Fastify UI API - POST /api/publish (hybrid auth based on mode)", () =>
       // Use a fixture package for testing
       const fixturePackagePath = path.join(
         __dirname,
-        "fixtures",
-        "packages",
-        "GitReader.1.15.0.nupkg",
+        'fixtures',
+        'packages',
+        'GitReader.1.15.0.nupkg'
       );
       const testPackageBuffer = await fs.readFile(fixturePackagePath);
 
       // Use Basic authentication
       const credentials = Buffer.from(
-        "testpublishui:publish-api-key-123",
-      ).toString("base64");
+        'testpublishui:publish-api-key-123'
+      ).toString('base64');
       const response = await fetch(
         `http://localhost:${serverPort}/api/publish`,
         {
-          method: "POST",
+          method: 'POST',
           headers: {
-            "Content-Type": "application/octet-stream",
+            'Content-Type': 'application/octet-stream',
             Authorization: `Basic ${credentials}`,
           },
           body: new Uint8Array(testPackageBuffer),
-        },
+        }
       );
 
       expect(response.status).toBe(201);
       const data = await response.json();
-      expect(data).toHaveProperty("message", "Package uploaded successfully");
-      expect(data).toHaveProperty("id", "GitReader");
-      expect(data).toHaveProperty("version", "1.15.0");
+      expect(data).toHaveProperty('message', 'Package uploaded successfully');
+      expect(data).toHaveProperty('id', 'GitReader');
+      expect(data).toHaveProperty('version', '1.15.0');
     } finally {
       await server.close();
     }
   }, 30000);
 
-  test("should reject read-only user for publish", async () => {
+  test('should reject read-only user for publish', async () => {
     const config: ServerConfig = {
       port: serverPort,
       packageDir: testPackagesDir,
       configDir: testConfigDir,
-      realm: "Test Fastify UI Server - Publish",
+      realm: 'Test Fastify UI Server - Publish',
       logLevel: testGlobalLogLevel,
-      authMode: "publish",
+      authMode: 'publish',
       passwordStrengthCheck: false,
     };
 
@@ -1656,26 +1656,26 @@ describe("Fastify UI API - POST /api/publish (hybrid auth based on mode)", () =>
       // Use a fixture package for testing
       const fixturePackagePath = path.join(
         __dirname,
-        "fixtures",
-        "packages",
-        "GitReader.1.15.0.nupkg",
+        'fixtures',
+        'packages',
+        'GitReader.1.15.0.nupkg'
       );
       const testPackageBuffer = await fs.readFile(fixturePackagePath);
 
       // Use Basic authentication with read user
-      const credentials = Buffer.from("testreadui:read-api-key-123").toString(
-        "base64",
+      const credentials = Buffer.from('testreadui:read-api-key-123').toString(
+        'base64'
       );
       const response = await fetch(
         `http://localhost:${serverPort}/api/publish`,
         {
-          method: "POST",
+          method: 'POST',
           headers: {
-            "Content-Type": "application/octet-stream",
+            'Content-Type': 'application/octet-stream',
             Authorization: `Basic ${credentials}`,
           },
           body: new Uint8Array(testPackageBuffer),
-        },
+        }
       );
 
       expect(response.status).toBe(403);

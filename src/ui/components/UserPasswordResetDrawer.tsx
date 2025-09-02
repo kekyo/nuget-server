@@ -2,7 +2,7 @@
 // Copyright (c) Kouji Matsui (@kekyo@mi.kekyo.net)
 // License under MIT.
 
-import { useState, useEffect } from "react";
+import { useState, useEffect } from 'react';
 import {
   Drawer,
   Box,
@@ -15,17 +15,17 @@ import {
   Divider,
   Paper,
   Autocomplete,
-} from "@mui/material";
+} from '@mui/material';
 import {
   Close as CloseIcon,
   LockReset as LockResetIcon,
   CheckCircle as SuccessIcon,
   Error as ErrorIcon,
-} from "@mui/icons-material";
-import { PasswordStrengthIndicator } from "./PasswordStrengthIndicator";
-import { apiFetch } from "../utils/apiClient";
-import { TypedMessage, useTypedMessage } from "typed-message";
-import { messages } from "../../generated/messages";
+} from '@mui/icons-material';
+import { PasswordStrengthIndicator } from './PasswordStrengthIndicator';
+import { apiFetch } from '../utils/apiClient';
+import { TypedMessage, useTypedMessage } from 'typed-message';
+import { messages } from '../../generated/messages';
 
 interface UserPasswordResetDrawerProps {
   open: boolean;
@@ -53,8 +53,8 @@ const UserPasswordResetDrawer = ({
   const [users, setUsers] = useState<User[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(false);
   const [selectedUsername, setSelectedUsername] = useState<string | null>(null);
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [resetting, setResetting] = useState(false);
   const [result, setResult] = useState<ResetResult | null>(null);
 
@@ -68,13 +68,13 @@ const UserPasswordResetDrawer = ({
   const loadUsers = async () => {
     setLoadingUsers(true);
     try {
-      const response = await apiFetch("api/ui/users", {
-        method: "POST",
+      const response = await apiFetch('api/ui/users', {
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
-        credentials: "same-origin",
-        body: JSON.stringify({ action: "list" }),
+        credentials: 'same-origin',
+        body: JSON.stringify({ action: 'list' }),
       });
 
       if (response.ok) {
@@ -137,14 +137,14 @@ const UserPasswordResetDrawer = ({
     setResult(null);
 
     try {
-      const response = await apiFetch("api/ui/users", {
-        method: "POST",
+      const response = await apiFetch('api/ui/users', {
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
-        credentials: "same-origin",
+        credentials: 'same-origin',
         body: JSON.stringify({
-          action: "update",
+          action: 'update',
           username: selectedUsername,
           password,
         }),
@@ -185,8 +185,8 @@ const UserPasswordResetDrawer = ({
 
   const handleClose = () => {
     setSelectedUsername(null);
-    setPassword("");
-    setConfirmPassword("");
+    setPassword('');
+    setConfirmPassword('');
     setResetting(false);
     setResult(null);
     setUsers([]);
@@ -195,8 +195,8 @@ const UserPasswordResetDrawer = ({
 
   const resetForm = () => {
     setSelectedUsername(null);
-    setPassword("");
-    setConfirmPassword("");
+    setPassword('');
+    setConfirmPassword('');
     setResult(null);
   };
 
@@ -209,18 +209,18 @@ const UserPasswordResetDrawer = ({
       sx={{
         width: 400,
         flexShrink: 0,
-        "& .MuiDrawer-paper": {
+        '& .MuiDrawer-paper': {
           width: 400,
-          boxSizing: "border-box",
+          boxSizing: 'border-box',
         },
       }}
     >
-      <Box sx={{ p: 3, height: "100%" }}>
+      <Box sx={{ p: 3, height: '100%' }}>
         <Box
           sx={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
             mb: 3,
           }}
         >
@@ -241,7 +241,7 @@ const UserPasswordResetDrawer = ({
             </Typography>
 
             {loadingUsers ? (
-              <Box sx={{ display: "flex", justifyContent: "center", p: 3 }}>
+              <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
                 <CircularProgress />
               </Box>
             ) : (
@@ -331,7 +331,7 @@ const UserPasswordResetDrawer = ({
         ) : (
           <Box>
             <Alert
-              severity={result.success ? "success" : "error"}
+              severity={result.success ? 'success' : 'error'}
               icon={result.success ? <SuccessIcon /> : <ErrorIcon />}
               sx={{ mb: 3 }}
             >
@@ -347,7 +347,7 @@ const UserPasswordResetDrawer = ({
                 </Typography>
                 <Typography
                   variant="body1"
-                  sx={{ fontWeight: "medium", mb: 1 }}
+                  sx={{ fontWeight: 'medium', mb: 1 }}
                 >
                   <TypedMessage message={messages.USER_LABEL} />
                   {selectedUsername}
@@ -374,9 +374,9 @@ const UserPasswordResetDrawer = ({
                   <Typography
                     variant="body2"
                     sx={{
-                      fontFamily: "monospace",
-                      fontSize: "0.75rem",
-                      whiteSpace: "pre-wrap",
+                      fontFamily: 'monospace',
+                      fontSize: '0.75rem',
+                      whiteSpace: 'pre-wrap',
                     }}
                   >
                     {result.message}
@@ -385,7 +385,7 @@ const UserPasswordResetDrawer = ({
               </Box>
             )}
 
-            <Box sx={{ display: "flex", gap: 1 }}>
+            <Box sx={{ display: 'flex', gap: 1 }}>
               <Button variant="outlined" onClick={resetForm} sx={{ flex: 1 }}>
                 <TypedMessage message={messages.RESET_ANOTHER} />
               </Button>

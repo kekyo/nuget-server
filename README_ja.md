@@ -4,7 +4,7 @@
 
 ![nuget-server](images/nuget-server-120.png)
 
-[![Project Status: WIP – Initial development is in progress, but there has not yet been a stable, usable release suitable for the public.](https://www.repostatus.org/badges/latest/wip.svg)](https://www.repostatus.org/#wip)
+[![Project Status: Active – The project has reached a stable, usable state and is being actively developed.](https://www.repostatus.org/badges/latest/active.svg)](https://www.repostatus.org/#active)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![npm version](https://img.shields.io/npm/v/nuget-server.svg)](https://www.npmjs.com/package/nuget-server)
 [![Docker Image Version](https://img.shields.io/docker/v/kekyo/nuget-server.svg?label=docker)](https://hub.docker.com/r/kekyo/nuget-server)
@@ -54,6 +54,10 @@ Node.js上に構築された、NuGet V3 APIエンドポイントを提供する�
 - パッケージインポーター：既存のNuGetサーバーからのパッケージインポーター付属
 - Dockerイメージ利用可能
 
+## 動作環境
+
+Node.js 20.18.0以降
+
 ---
 
 ## インストール
@@ -74,7 +78,7 @@ nuget-server
 nuget-server --port 3000
 
 # 複数のオプション
-nuget-server --port 3000 --config-file config/config.json --users-file config/users.json
+nuget-server --port 3000 -users-file config/users.json --max-upload-size-mb 500
 ```
 
 NuGet V3 APIは `/v3` パスで提供されます。
@@ -234,7 +238,8 @@ nuget-server
   "authMode": "none",
   "sessionSecret": "<your-secret-here>",
   "passwordMinScore": 2,
-  "passwordStrengthCheck": true
+  "passwordStrengthCheck": true,
+  "maxUploadSizeMb": 100
 }
 ```
 
@@ -488,6 +493,7 @@ export NUGET_SERVER_TRUSTED_PROXIES=10.0.0.1,192.168.1.100
 export NUGET_SERVER_CONFIG_FILE=/path/to/config.json
 export NUGET_SERVER_USERS_FILE=/path/to/users.json
 export NUGET_SERVER_SESSION_SECRET=your-secret-key-here
+export NUGET_SERVER_MAX_UPLOAD_SIZE_MB=500
 ```
 
 ---

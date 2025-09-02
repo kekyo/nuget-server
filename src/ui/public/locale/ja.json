@@ -29,6 +29,7 @@
   "REMEMBER_ME_DAYS": "7日間ログイン状態を保持",
   "NEED_HELP_CONTACT": "お困りですか？システム管理者にお問い合わせください。",
   "LOGIN_FAILED": "ログインに失敗しました",
+  "LOGIN_SUCCESS": "ログインしました ({username})",
   "NETWORK_ERROR_TRY_AGAIN": "ネットワークエラー。もう一度お試しください。",
   "USERNAME_PASSWORD_REQUIRED": "ユーザー名とパスワードは必須です",
 
@@ -82,7 +83,7 @@
   "LOADING_MORE": "さらに読み込み中...",
   "LOADING_MORE_PACKAGES": "さらにパッケージを読み込み中...",
   "SHOWING_PACKAGES": "{total:number}個中{current:number}個のパッケージを表示",
-  "ALL_PACKAGES_LOADED": "すべて（{count:number}個）のパッケージを読み込みました",
+  "ALL_PACKAGES_LOADED": "すべて（{count:number}個）のパッケージを表示しました",
 
   "REGISTER_USER": "ユーザー登録",
   "ADD_NEW_USER_INSTRUCTION": "NuGetサーバーに新しいユーザーを追加:",
@@ -104,6 +105,7 @@
   "API_PASSWORD_SHOWN_ONCE": "このAPIパスワードは一度だけ表示されます。安全な場所に保存してください。",
   "API_PASSWORD_LABEL": "APIパスワード:",
   "CLICK_TO_COPY_CLIPBOARD": "クリックしてクリップボードにコピー",
+  "COPIED_TO_CLIPBOARD": "クリップボードにコピーしました！",
   "DETAILS_LABEL": "詳細:",
   "REGISTER_ANOTHER": "別のユーザーを登録",
   "REGISTERING": "登録中...",
