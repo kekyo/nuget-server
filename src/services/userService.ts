@@ -2,22 +2,22 @@
 // Copyright (c) Kouji Matsui (@kekyo@mi.kekyo.net)
 // License under MIT.
 
-import { constants } from "fs";
-import { readFile, writeFile, access } from "fs/promises";
-import { join } from "path";
-import { createReaderWriterLock } from "async-primitives";
-import { Logger, ServerConfig } from "../types";
+import { constants } from 'fs';
+import { readFile, writeFile, access } from 'fs/promises';
+import { join } from 'path';
+import { createReaderWriterLock } from 'async-primitives';
+import { Logger, ServerConfig } from '../types';
 import {
   generateSalt,
   hashPassword,
   verifyPassword,
   generateApiPassword,
   generateUserId,
-} from "../utils/crypto";
+} from '../utils/crypto';
 import {
   checkPasswordStrength,
   getMinPasswordScore,
-} from "../utils/passwordStrength";
+} from '../utils/passwordStrength';
 
 /**
  * API password data structure
@@ -40,7 +40,7 @@ export interface User {
   apiPasswordHash?: string; // Deprecated - for backward compatibility
   apiPasswordSalt?: string; // Deprecated - for backward compatibility
   apiPasswords?: ApiPassword[]; // New field for multiple API passwords
-  role: "read" | "publish" | "admin";
+  role: 'read' | 'publish' | 'admin';
   createdAt: string;
   updatedAt: string;
 }
@@ -51,7 +51,7 @@ export interface User {
 export interface CreateUserRequest {
   username: string;
   password: string;
-  role: "read" | "publish" | "admin";
+  role: 'read' | 'publish' | 'admin';
 }
 
 /**
@@ -109,37 +109,37 @@ export interface UserService {
   readonly getAllUsers: () => Promise<User[]>;
   readonly updateUser: (
     username: string,
-    updates: Partial<Pick<User, "role">> | { password: string },
+    updates: Partial<Pick<User, 'role'>> | { password: string }
   ) => Promise<User | undefined>;
   readonly deleteUser: (username: string) => Promise<boolean>;
   readonly regenerateApiPassword: (
-    username: string,
+    username: string
   ) => Promise<RegenerateApiPasswordResponse | undefined>;
   readonly validateCredentials: (
     username: string,
-    password: string,
+    password: string
   ) => Promise<User | undefined>;
   readonly validateApiPassword: (
     username: string,
-    apiPassword: string,
+    apiPassword: string
   ) => Promise<User | undefined>;
   readonly getUserCount: () => Promise<number>;
   readonly isReady: () => boolean;
   // New methods for multiple API passwords
   readonly listApiPasswords: (
-    username: string,
+    username: string
   ) => Promise<ApiPasswordListResponse | undefined>;
   readonly addApiPassword: (
     username: string,
-    label: string,
+    label: string
   ) => Promise<ApiPasswordAddResponse | undefined>;
   readonly deleteApiPassword: (
     username: string,
-    label: string,
+    label: string
   ) => Promise<ApiPasswordDeleteResponse>;
   readonly validateAnyApiPassword: (
     username: string,
-    apiPassword: string,
+    apiPassword: string
   ) => Promise<User | undefined>;
 }
 
@@ -151,7 +151,7 @@ export interface UserService {
 export const createUserService = (config: UserServiceConfig): UserService => {
   const { configDir, usersFile, logger, serverConfig } = config;
   // Use custom users file path if provided, otherwise default to configDir/users.json
-  const usersFilePath = usersFile || join(configDir, "users.json");
+  const usersFilePath = usersFile || join(configDir, 'users.json');
   let users: Map<string, User> = new Map();
   let isInitialized = false;
   const fileLock = createReaderWriterLock();
@@ -166,7 +166,7 @@ export const createUserService = (config: UserServiceConfig): UserService => {
       await access(usersFilePath, constants.R_OK);
 
       // Read and parse file
-      const content = await readFile(usersFilePath, "utf-8");
+      const content = await readFile(usersFilePath, 'utf-8');
       const usersArray: User[] = JSON.parse(content);
 
       users.clear();
@@ -176,9 +176,9 @@ export const createUserService = (config: UserServiceConfig): UserService => {
 
       logger.info(`Loaded ${usersArray.length} users from ${usersFilePath}`);
     } catch (error: any) {
-      if (error.code === "ENOENT") {
+      if (error.code === 'ENOENT') {
         logger.info(
-          `${usersFilePath} not found - starting with empty user database`,
+          `${usersFilePath} not found - starting with empty user database`
         );
         users.clear();
       } else {
@@ -197,7 +197,7 @@ export const createUserService = (config: UserServiceConfig): UserService => {
     try {
       const usersArray = Array.from(users.values());
       const content = JSON.stringify(usersArray, null, 2);
-      await writeFile(usersFilePath, content, "utf-8");
+      await writeFile(usersFilePath, content, 'utf-8');
       logger.debug(`Saved ${usersArray.length} users to ${usersFilePath}`);
     } catch (error: any) {
       logger.error(`Failed to save ${usersFilePath}: ${error.message}`);
@@ -210,24 +210,24 @@ export const createUserService = (config: UserServiceConfig): UserService => {
    */
   const validateUsername = (
     username: string,
-    excludeExisting = false,
+    excludeExisting = false
   ): void => {
     if (!username || username.trim().length === 0) {
-      throw new Error("Username cannot be empty");
+      throw new Error('Username cannot be empty');
     }
 
     if (username.length > 50) {
-      throw new Error("Username cannot exceed 50 characters");
+      throw new Error('Username cannot exceed 50 characters');
     }
 
     if (!/^[a-zA-Z0-9._-]+$/.test(username)) {
       throw new Error(
-        "Username can only contain letters, numbers, dots, underscores, and hyphens",
+        'Username can only contain letters, numbers, dots, underscores, and hyphens'
       );
     }
 
     if (!excludeExisting && users.has(username)) {
-      throw new Error("Username already exists");
+      throw new Error('Username already exists');
     }
   };
 
@@ -236,12 +236,12 @@ export const createUserService = (config: UserServiceConfig): UserService => {
    */
   const validatePassword = (password: string, username?: string): void => {
     if (!password || password.length === 0) {
-      throw new Error("Password cannot be empty");
+      throw new Error('Password cannot be empty');
     }
 
     // Minimum length check (for backward compatibility)
     if (password.length < 4) {
-      throw new Error("Password must be at least 4 characters long");
+      throw new Error('Password must be at least 4 characters long');
     }
 
     // Strength check (can be disabled via config)
@@ -251,14 +251,14 @@ export const createUserService = (config: UserServiceConfig): UserService => {
       const minScore = getMinPasswordScore(serverConfig);
 
       if (strengthResult.score < minScore) {
-        const strengthLabel = ["Weak", "Fair", "Good", "Strong", "Very Strong"][
+        const strengthLabel = ['Weak', 'Fair', 'Good', 'Strong', 'Very Strong'][
           minScore
         ];
         throw new Error(
           `Password strength is too weak. Minimum required: ${strengthLabel}. ` +
             (strengthResult.feedback.warning ||
               strengthResult.feedback.suggestions[0] ||
-              ""),
+              '')
         );
       }
     }
@@ -268,8 +268,8 @@ export const createUserService = (config: UserServiceConfig): UserService => {
    * Validates role
    */
   const validateRole = (role: string): void => {
-    if (!["read", "publish", "admin"].includes(role)) {
-      throw new Error("Role must be one of: read, publish, admin");
+    if (!['read', 'publish', 'admin'].includes(role)) {
+      throw new Error('Role must be one of: read, publish, admin');
     }
   };
 
@@ -284,7 +284,7 @@ export const createUserService = (config: UserServiceConfig): UserService => {
 
       const startTime = Date.now();
       logger.info(
-        `Initializing user service with config directory: ${configDir}`,
+        `Initializing user service with config directory: ${configDir}`
       );
 
       await loadUsers();
@@ -334,7 +334,7 @@ export const createUserService = (config: UserServiceConfig): UserService => {
         await saveUsersInternal();
 
         logger.info(
-          `Created user: ${request.username} with role: ${request.role}`,
+          `Created user: ${request.username} with role: ${request.role}`
         );
 
         return user;
@@ -368,7 +368,7 @@ export const createUserService = (config: UserServiceConfig): UserService => {
      */
     updateUser: async (
       username: string,
-      updates: Partial<Pick<User, "role">> | { password: string },
+      updates: Partial<Pick<User, 'role'>> | { password: string }
     ): Promise<User | undefined> => {
       const handle = await fileLock.writeLock();
       try {
@@ -377,17 +377,17 @@ export const createUserService = (config: UserServiceConfig): UserService => {
           return undefined;
         }
 
-        if ("role" in updates && updates.role) {
+        if ('role' in updates && updates.role) {
           validateRole(updates.role);
           user.role = updates.role;
         }
 
-        if ("password" in updates && updates.password) {
+        if ('password' in updates && updates.password) {
           validatePassword(updates.password, username);
           const newPasswordSalt = generateSalt();
           const newPasswordHash = hashPassword(
             updates.password,
-            newPasswordSalt,
+            newPasswordSalt
           );
           user.passwordHash = newPasswordHash;
           user.salt = newPasswordSalt;
@@ -428,7 +428,7 @@ export const createUserService = (config: UserServiceConfig): UserService => {
      * @returns New API password or undefined if user not found
      */
     regenerateApiPassword: async (
-      username: string,
+      username: string
     ): Promise<RegenerateApiPasswordResponse | undefined> => {
       const handle = await fileLock.writeLock();
       try {
@@ -441,7 +441,7 @@ export const createUserService = (config: UserServiceConfig): UserService => {
         const newApiPasswordSalt = generateSalt();
         const newApiPasswordHash = hashPassword(
           newApiPassword,
-          newApiPasswordSalt,
+          newApiPasswordSalt
         );
 
         user.apiPasswordHash = newApiPasswordHash;
@@ -467,7 +467,7 @@ export const createUserService = (config: UserServiceConfig): UserService => {
      */
     validateCredentials: async (
       username: string,
-      password: string,
+      password: string
     ): Promise<User | undefined> => {
       const user = users.get(username);
       if (!user) {
@@ -486,7 +486,7 @@ export const createUserService = (config: UserServiceConfig): UserService => {
      */
     validateApiPassword: async (
       username: string,
-      apiPassword: string,
+      apiPassword: string
     ): Promise<User | undefined> => {
       const user = users.get(username);
       if (!user) {
@@ -499,7 +499,7 @@ export const createUserService = (config: UserServiceConfig): UserService => {
           const isValid = verifyPassword(
             apiPassword,
             apiPwd.passwordHash,
-            apiPwd.salt,
+            apiPwd.salt
           );
           if (isValid) {
             return user;
@@ -510,7 +510,7 @@ export const createUserService = (config: UserServiceConfig): UserService => {
         const isValid = verifyPassword(
           apiPassword,
           user.apiPasswordHash,
-          user.apiPasswordSalt,
+          user.apiPasswordSalt
         );
         if (isValid) {
           return user;
@@ -542,7 +542,7 @@ export const createUserService = (config: UserServiceConfig): UserService => {
      * @returns API password list or undefined if user not found
      */
     listApiPasswords: async (
-      username: string,
+      username: string
     ): Promise<ApiPasswordListResponse | undefined> => {
       const user = users.get(username);
       if (!user) {
@@ -555,7 +555,7 @@ export const createUserService = (config: UserServiceConfig): UserService => {
         // Migrate old single API password if it exists
         if (user.apiPasswordHash && user.apiPasswordSalt) {
           user.apiPasswords.push({
-            label: "default",
+            label: 'default',
             passwordHash: user.apiPasswordHash,
             salt: user.apiPasswordSalt,
             createdAt: user.createdAt,
@@ -566,7 +566,7 @@ export const createUserService = (config: UserServiceConfig): UserService => {
       // Sort by createdAt in descending order (newest first)
       const sortedPasswords = [...user.apiPasswords].sort(
         (a, b) =>
-          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
       );
 
       return {
@@ -585,7 +585,7 @@ export const createUserService = (config: UserServiceConfig): UserService => {
      */
     addApiPassword: async (
       username: string,
-      label: string,
+      label: string
     ): Promise<ApiPasswordAddResponse | undefined> => {
       const handle = await fileLock.writeLock();
       try {
@@ -596,11 +596,11 @@ export const createUserService = (config: UserServiceConfig): UserService => {
 
         // Validate label
         if (!label || label.trim().length === 0) {
-          throw new Error("Label cannot be empty");
+          throw new Error('Label cannot be empty');
         }
 
         if (label.length > 50) {
-          throw new Error("Label cannot exceed 50 characters");
+          throw new Error('Label cannot exceed 50 characters');
         }
 
         // Initialize apiPasswords array if it doesn't exist
@@ -609,7 +609,7 @@ export const createUserService = (config: UserServiceConfig): UserService => {
           // Migrate old single API password if it exists
           if (user.apiPasswordHash && user.apiPasswordSalt) {
             user.apiPasswords.push({
-              label: "default",
+              label: 'default',
               passwordHash: user.apiPasswordHash,
               salt: user.apiPasswordSalt,
               createdAt: user.createdAt,
@@ -624,7 +624,7 @@ export const createUserService = (config: UserServiceConfig): UserService => {
 
         // Check maximum limit (10 API passwords)
         if (user.apiPasswords.length >= 10) {
-          throw new Error("Maximum of 10 API passwords allowed per user");
+          throw new Error('Maximum of 10 API passwords allowed per user');
         }
 
         // Generate new API password
@@ -645,7 +645,7 @@ export const createUserService = (config: UserServiceConfig): UserService => {
         await saveUsersInternal();
 
         logger.info(
-          `Added API password with label "${label}" for user: ${username}`,
+          `Added API password with label "${label}" for user: ${username}`
         );
 
         return {
@@ -666,7 +666,7 @@ export const createUserService = (config: UserServiceConfig): UserService => {
      */
     deleteApiPassword: async (
       username: string,
-      label: string,
+      label: string
     ): Promise<ApiPasswordDeleteResponse> => {
       const handle = await fileLock.writeLock();
       try {
@@ -674,7 +674,7 @@ export const createUserService = (config: UserServiceConfig): UserService => {
         if (!user) {
           return {
             success: false,
-            message: "User not found",
+            message: 'User not found',
           };
         }
 
@@ -698,7 +698,7 @@ export const createUserService = (config: UserServiceConfig): UserService => {
         await saveUsersInternal();
 
         logger.info(
-          `Deleted API password with label "${label}" for user: ${username}`,
+          `Deleted API password with label "${label}" for user: ${username}`
         );
 
         return {
@@ -718,7 +718,7 @@ export const createUserService = (config: UserServiceConfig): UserService => {
      */
     validateAnyApiPassword: async (
       username: string,
-      apiPassword: string,
+      apiPassword: string
     ): Promise<User | undefined> => {
       // This is essentially the same as validateApiPassword now
       return service.validateApiPassword(username, apiPassword);

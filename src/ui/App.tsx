@@ -2,7 +2,7 @@
 // Copyright (c) Kouji Matsui (@kekyo@mi.kekyo.net)
 // License under MIT.
 
-import { useRef, useState, useEffect, useCallback } from "react";
+import { useRef, useState, useEffect, useCallback } from 'react';
 import {
   CssBaseline,
   ThemeProvider,
@@ -10,9 +10,9 @@ import {
   createTheme,
   useMediaQuery,
   Paper,
-} from "@mui/material";
-import { TypedMessageProvider, TypedMessage } from "typed-message";
-import { messages } from "../generated/messages";
+} from '@mui/material';
+import { TypedMessageProvider, TypedMessage } from 'typed-message';
+import { messages } from '../generated/messages';
 import {
   AppBar,
   Toolbar,
@@ -23,25 +23,25 @@ import {
   Divider,
   IconButton,
   Stack,
-} from "@mui/material";
+} from '@mui/material';
 import {
   CloudUpload as UploadIcon,
   GitHub as GitHubIcon,
   ContentCopy as ContentCopyIcon,
   EditNote,
-} from "@mui/icons-material";
-import PackageList, { PackageListRef } from "./PackageList";
-import UploadDrawer from "./components/UploadDrawer";
-import UserRegistrationDrawer from "./components/UserRegistrationDrawer";
-import UserPasswordResetDrawer from "./components/UserPasswordResetDrawer";
-import UserDeleteDrawer from "./components/UserDeleteDrawer";
-import ApiPasswordDrawer from "./components/ApiPasswordDrawer";
-import UserPasswordChangeDrawer from "./components/UserPasswordChangeDrawer";
-import UserAvatarMenu from "./components/UserAvatarMenu";
-import LoginDialog from "./components/LoginDialog";
-import { name, repository_url, version } from "../generated/packageMetadata";
-import { buildAddSourceCommand } from "./utils/commandBuilder";
-import { apiFetch } from "./utils/apiClient";
+} from '@mui/icons-material';
+import PackageList, { PackageListRef } from './PackageList';
+import UploadDrawer from './components/UploadDrawer';
+import UserRegistrationDrawer from './components/UserRegistrationDrawer';
+import UserPasswordResetDrawer from './components/UserPasswordResetDrawer';
+import UserDeleteDrawer from './components/UserDeleteDrawer';
+import ApiPasswordDrawer from './components/ApiPasswordDrawer';
+import UserPasswordChangeDrawer from './components/UserPasswordChangeDrawer';
+import UserAvatarMenu from './components/UserAvatarMenu';
+import LoginDialog from './components/LoginDialog';
+import { name, repository_url, version } from '../generated/packageMetadata';
+import { buildAddSourceCommand } from './utils/commandBuilder';
+import { apiFetch } from './utils/apiClient';
 
 interface ServerConfig {
   realm: string;
@@ -53,7 +53,7 @@ interface ServerConfig {
     port: number;
     isHttps: boolean;
   };
-  authMode: "none" | "publish" | "full";
+  authMode: 'none' | 'publish' | 'full';
   authEnabled: {
     general: boolean;
     publish: boolean;
@@ -70,8 +70,8 @@ interface ServerConfig {
 // Language detection function
 const detectLanguage = (availableLanguages?: string[]): string => {
   // Check localStorage first
-  const savedLocale = localStorage.getItem("preferredLocale");
-  if (savedLocale && savedLocale !== "auto") {
+  const savedLocale = localStorage.getItem('preferredLocale');
+  if (savedLocale && savedLocale !== 'auto') {
     // Verify saved locale is still available
     if (!availableLanguages || availableLanguages.includes(savedLocale)) {
       return savedLocale;
@@ -80,7 +80,7 @@ const detectLanguage = (availableLanguages?: string[]): string => {
 
   // Auto-detect from browser
   const browserLang = navigator.language.toLowerCase();
-  const langCode = browserLang.split("-")[0];
+  const langCode = browserLang.split('-')[0];
 
   // Check if browser language is available
   if (langCode && availableLanguages && availableLanguages.includes(langCode)) {
@@ -88,21 +88,21 @@ const detectLanguage = (availableLanguages?: string[]): string => {
   }
 
   // Default to English
-  return "en";
+  return 'en';
 };
 
 const App = () => {
-  const prefersDarkMode = useMediaQuery("(prefers-color-scheme: dark)");
+  const prefersDarkMode = useMediaQuery('(prefers-color-scheme: dark)');
   const [locale, setLocale] = useState(detectLanguage());
   const [localeMessages, setLocaleMessages] = useState<Record<string, string>>(
-    {},
+    {}
   );
-  const [themeMode, setThemeMode] = useState<"auto" | "light" | "dark">(() => {
-    const saved = localStorage.getItem("preferredTheme");
-    return (saved as "auto" | "light" | "dark") || "auto";
+  const [themeMode, setThemeMode] = useState<'auto' | 'light' | 'dark'>(() => {
+    const saved = localStorage.getItem('preferredTheme');
+    return (saved as 'auto' | 'light' | 'dark') || 'auto';
   });
   const [languageNames, setLanguageNames] = useState<Record<string, string>>(
-    {},
+    {}
   );
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [userRegDrawerOpen, setUserRegDrawerOpen] = useState(false);
@@ -119,27 +119,27 @@ const App = () => {
   const theme = createTheme({
     palette: {
       mode:
-        themeMode === "auto"
+        themeMode === 'auto'
           ? prefersDarkMode
-            ? "dark"
-            : "light"
-          : themeMode === "dark"
-            ? "dark"
-            : "light",
+            ? 'dark'
+            : 'light'
+          : themeMode === 'dark'
+            ? 'dark'
+            : 'light',
       primary: {
         main:
-          themeMode === "dark" || (themeMode === "auto" && prefersDarkMode)
-            ? "#90caf9"
-            : "#1976d2",
-        50: "#e3f2fd",
-        100: "#bbdefb",
+          themeMode === 'dark' || (themeMode === 'auto' && prefersDarkMode)
+            ? '#90caf9'
+            : '#1976d2',
+        50: '#e3f2fd',
+        100: '#bbdefb',
       },
     },
     components: {
       MuiButton: {
         styleOverrides: {
           root: {
-            textTransform: "none",
+            textTransform: 'none',
           },
         },
       },
@@ -150,27 +150,27 @@ const App = () => {
   const checkUserRole = useCallback(async () => {
     try {
       // If auth is disabled, set role based on auth mode
-      if (serverConfig?.authMode === "none") {
-        setCurrentUserRole("admin"); // All operations available when auth is disabled
+      if (serverConfig?.authMode === 'none') {
+        setCurrentUserRole('admin'); // All operations available when auth is disabled
         return;
       }
 
       // Use serverConfig.currentUser for role information
       if (serverConfig?.currentUser?.authenticated) {
         const role = serverConfig.currentUser.role;
-        if (role === "admin") {
-          setCurrentUserRole("admin");
-        } else if (role === "publish") {
-          setCurrentUserRole("read-publish");
+        if (role === 'admin') {
+          setCurrentUserRole('admin');
+        } else if (role === 'publish') {
+          setCurrentUserRole('read-publish');
         } else {
-          setCurrentUserRole("readonly");
+          setCurrentUserRole('readonly');
         }
       } else {
         setCurrentUserRole(null);
       }
     } catch (error) {
-      console.error("Failed to check user role:", error);
-      setCurrentUserRole("readonly"); // Default to readonly on error
+      console.error('Failed to check user role:', error);
+      setCurrentUserRole('readonly'); // Default to readonly on error
     }
   }, [serverConfig]);
 
@@ -198,7 +198,7 @@ const App = () => {
           setLocaleMessages(messages);
         }
       } catch (error) {
-        console.error("Failed to load locale messages:", error);
+        console.error('Failed to load locale messages:', error);
       }
     };
     loadMessages();
@@ -239,13 +239,13 @@ const App = () => {
       if (!serverConfig) return;
 
       if (
-        serverConfig.authMode === "full" &&
+        serverConfig.authMode === 'full' &&
         !serverConfig.currentUser?.authenticated
       ) {
         // Check session status
         try {
-          const sessionResponse = await apiFetch("api/auth/session", {
-            credentials: "same-origin",
+          const sessionResponse = await apiFetch('api/auth/session', {
+            credentials: 'same-origin',
           });
 
           if (sessionResponse.ok) {
@@ -259,7 +259,7 @@ const App = () => {
             setLoginDialogOpen(true);
           }
         } catch (error) {
-          console.error("Failed to check session:", error);
+          console.error('Failed to check session:', error);
           setLoginDialogOpen(true);
         }
       }
@@ -278,7 +278,7 @@ const App = () => {
 
   const handleUserRegSuccess = () => {
     // Could refresh user list or show notification here
-    console.log("User registered successfully");
+    console.log('User registered successfully');
   };
 
   const handleCloseUserRegDrawer = () => {
@@ -310,7 +310,7 @@ const App = () => {
   const handleCloseLoginDialog = () => {
     // Don't close dialog when unauthenticated in authMode=full
     if (
-      serverConfig?.authMode === "full" &&
+      serverConfig?.authMode === 'full' &&
       !serverConfig?.currentUser?.authenticated
     ) {
       return; // Do nothing
@@ -321,17 +321,17 @@ const App = () => {
   const fetchServerConfig = async () => {
     try {
       // First try Express endpoint
-      let response = await apiFetch("api/config", {
-        credentials: "same-origin",
+      let response = await apiFetch('api/config', {
+        credentials: 'same-origin',
       });
 
       // If Express endpoint fails, try Fastify UI endpoint
       if (!response.ok && response.status === 404) {
-        response = await apiFetch("api/ui/config", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
+        response = await apiFetch('api/ui/config', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({}),
-          credentials: "same-origin",
+          credentials: 'same-origin',
         });
       }
 
@@ -345,17 +345,17 @@ const App = () => {
       } else if (response.status === 401) {
         // Authentication required - don't reload to avoid Basic auth popup
         // The config will be fetched again after login
-        console.warn("Authentication required for config endpoint");
+        console.warn('Authentication required for config endpoint');
         return;
       }
     } catch (error) {
-      console.error("Failed to fetch server config:", error);
+      console.error('Failed to fetch server config:', error);
     }
   };
 
   // Permission check functions
   const hasPublishPermission = () => {
-    return currentUserRole === "admin" || currentUserRole === "read-publish";
+    return currentUserRole === 'admin' || currentUserRole === 'read-publish';
   };
 
   const isAuthenticated = () => {
@@ -367,14 +367,14 @@ const App = () => {
     if (!serverConfig) return true;
 
     // Hide all buttons when login dialog is open in authMode=full
-    if (loginDialogOpen && serverConfig.authMode === "full") {
+    if (loginDialogOpen && serverConfig.authMode === 'full') {
       return true;
     }
 
     // Also hide buttons in authMode=full when not authenticated
     // (even before login dialog opens)
     if (
-      serverConfig.authMode === "full" &&
+      serverConfig.authMode === 'full' &&
       !serverConfig.currentUser?.authenticated
     ) {
       return true;
@@ -388,9 +388,9 @@ const App = () => {
     if (!serverConfig) return false;
     if (shouldHideAppBarButtons()) return false;
     const authMode = serverConfig.authMode;
-    if (authMode === "none") return false;
-    if (authMode === "publish") return !isAuthenticated();
-    if (authMode === "full") return !isAuthenticated(); // Show when unauthenticated even in full mode
+    if (authMode === 'none') return false;
+    if (authMode === 'publish') return !isAuthenticated();
+    if (authMode === 'full') return !isAuthenticated(); // Show when unauthenticated even in full mode
     return false;
   };
 
@@ -405,7 +405,7 @@ const App = () => {
     if (!serverConfig) return false;
     if (shouldHideAppBarButtons()) return false;
     const authMode = serverConfig.authMode;
-    if (authMode === "full") return false;
+    if (authMode === 'full') return false;
     return !!serverConfig.serverUrl;
   };
 
@@ -413,7 +413,7 @@ const App = () => {
     if (!serverConfig) return false;
     if (shouldHideAppBarButtons()) return false;
     const authMode = serverConfig.authMode;
-    if (authMode === "none") return true;
+    if (authMode === 'none') return true;
     if (!isAuthenticated()) return false;
     return hasPublishPermission();
   };
@@ -421,14 +421,14 @@ const App = () => {
   const isAdmin = () => {
     if (!serverConfig) return false;
     const authMode = serverConfig.authMode;
-    if (authMode === "none") return true; // Full access when auth is disabled
-    return serverConfig.currentUser?.role === "admin";
+    if (authMode === 'none') return true; // Full access when auth is disabled
+    return serverConfig.currentUser?.role === 'admin';
   };
 
   const canManagePassword = () => {
     if (!serverConfig) return false;
     const authMode = serverConfig.authMode;
-    return (authMode === "publish" || authMode === "full") && isAuthenticated();
+    return (authMode === 'publish' || authMode === 'full') && isAuthenticated();
   };
 
   const handleLogin = () => {
@@ -437,9 +437,9 @@ const App = () => {
 
   const handleLogout = async () => {
     try {
-      const response = await apiFetch("api/auth/logout", {
-        method: "POST",
-        credentials: "same-origin",
+      const response = await apiFetch('api/auth/logout', {
+        method: 'POST',
+        credentials: 'same-origin',
       });
 
       if (response.ok) {
@@ -450,30 +450,30 @@ const App = () => {
         window.location.reload();
       }
     } catch (error) {
-      console.error("Logout failed:", error);
+      console.error('Logout failed:', error);
       // Fallback to reload
       window.location.reload();
     }
   };
 
   const handleLanguageChange = (languageCode: string) => {
-    if (languageCode === "auto") {
-      localStorage.removeItem("preferredLocale");
+    if (languageCode === 'auto') {
+      localStorage.removeItem('preferredLocale');
       // Re-detect browser language
       const detectedLang = detectLanguage(serverConfig?.availableLanguages);
       setLocale(detectedLang);
     } else {
-      localStorage.setItem("preferredLocale", languageCode);
+      localStorage.setItem('preferredLocale', languageCode);
       setLocale(languageCode);
     }
   };
 
-  const handleThemeChange = (mode: "auto" | "light" | "dark") => {
+  const handleThemeChange = (mode: 'auto' | 'light' | 'dark') => {
     setThemeMode(mode);
-    if (mode === "auto") {
-      localStorage.removeItem("preferredTheme");
+    if (mode === 'auto') {
+      localStorage.removeItem('preferredTheme');
     } else {
-      localStorage.setItem("preferredTheme", mode);
+      localStorage.setItem('preferredTheme', mode);
     }
   };
 
@@ -491,21 +491,21 @@ const App = () => {
       <ThemeProvider theme={theme}>
         <CssBaseline />
         <Box
-          sx={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}
+          sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}
         >
           <AppBar position="fixed">
             <Toolbar>
               <img
                 src="/icon.png"
-                alt={serverConfig?.realm || "nuget-server"}
+                alt={serverConfig?.realm || 'nuget-server'}
                 style={{
-                  height: "2.3rem",
-                  width: "2.3rem",
-                  marginRight: "1rem",
+                  height: '2.3rem',
+                  width: '2.3rem',
+                  marginRight: '1rem',
                 }}
               />
               <Typography variant="h6" component="div" sx={{ flexGrow: 1 }}>
-                {serverConfig?.realm || "nuget-server"}
+                {serverConfig?.realm || 'nuget-server'}
               </Typography>
 
               {/* GitHub Link */}
@@ -514,14 +514,14 @@ const App = () => {
                   <Tooltip title={`${name} ${version}`}>
                     <GitHubIcon
                       color="inherit"
-                      onClick={() => window.open(repository_url, "_blank")}
-                      sx={{ mx: 1, cursor: "pointer" }}
+                      onClick={() => window.open(repository_url, '_blank')}
+                      sx={{ mx: 1, cursor: 'pointer' }}
                     />
                   </Tooltip>
                   <Divider
                     orientation="vertical"
                     flexItem
-                    sx={{ mx: 1, borderColor: "rgba(255, 255, 255, 0.3)" }}
+                    sx={{ mx: 1, borderColor: 'rgba(255, 255, 255, 0.3)' }}
                   />
                 </>
               )}
@@ -542,8 +542,8 @@ const App = () => {
               {showUserAvatarMenu() && (
                 <UserAvatarMenu
                   username={
-                    serverConfig?.authMode === "none"
-                      ? "Admin"
+                    serverConfig?.authMode === 'none'
+                      ? 'Admin'
                       : serverConfig?.currentUser?.username
                   }
                   authMode={serverConfig?.authMode}
@@ -553,15 +553,15 @@ const App = () => {
                   showLogin={showLoginButton()}
                   currentLocale={locale}
                   availableLanguages={
-                    serverConfig?.availableLanguages || ["en"]
+                    serverConfig?.availableLanguages || ['en']
                   }
                   languageNames={languageNames}
                   currentTheme={themeMode}
                   effectiveTheme={
-                    themeMode === "auto"
+                    themeMode === 'auto'
                       ? prefersDarkMode
-                        ? "dark"
-                        : "light"
+                        ? 'dark'
+                        : 'light'
                       : themeMode
                   }
                   onLogin={handleLogin}
@@ -585,18 +585,18 @@ const App = () => {
                 sx={{
                   p: 2,
                   bgcolor: (theme) =>
-                    theme.palette.mode === "light" ? "primary.50" : "grey.900",
+                    theme.palette.mode === 'light' ? 'primary.50' : 'grey.900',
                   borderColor: (theme) =>
-                    theme.palette.mode === "light" ? "primary.100" : "grey.800",
+                    theme.palette.mode === 'light' ? 'primary.100' : 'grey.800',
                   borderWidth: 1,
-                  borderStyle: "solid",
+                  borderStyle: 'solid',
                 }}
               >
                 <Box
                   sx={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
                   }}
                 >
                   <Box sx={{ flexGrow: 1 }}>
@@ -615,9 +615,9 @@ const App = () => {
                       variant="body2"
                       marginLeft="1rem"
                       sx={{
-                        fontFamily: "monospace",
-                        fontSize: "1rem",
-                        wordBreak: "break-all",
+                        fontFamily: 'monospace',
+                        fontSize: '1rem',
+                        wordBreak: 'break-all',
                       }}
                     >
                       {buildAddSourceCommand({
@@ -629,7 +629,7 @@ const App = () => {
                     size="large"
                     onClick={handleCopyCommand}
                     aria-label="copy command"
-                    sx={{ ml: 1, marginRight: "1rem" }}
+                    sx={{ ml: 1, marginRight: '1rem' }}
                   >
                     <ContentCopyIcon fontSize="small" />
                   </IconButton>
@@ -650,7 +650,7 @@ const App = () => {
                 userDeleteDrawerOpen ||
                 apiPasswordDrawerOpen ||
                 passwordChangeDrawerOpen
-                  ? "500px"
+                  ? '500px'
                   : undefined,
             }}
           >
@@ -695,8 +695,8 @@ const App = () => {
             open={loginDialogOpen}
             onClose={handleCloseLoginDialog}
             onLoginSuccess={handleLoginSuccess}
-            realm={serverConfig?.realm || "NuGet Server"}
-            disableBackdropClick={serverConfig?.authMode === "full"}
+            realm={serverConfig?.realm || 'NuGet Server'}
+            disableBackdropClick={serverConfig?.authMode === 'full'}
           />
         </Box>
       </ThemeProvider>

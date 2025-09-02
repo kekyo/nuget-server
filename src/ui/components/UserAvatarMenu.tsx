@@ -2,9 +2,9 @@
 // Copyright (c) Kouji Matsui (@kekyo@mi.kekyo.net)
 // License under MIT.
 
-import { useState } from "react";
-import { TypedMessage } from "typed-message";
-import { messages } from "../../generated/messages";
+import { useState } from 'react';
+import { TypedMessage } from 'typed-message';
+import { messages } from '../../generated/messages';
 import {
   Avatar,
   Menu,
@@ -14,7 +14,7 @@ import {
   Divider,
   IconButton,
   ListSubheader,
-} from "@mui/material";
+} from '@mui/material';
 import {
   Logout as LogoutIcon,
   PersonAdd as PersonAddIcon,
@@ -26,11 +26,11 @@ import {
   Language as LanguageIcon,
   Check as CheckIcon,
   Brightness4 as ThemeIcon,
-} from "@mui/icons-material";
+} from '@mui/icons-material';
 
 interface UserAvatarMenuProps {
   username?: string | null;
-  authMode?: "none" | "publish" | "full";
+  authMode?: 'none' | 'publish' | 'full';
   isAuthenticated: boolean;
   isAdmin: boolean;
   canManagePassword: boolean;
@@ -38,8 +38,8 @@ interface UserAvatarMenuProps {
   currentLocale: string;
   availableLanguages: string[];
   languageNames: Record<string, string>;
-  currentTheme: "auto" | "light" | "dark";
-  effectiveTheme: "light" | "dark";
+  currentTheme: 'auto' | 'light' | 'dark';
+  effectiveTheme: 'light' | 'dark';
   onLogin: () => void;
   onAddUser: () => void;
   onResetPassword: () => void;
@@ -48,7 +48,7 @@ interface UserAvatarMenuProps {
   onApiPassword: () => void;
   onLogout: () => void;
   onLanguageChange: (code: string) => void;
-  onThemeChange: (mode: "auto" | "light" | "dark") => void;
+  onThemeChange: (mode: 'auto' | 'light' | 'dark') => void;
 }
 
 const UserAvatarMenu = ({
@@ -75,7 +75,7 @@ const UserAvatarMenu = ({
 }: UserAvatarMenuProps) => {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const [languageAnchorEl, setLanguageAnchorEl] = useState<null | HTMLElement>(
-    null,
+    null
   );
   const [themeAnchorEl, setThemeAnchorEl] = useState<null | HTMLElement>(null);
   const open = Boolean(anchorEl);
@@ -87,7 +87,7 @@ const UserAvatarMenu = ({
     if (username) {
       return username.charAt(0).toUpperCase();
     }
-    return "A"; // Default for admin when auth is disabled
+    return 'A'; // Default for admin when auth is disabled
   };
 
   const handleClick = (event: React.MouseEvent<HTMLElement>) => {
@@ -111,17 +111,17 @@ const UserAvatarMenu = ({
         onClick={handleClick}
         size="small"
         sx={{ ml: 2 }}
-        aria-controls={open ? "user-avatar-menu" : undefined}
+        aria-controls={open ? 'user-avatar-menu' : undefined}
         aria-haspopup="true"
-        aria-expanded={open ? "true" : undefined}
+        aria-expanded={open ? 'true' : undefined}
       >
         <Avatar
           sx={{
             width: 32,
             height: 32,
             bgcolor: (theme) =>
-              theme.palette.mode === "light" ? "grey.500" : "primary.main",
-            fontSize: "1rem",
+              theme.palette.mode === 'light' ? 'grey.500' : 'primary.main',
+            fontSize: '1rem',
           }}
         >
           {isAuthenticated && username ? (
@@ -137,52 +137,52 @@ const UserAvatarMenu = ({
         open={open}
         onClose={handleClose}
         MenuListProps={{
-          "aria-labelledby": "user-avatar-button",
+          'aria-labelledby': 'user-avatar-button',
         }}
         anchorOrigin={{
-          vertical: "bottom",
-          horizontal: "right",
+          vertical: 'bottom',
+          horizontal: 'right',
         }}
         transformOrigin={{
-          vertical: "top",
-          horizontal: "right",
+          vertical: 'top',
+          horizontal: 'right',
         }}
         PaperProps={{
           elevation: 0,
           sx: {
-            overflow: "visible",
-            filter: "drop-shadow(0px 2px 8px rgba(0,0,0,0.32))",
+            overflow: 'visible',
+            filter: 'drop-shadow(0px 2px 8px rgba(0,0,0,0.32))',
             mt: 1.5,
-            "& .MuiAvatar-root": {
+            '& .MuiAvatar-root': {
               width: 32,
               height: 32,
               ml: -0.5,
               mr: 1,
             },
-            "&:before": {
+            '&:before': {
               content: '""',
-              display: "block",
-              position: "absolute",
+              display: 'block',
+              position: 'absolute',
               top: 0,
               right: 14,
               width: 10,
               height: 10,
-              bgcolor: "background.paper",
-              transform: "translateY(-50%) rotate(45deg)",
+              bgcolor: 'background.paper',
+              transform: 'translateY(-50%) rotate(45deg)',
               zIndex: 0,
             },
           },
         }}
       >
         {/* Determine what to show based on authMode */}
-        {authMode === "none" ? (
+        {authMode === 'none' ? (
           // For authMode=none, show empty menu
           <MenuItem disabled>
             <ListItemText
               primary="No menu items available"
               primaryTypographyProps={{
-                fontStyle: "italic",
-                color: "text.secondary",
+                fontStyle: 'italic',
+                color: 'text.secondary',
               }}
             />
           </MenuItem>
@@ -210,7 +210,7 @@ const UserAvatarMenu = ({
                   <ListItemText
                     primary={username}
                     primaryTypographyProps={{
-                      fontWeight: "medium",
+                      fontWeight: 'medium',
                     }}
                   />
                 </MenuItem>
@@ -295,10 +295,10 @@ const UserAvatarMenu = ({
               </ListItemIcon>
               <ListItemText>
                 <TypedMessage message={messages.LANGUAGE} />
-                {": "}
+                {': '}
                 {(() => {
-                  const savedLocale = localStorage.getItem("preferredLocale");
-                  const isAutoMode = !savedLocale || savedLocale === "auto";
+                  const savedLocale = localStorage.getItem('preferredLocale');
+                  const isAutoMode = !savedLocale || savedLocale === 'auto';
                   if (isAutoMode) {
                     return (
                       <>
@@ -326,13 +326,13 @@ const UserAvatarMenu = ({
               </ListItemIcon>
               <ListItemText>
                 <TypedMessage message={messages.THEME} />
-                {": "}
-                {currentTheme === "auto" ? (
+                {': '}
+                {currentTheme === 'auto' ? (
                   <>
                     <TypedMessage message={messages.THEME_AUTO} />
-                    {` (${effectiveTheme === "dark" ? "Dark" : "Light"})`}
+                    {` (${effectiveTheme === 'dark' ? 'Dark' : 'Light'})`}
                   </>
-                ) : currentTheme === "dark" ? (
+                ) : currentTheme === 'dark' ? (
                   <TypedMessage message={messages.THEME_DARK} />
                 ) : (
                   <TypedMessage message={messages.THEME_LIGHT} />
@@ -361,19 +361,19 @@ const UserAvatarMenu = ({
         anchorEl={languageAnchorEl}
         open={languageMenuOpen}
         onClose={() => setLanguageAnchorEl(null)}
-        anchorOrigin={{ vertical: "top", horizontal: "right" }}
-        transformOrigin={{ vertical: "top", horizontal: "left" }}
+        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+        transformOrigin={{ vertical: 'top', horizontal: 'left' }}
       >
         {/* Auto option */}
         <MenuItem
           onClick={() => {
-            handleAction(() => onLanguageChange("auto"));
+            handleAction(() => onLanguageChange('auto'));
             setLanguageAnchorEl(null);
           }}
         >
           <ListItemIcon>
-            {(!localStorage.getItem("preferredLocale") ||
-              localStorage.getItem("preferredLocale") === "auto") && (
+            {(!localStorage.getItem('preferredLocale') ||
+              localStorage.getItem('preferredLocale') === 'auto') && (
               <CheckIcon fontSize="small" />
             )}
           </ListItemIcon>
@@ -394,7 +394,7 @@ const UserAvatarMenu = ({
             }}
           >
             <ListItemIcon>
-              {localStorage.getItem("preferredLocale") === lang && (
+              {localStorage.getItem('preferredLocale') === lang && (
                 <CheckIcon fontSize="small" />
               )}
             </ListItemIcon>
@@ -410,23 +410,23 @@ const UserAvatarMenu = ({
         anchorEl={themeAnchorEl}
         open={themeMenuOpen}
         onClose={() => setThemeAnchorEl(null)}
-        anchorOrigin={{ vertical: "top", horizontal: "right" }}
-        transformOrigin={{ vertical: "top", horizontal: "left" }}
+        anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
+        transformOrigin={{ vertical: 'top', horizontal: 'left' }}
       >
         {/* Auto option */}
         <MenuItem
           onClick={() => {
-            handleAction(() => onThemeChange("auto"));
+            handleAction(() => onThemeChange('auto'));
             setThemeAnchorEl(null);
           }}
         >
           <ListItemIcon>
-            {currentTheme === "auto" && <CheckIcon fontSize="small" />}
+            {currentTheme === 'auto' && <CheckIcon fontSize="small" />}
           </ListItemIcon>
           <ListItemText>
             <TypedMessage message={messages.THEME_AUTO} />
-            {currentTheme === "auto" &&
-              ` (${effectiveTheme === "dark" ? "Dark" : "Light"})`}
+            {currentTheme === 'auto' &&
+              ` (${effectiveTheme === 'dark' ? 'Dark' : 'Light'})`}
           </ListItemText>
         </MenuItem>
 
@@ -435,12 +435,12 @@ const UserAvatarMenu = ({
         {/* Light option */}
         <MenuItem
           onClick={() => {
-            handleAction(() => onThemeChange("light"));
+            handleAction(() => onThemeChange('light'));
             setThemeAnchorEl(null);
           }}
         >
           <ListItemIcon>
-            {currentTheme === "light" && <CheckIcon fontSize="small" />}
+            {currentTheme === 'light' && <CheckIcon fontSize="small" />}
           </ListItemIcon>
           <ListItemText>
             <TypedMessage message={messages.THEME_LIGHT} />
@@ -450,12 +450,12 @@ const UserAvatarMenu = ({
         {/* Dark option */}
         <MenuItem
           onClick={() => {
-            handleAction(() => onThemeChange("dark"));
+            handleAction(() => onThemeChange('dark'));
             setThemeAnchorEl(null);
           }}
         >
           <ListItemIcon>
-            {currentTheme === "dark" && <CheckIcon fontSize="small" />}
+            {currentTheme === 'dark' && <CheckIcon fontSize="small" />}
           </ListItemIcon>
           <ListItemText>
             <TypedMessage message={messages.THEME_DARK} />

@@ -2,22 +2,22 @@
 // Copyright (c) Kouji Matsui (@kekyo@mi.kekyo.net)
 // License under MIT.
 
-import { useState } from "react";
-import { TypedMessage } from "typed-message";
-import { messages } from "../../generated/messages";
+import { useState } from 'react';
+import { TypedMessage } from 'typed-message';
+import { messages } from '../../generated/messages';
 import {
   Button,
   Menu,
   MenuItem,
   ListItemIcon,
   ListItemText,
-} from "@mui/material";
+} from '@mui/material';
 import {
   Lock as LockIcon,
   LockReset as LockResetIcon,
   VpnKey as VpnKeyIcon,
   ArrowDropDown as ArrowDropDownIcon,
-} from "@mui/icons-material";
+} from '@mui/icons-material';
 
 interface PasswordManagementMenuProps {
   onChangePassword: () => void;
@@ -65,12 +65,12 @@ const PasswordManagementMenu = ({
         open={open}
         onClose={handleClose}
         anchorOrigin={{
-          vertical: "bottom",
-          horizontal: "right",
+          vertical: 'bottom',
+          horizontal: 'right',
         }}
         transformOrigin={{
-          vertical: "top",
-          horizontal: "right",
+          vertical: 'top',
+          horizontal: 'right',
         }}
       >
         <MenuItem onClick={handleChangePassword}>

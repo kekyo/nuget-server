@@ -16,8 +16,8 @@ interface ParsedVersion {
  * @returns Parsed version information
  */
 const parseVersion = (version: string): ParsedVersion => {
-  const [main, prerelease] = version.split("-");
-  const parts = main?.split(".").map(Number) ?? [];
+  const [main, prerelease] = version.split('-');
+  const parts = main?.split('.').map(Number) ?? [];
   return { parts, prerelease };
 };
 
@@ -63,11 +63,11 @@ export const compareVersions = (a: string, b: string): number => {
  */
 export const sortVersions = (
   versions: string[],
-  order: "asc" | "desc" = "desc",
+  order: 'asc' | 'desc' = 'desc'
 ): string[] => {
   return [...versions].sort((a, b) => {
     const result = compareVersions(a, b);
-    return order === "desc" ? -result : result;
+    return order === 'desc' ? -result : result;
   });
 };
 
@@ -78,6 +78,6 @@ export const sortVersions = (
  */
 export const getLatestVersion = (versions: string[]): string | undefined => {
   if (versions.length === 0) return undefined;
-  const sorted = sortVersions(versions, "desc");
+  const sorted = sortVersions(versions, 'desc');
   return sorted[0];
 };

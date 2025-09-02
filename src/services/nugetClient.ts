@@ -8,8 +8,8 @@
 export interface NuGetServiceIndex {
   version: string;
   resources: Array<{
-    "@id": string;
-    "@type": string | string[];
+    '@id': string;
+    '@type': string | string[];
     comment?: string;
   }>;
 }
@@ -24,7 +24,7 @@ export interface SearchResult {
     version: string;
     versions: Array<{
       version: string;
-      "@id": string;
+      '@id': string;
     }>;
   }>;
 }
@@ -54,16 +54,16 @@ export interface NuGetClient {
   searchPackages: (
     searchUrl: string,
     skip: number,
-    take: number,
+    take: number
   ) => Promise<SearchResult>;
   getPackageVersions: (
     packageBaseUrl: string,
-    packageId: string,
+    packageId: string
   ) => Promise<string[]>;
   downloadPackage: (
     contentUrl: string,
     packageId: string,
-    version: string,
+    version: string
   ) => Promise<Buffer>;
 }
 
@@ -78,13 +78,13 @@ export const createNuGetClient = (config: NuGetClientConfig): NuGetClient => {
   // Create authorization header if credentials provided
   const authHeader =
     username && password
-      ? `Basic ${Buffer.from(`${username}:${password}`).toString("base64")}`
+      ? `Basic ${Buffer.from(`${username}:${password}`).toString('base64')}`
       : undefined;
 
   // Helper to make fetch requests with auth and timeout
   const fetchWithAuth = async (
     url: string,
-    options: RequestInit = {},
+    options: RequestInit = {}
   ): Promise<Response> => {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), timeout);
@@ -95,7 +95,7 @@ export const createNuGetClient = (config: NuGetClientConfig): NuGetClient => {
       };
 
       if (authHeader) {
-        headers["Authorization"] = authHeader;
+        headers['Authorization'] = authHeader;
       }
 
       const response = await fetch(url, {
@@ -108,7 +108,7 @@ export const createNuGetClient = (config: NuGetClientConfig): NuGetClient => {
 
       // Handle redirects manually if needed
       if (response.status === 301 || response.status === 302) {
-        const location = response.headers.get("Location");
+        const location = response.headers.get('Location');
         if (location) {
           return fetchWithAuth(location, options);
         }
@@ -116,14 +116,14 @@ export const createNuGetClient = (config: NuGetClientConfig): NuGetClient => {
 
       if (!response.ok) {
         throw new Error(
-          `HTTP ${response.status}: ${response.statusText} for ${url}`,
+          `HTTP ${response.status}: ${response.statusText} for ${url}`
         );
       }
 
       return response;
     } catch (error: any) {
       clearTimeout(timeoutId);
-      if (error.name === "AbortError") {
+      if (error.name === 'AbortError') {
         throw new Error(`Request timeout after ${timeout}ms for ${url}`);
       }
       throw error;
@@ -135,7 +135,7 @@ export const createNuGetClient = (config: NuGetClientConfig): NuGetClient => {
      * Get the service index from the NuGet server
      */
     getServiceIndex: async (): Promise<NuGetServiceIndex> => {
-      const indexUrl = baseUrl.endsWith("/")
+      const indexUrl = baseUrl.endsWith('/')
         ? `${baseUrl}index.json`
         : `${baseUrl}/index.json`;
 
@@ -149,14 +149,14 @@ export const createNuGetClient = (config: NuGetClientConfig): NuGetClient => {
     searchPackages: async (
       searchUrl: string,
       skip: number,
-      take: number,
+      take: number
     ): Promise<SearchResult> => {
       const url = new URL(searchUrl);
-      url.searchParams.set("q", "");
-      url.searchParams.set("skip", skip.toString());
-      url.searchParams.set("take", take.toString());
-      url.searchParams.set("prerelease", "true");
-      url.searchParams.set("semVerLevel", "2.0.0");
+      url.searchParams.set('q', '');
+      url.searchParams.set('skip', skip.toString());
+      url.searchParams.set('take', take.toString());
+      url.searchParams.set('prerelease', 'true');
+      url.searchParams.set('semVerLevel', '2.0.0');
 
       const response = await fetchWithAuth(url.toString());
       return await response.json();
@@ -167,7 +167,7 @@ export const createNuGetClient = (config: NuGetClientConfig): NuGetClient => {
      */
     getPackageVersions: async (
       packageBaseUrl: string,
-      packageId: string,
+      packageId: string
     ): Promise<string[]> => {
       const normalizedId = packageId.toLowerCase();
       const url = `${packageBaseUrl}/${normalizedId}/index.json`;
@@ -183,7 +183,7 @@ export const createNuGetClient = (config: NuGetClientConfig): NuGetClient => {
     downloadPackage: async (
       contentUrl: string,
       packageId: string,
-      version: string,
+      version: string
     ): Promise<Buffer> => {
       const normalizedId = packageId.toLowerCase();
       const normalizedVersion = version.toLowerCase();

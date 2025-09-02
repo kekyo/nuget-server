@@ -31,17 +31,17 @@ export interface Logger {
 /**
  * Log levels
  */
-export type LogLevel = "debug" | "info" | "warn" | "error" | "ignore";
+export type LogLevel = 'debug' | 'info' | 'warn' | 'error' | 'ignore';
 
 /**
  * Authentication modes
  */
-export type AuthMode = "none" | "publish" | "full";
+export type AuthMode = 'none' | 'publish' | 'full';
 
 /**
  * Duplicate package handling policy
  */
-export type DuplicatePackagePolicy = "overwrite" | "ignore" | "error";
+export type DuplicatePackagePolicy = 'overwrite' | 'ignore' | 'error';
 
 /**
  * Server configuration
@@ -65,7 +65,7 @@ export interface ServerConfig {
 /**
  * Extend Fastify types for AbortSignal support
  */
-declare module "fastify" {
+declare module 'fastify' {
   interface FastifyRequest {
     abortSignal: AbortSignal;
   }

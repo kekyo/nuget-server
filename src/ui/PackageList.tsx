@@ -9,7 +9,7 @@ import {
   forwardRef,
   useCallback,
   useMemo,
-} from "react";
+} from 'react';
 import {
   Typography,
   Accordion,
@@ -21,25 +21,25 @@ import {
   Box,
   Button,
   TextField,
-} from "@mui/material";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import PackageIcon from "@mui/icons-material/Inventory";
-import PackageSourceIcon from "@mui/icons-material/Source";
-import DownloadIcon from "@mui/icons-material/Download";
-import InfiniteScroll from "react-infinite-scroll-component";
-import { sortVersions } from "../utils/semver";
-import { apiFetch } from "./utils/apiClient";
-import { TypedMessage, useTypedMessage } from "typed-message";
-import { messages } from "../generated/messages";
+} from '@mui/material';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import PackageIcon from '@mui/icons-material/Inventory';
+import PackageSourceIcon from '@mui/icons-material/Source';
+import DownloadIcon from '@mui/icons-material/Download';
+import InfiniteScroll from 'react-infinite-scroll-component';
+import { sortVersions } from '../utils/semver';
+import { apiFetch } from './utils/apiClient';
+import { TypedMessage, useTypedMessage } from 'typed-message';
+import { messages } from '../generated/messages';
 
 interface SearchResultVersion {
   version: string;
   downloads: number;
-  "@id": string;
+  '@id': string;
 }
 
 interface SearchResult {
-  "@type": string;
+  '@type': string;
   registration: string;
   id: string;
   version: string;
@@ -61,9 +61,9 @@ interface SearchResult {
 }
 
 interface SearchResponse {
-  "@context": {
-    "@vocab": string;
-    "@base": string;
+  '@context': {
+    '@vocab': string;
+    '@base': string;
   };
   totalHits: number;
   lastReopen: string;
@@ -81,7 +81,7 @@ interface ServerConfig {
     port: number;
     isHttps: boolean;
   };
-  authMode: "none" | "publish" | "full";
+  authMode: 'none' | 'publish' | 'full';
   authEnabled: {
     general: boolean;
     publish: boolean;
@@ -130,7 +130,7 @@ const PackageIconDisplay: React.FC<PackageIconDisplayProps> = ({
   if (hasError || !iconUrl) {
     return (
       <PackageSourceIcon
-        sx={{ height: 40, width: 40, mr: 2, color: "text.secondary" }}
+        sx={{ height: 40, width: 40, mr: 2, color: 'text.secondary' }}
       />
     );
   }
@@ -141,14 +141,14 @@ const PackageIconDisplay: React.FC<PackageIconDisplayProps> = ({
         height: 40,
         width: 40,
         mr: 2,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
       }}
     >
       {isLoading && (
         <PackageSourceIcon
-          sx={{ height: 40, width: 40, color: "text.secondary" }}
+          sx={{ height: 40, width: 40, color: 'text.secondary' }}
         />
       )}
       <img
@@ -157,8 +157,8 @@ const PackageIconDisplay: React.FC<PackageIconDisplayProps> = ({
         style={{
           height: 40,
           width: 40,
-          objectFit: "contain",
-          display: isLoading ? "none" : "block",
+          objectFit: 'contain',
+          display: isLoading ? 'none' : 'block',
         }}
         onLoad={handleImageLoad}
         onError={handleImageError}
@@ -177,21 +177,21 @@ const PackageList = forwardRef<PackageListRef, PackageListProps>(
     const [page, setPage] = useState(0);
     const [totalHits, setTotalHits] = useState(0);
     const [expandedPanels, setExpandedPanels] = useState<Set<string>>(
-      new Set(),
+      new Set()
     );
-    const [filterText, setFilterText] = useState("");
+    const [filterText, setFilterText] = useState('');
     const pageSize = 20;
 
     // Helper function to sort SearchResultVersion arrays using the shared semver logic
     const sortPackageVersions = (
-      versions: SearchResultVersion[],
+      versions: SearchResultVersion[]
     ): SearchResultVersion[] => {
       const versionStrings = versions.map((v) => v.version);
-      const sortedVersions = sortVersions(versionStrings, "desc"); // Descending order (newest first)
+      const sortedVersions = sortVersions(versionStrings, 'desc'); // Descending order (newest first)
 
       // Re-map sorted versions back to SearchResultVersion objects
       return sortedVersions.map(
-        (versionString) => versions.find((v) => v.version === versionString)!,
+        (versionString) => versions.find((v) => v.version === versionString)!
       );
     };
 
@@ -204,7 +204,7 @@ const PackageList = forwardRef<PackageListRef, PackageListProps>(
 
       // Skip API request if authMode=full and user is not authenticated
       if (
-        serverConfig.authMode === "full" &&
+        serverConfig.authMode === 'full' &&
         !serverConfig.currentUser?.authenticated
       ) {
         // Don't set error when unauthenticated in authMode=full (login dialog will be shown)
@@ -229,11 +229,11 @@ const PackageList = forwardRef<PackageListRef, PackageListProps>(
         const searchEndpoint = `v3/search?skip=${skip}&take=${pageSize}`;
 
         const response = await apiFetch(searchEndpoint, {
-          credentials: "same-origin",
+          credentials: 'same-origin',
         });
         if (response.status === 401) {
           // Authentication required
-          setError("Authentication required");
+          setError('Authentication required');
           return;
         }
         if (!response.ok) {
@@ -249,7 +249,7 @@ const PackageList = forwardRef<PackageListRef, PackageListProps>(
 
         // Sort packages alphabetically for consistent display
         const sortedPackages = packagesWithSortedVersions.sort((a, b) =>
-          a.id.localeCompare(b.id, undefined, { sensitivity: "base" }),
+          a.id.localeCompare(b.id, undefined, { sensitivity: 'base' })
         );
 
         if (isInitialLoad) {
@@ -260,7 +260,7 @@ const PackageList = forwardRef<PackageListRef, PackageListProps>(
             const combined = [...prevPackages, ...sortedPackages];
             // Re-sort the combined list to maintain alphabetical order
             return combined.sort((a, b) =>
-              a.id.localeCompare(b.id, undefined, { sensitivity: "base" }),
+              a.id.localeCompare(b.id, undefined, { sensitivity: 'base' })
             );
           });
         }
@@ -281,7 +281,7 @@ const PackageList = forwardRef<PackageListRef, PackageListProps>(
           setPage(1); // Set to 1 after initial load
         }
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Unknown error occurred");
+        setError(err instanceof Error ? err.message : 'Unknown error occurred');
         setHasMore(false);
       } finally {
         setLoading(false);
@@ -338,7 +338,7 @@ const PackageList = forwardRef<PackageListRef, PackageListProps>(
           // Check versions
           if (
             pkg.versions.some((version) =>
-              version.version.toLowerCase().includes(term),
+              version.version.toLowerCase().includes(term)
             )
           ) {
             return true;
@@ -362,7 +362,7 @@ const PackageList = forwardRef<PackageListRef, PackageListProps>(
             return newSet;
           });
         },
-      [],
+      []
     );
 
     useEffect(() => {
@@ -403,7 +403,7 @@ const PackageList = forwardRef<PackageListRef, PackageListProps>(
 
     // Don't display anything when unauthenticated in authMode=full (login dialog will be shown)
     if (
-      serverConfig?.authMode === "full" &&
+      serverConfig?.authMode === 'full' &&
       !serverConfig?.currentUser?.authenticated
     ) {
       return null;
@@ -432,19 +432,19 @@ const PackageList = forwardRef<PackageListRef, PackageListProps>(
       <Box>
         <Box
           sx={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
             mb: 2,
           }}
         >
           <Typography
             variant="h4"
             component="h1"
-            sx={{ display: "flex", alignItems: "center", gap: 1 }}
+            sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
           >
             <PackageIcon />
-            <TypedMessage message={messages.PACKAGES_HEADER} />{" "}
+            <TypedMessage message={messages.PACKAGES_HEADER} />{' '}
             {filterText.trim() ? (
               <>
                 ({filteredPackages.length}/
@@ -488,7 +488,7 @@ const PackageList = forwardRef<PackageListRef, PackageListProps>(
             endMessage={
               filteredPackages.length > 0 ? (
                 <Typography
-                  sx={{ textAlign: "center", p: 2, color: "text.secondary" }}
+                  sx={{ textAlign: 'center', p: 2, color: 'text.secondary' }}
                 >
                   {filterText
                     ? getMessage(messages.SHOWING_PACKAGES, {
@@ -509,9 +509,9 @@ const PackageList = forwardRef<PackageListRef, PackageListProps>(
                 sx={{
                   mb: 1,
                   bgcolor: (theme) =>
-                    theme.palette.mode === "light" ? "grey.100" : "grey.900",
-                  "&:before": {
-                    display: "none",
+                    theme.palette.mode === 'light' ? 'grey.100' : 'grey.900',
+                  '&:before': {
+                    display: 'none',
                   },
                 }}
                 expanded={expandedPanels.has(pkg.id)}
@@ -525,9 +525,9 @@ const PackageList = forwardRef<PackageListRef, PackageListProps>(
                 >
                   <Box
                     sx={{
-                      display: "flex",
-                      alignItems: "center",
-                      width: "100%",
+                      display: 'flex',
+                      alignItems: 'center',
+                      width: '100%',
                     }}
                   >
                     <PackageIconDisplay
@@ -563,7 +563,7 @@ const PackageList = forwardRef<PackageListRef, PackageListProps>(
                             <TypedMessage message={messages.AUTHORS_LABEL} />
                           </Typography>
                           <Typography variant="body2" color="text.secondary">
-                            {pkg.authors.join(", ")}
+                            {pkg.authors.join(', ')}
                           </Typography>
                         </Box>
                       )}
@@ -575,7 +575,7 @@ const PackageList = forwardRef<PackageListRef, PackageListProps>(
                             <TypedMessage message={messages.TAGS_LABEL} />
                           </Typography>
                           <Box
-                            sx={{ display: "flex", flexWrap: "wrap", gap: 0.5 }}
+                            sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}
                           >
                             {pkg.tags.map((tag) => (
                               <Chip
@@ -595,7 +595,7 @@ const PackageList = forwardRef<PackageListRef, PackageListProps>(
                           <Typography variant="subtitle2" gutterBottom>
                             <TypedMessage message={messages.LINKS_LABEL} />
                           </Typography>
-                          <Box sx={{ display: "flex", gap: 1 }}>
+                          <Box sx={{ display: 'flex', gap: 1 }}>
                             {pkg.projectUrl && (
                               <Chip
                                 label={getMessage(messages.PROJECT_LINK)}
@@ -640,7 +640,7 @@ const PackageList = forwardRef<PackageListRef, PackageListProps>(
                           params={{ count: pkg.versions.length }}
                         />
                       </Typography>
-                      <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
+                      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
                         {pkg.versions.map((version) => (
                           <Button
                             key={version.version}
@@ -649,7 +649,7 @@ const PackageList = forwardRef<PackageListRef, PackageListProps>(
                             startIcon={<DownloadIcon />}
                             onClick={() => {
                               const downloadUrl = `/v3/package/${pkg.id.toLowerCase()}/${version.version}/${pkg.id.toLowerCase()}.${version.version}.nupkg`;
-                              window.open(downloadUrl, "_blank");
+                              window.open(downloadUrl, '_blank');
                             }}
                           >
                             {version.version}
@@ -665,9 +665,9 @@ const PackageList = forwardRef<PackageListRef, PackageListProps>(
         )}
       </Box>
     );
-  },
+  }
 );
 
-PackageList.displayName = "PackageList";
+PackageList.displayName = 'PackageList';
 
 export default PackageList;

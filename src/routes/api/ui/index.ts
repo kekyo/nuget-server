@@ -2,22 +2,22 @@
 // Copyright (c) Kouji Matsui (@kekyo@mi.kekyo.net)
 // License under MIT.
 
-import { FastifyInstance, FastifyRequest, FastifyReply } from "fastify";
-import { promises as fs } from "fs";
-import { join } from "path";
-import { ReaderWriterLock } from "async-primitives";
-import { Logger } from "../../../types";
-import { UserService } from "../../../services/userService";
-import { SessionService } from "../../../services/sessionService";
-import { AuthService } from "../../../services/authService";
-import { MetadataService } from "../../../services/metadataService";
-import { AuthenticatedFastifyRequest } from "../../../middleware/fastifyAuth";
+import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
+import { promises as fs } from 'fs';
+import { join } from 'path';
+import { ReaderWriterLock } from 'async-primitives';
+import { Logger } from '../../../types';
+import { UserService } from '../../../services/userService';
+import { SessionService } from '../../../services/sessionService';
+import { AuthService } from '../../../services/authService';
+import { MetadataService } from '../../../services/metadataService';
+import { AuthenticatedFastifyRequest } from '../../../middleware/fastifyAuth';
 import {
   name as packageName,
   version,
   git_commit_hash,
-} from "../../../generated/packageMetadata";
-import { streamFile } from "../../../utils/fileStreaming";
+} from '../../../generated/packageMetadata';
+import { streamFile } from '../../../utils/fileStreaming';
 
 /**
  * Configuration for UI routes
@@ -74,10 +74,10 @@ export interface ConfigResponse {
  * POST /api/ui/users request body for user management
  */
 export interface UserManagementRequest {
-  action: "list" | "create" | "delete" | "update";
+  action: 'list' | 'create' | 'delete' | 'update';
   username?: string;
   password?: string;
-  role?: "admin" | "publish" | "read";
+  role?: 'admin' | 'publish' | 'read';
 }
 
 /**
@@ -151,7 +151,7 @@ export interface PasswordChangeResponse {
  */
 const createSessionOnlyAuthMiddleware = (
   sessionService: SessionService,
-  logger: Logger,
+  logger: Logger
 ) => {
   return async (request: FastifyRequest, reply: FastifyReply) => {
     const sessionToken = request.cookies?.sessionToken;
@@ -159,12 +159,12 @@ const createSessionOnlyAuthMiddleware = (
     if (!sessionToken) {
       return reply
         .status(401)
-        .send({ error: "Session authentication required" });
+        .send({ error: 'Session authentication required' });
     }
 
     const session = await sessionService.validateSession(sessionToken);
     if (!session) {
-      return reply.status(401).send({ error: "Invalid or expired session" });
+      return reply.status(401).send({ error: 'Invalid or expired session' });
     }
 
     // Add user info to request
@@ -175,7 +175,7 @@ const createSessionOnlyAuthMiddleware = (
     };
 
     logger.info(
-      `Session auth successful: ${session.username} (${session.role})`,
+      `Session auth successful: ${session.username} (${session.role})`
     );
   };
 };
@@ -186,10 +186,10 @@ const createSessionOnlyAuthMiddleware = (
 const requireRole = (
   request: AuthenticatedFastifyRequest,
   reply: FastifyReply,
-  roles: string[],
+  roles: string[]
 ) => {
   if (!request.user || !roles.includes(request.user.role)) {
-    return reply.status(403).send({ error: "Insufficient permissions" });
+    return reply.status(403).send({ error: 'Insufficient permissions' });
   }
   return undefined;
 };
@@ -200,7 +200,7 @@ const requireRole = (
 export const registerUiRoutes = async (
   fastify: FastifyInstance,
   config: UiRoutesConfig,
-  locker: ReaderWriterLock,
+  locker: ReaderWriterLock
 ) => {
   const {
     userService,
@@ -216,12 +216,12 @@ export const registerUiRoutes = async (
   // Create session-only auth middleware
   const sessionOnlyAuth = createSessionOnlyAuthMiddleware(
     sessionService,
-    logger,
+    logger
   );
 
   // POST /api/ui/config - Application configuration (public endpoint)
   fastify.post(
-    "/config",
+    '/config',
     async (request: FastifyRequest, reply: FastifyReply) => {
       try {
         let currentUser = null;
@@ -245,15 +245,15 @@ export const registerUiRoutes = async (
             const authHeader = request.headers.authorization;
             if (
               authHeader &&
-              typeof authHeader === "string" &&
-              authHeader.startsWith("Basic ")
+              typeof authHeader === 'string' &&
+              authHeader.startsWith('Basic ')
             ) {
               const credentials = authHeader.substring(6);
               const decodedCredentials = Buffer.from(
                 credentials,
-                "base64",
-              ).toString("utf-8");
-              const colonIndex = decodedCredentials.indexOf(":");
+                'base64'
+              ).toString('utf-8');
+              const colonIndex = decodedCredentials.indexOf(':');
 
               if (colonIndex !== -1) {
                 const username = decodedCredentials.substring(0, colonIndex);
@@ -261,7 +261,7 @@ export const registerUiRoutes = async (
 
                 const user = await userService.validateApiPassword(
                   username,
-                  password,
+                  password
                 );
                 if (user) {
                   currentUser = {
@@ -275,7 +275,7 @@ export const registerUiRoutes = async (
           }
         } catch (error) {
           logger.error(
-            `Error checking authentication for /api/ui/config: ${error}`,
+            `Error checking authentication for /api/ui/config: ${error}`
           );
         }
 
@@ -287,9 +287,9 @@ export const registerUiRoutes = async (
           serverUrl: serverUrl,
           authMode: authService.getAuthMode(),
           authEnabled: {
-            general: authService.isAuthRequired("general"),
-            publish: authService.isAuthRequired("publish"),
-            admin: authService.isAuthRequired("admin"),
+            general: authService.isAuthRequired('general'),
+            publish: authService.isAuthRequired('publish'),
+            admin: authService.isAuthRequired('admin'),
           },
           currentUser: currentUser,
         };
@@ -297,14 +297,14 @@ export const registerUiRoutes = async (
         return reply.send(response);
       } catch (error) {
         logger.error(`Error in /api/ui/config: ${error}`);
-        return reply.status(500).send({ error: "Internal server error" });
+        return reply.status(500).send({ error: 'Internal server error' });
       }
-    },
+    }
   );
 
   // POST /api/ui/users - User management (admin permission required)
   fastify.post(
-    "/users",
+    '/users',
     {
       preHandler: [sessionOnlyAuth],
     },
@@ -312,13 +312,13 @@ export const registerUiRoutes = async (
       const authRequest = request as AuthenticatedFastifyRequest;
       try {
         // All user management operations require admin role
-        const roleCheck = requireRole(authRequest, reply, ["admin"]);
+        const roleCheck = requireRole(authRequest, reply, ['admin']);
         if (roleCheck) return roleCheck;
 
         const body = request.body as UserManagementRequest;
 
         switch (body.action) {
-          case "list": {
+          case 'list': {
             const users = await userService.getAllUsers();
 
             const response: UserListResponse = {
@@ -334,15 +334,15 @@ export const registerUiRoutes = async (
             return reply.send(response);
           }
 
-          case "create": {
+          case 'create': {
             if (!body.username || !body.password || !body.role) {
               return reply
                 .status(400)
-                .send({ error: "Username, password, and role are required" });
+                .send({ error: 'Username, password, and role are required' });
             }
 
             logger.info(
-              `Creating new user: ${body.username} with role: ${body.role}`,
+              `Creating new user: ${body.username} with role: ${body.role}`
             );
 
             const user = await userService.createUser({
@@ -366,33 +366,33 @@ export const registerUiRoutes = async (
             return reply.status(201).send(response);
           }
 
-          case "delete": {
+          case 'delete': {
             if (!body.username) {
-              return reply.status(400).send({ error: "Username is required" });
+              return reply.status(400).send({ error: 'Username is required' });
             }
 
             logger.info(`Deleting user: ${body.username}`);
 
             const deleted = await userService.deleteUser(body.username);
             if (!deleted) {
-              return reply.status(404).send({ error: "User not found" });
+              return reply.status(404).send({ error: 'User not found' });
             }
 
             logger.info(`User ${body.username} deleted successfully`);
 
             const response: UserDeleteResponse = {
               success: true,
-              message: "User deleted successfully",
+              message: 'User deleted successfully',
             };
 
             return reply.send(response);
           }
 
-          case "update": {
+          case 'update': {
             if (!body.username || !body.password) {
               return reply
                 .status(400)
-                .send({ error: "Username and password are required" });
+                .send({ error: 'Username and password are required' });
             }
 
             // Prevent users from changing their own password via this endpoint
@@ -402,7 +402,7 @@ export const registerUiRoutes = async (
               authRequest.user.username === body.username
             ) {
               return reply.status(403).send({
-                error: "Cannot change your own password via this endpoint",
+                error: 'Cannot change your own password via this endpoint',
               });
             }
 
@@ -412,14 +412,14 @@ export const registerUiRoutes = async (
               password: body.password,
             });
             if (!updatedUser) {
-              return reply.status(404).send({ error: "User not found" });
+              return reply.status(404).send({ error: 'User not found' });
             }
 
             logger.info(`Password updated for user: ${body.username}`);
 
             const response = {
               success: true,
-              message: "Password updated successfully",
+              message: 'Password updated successfully',
             };
 
             return reply.send(response);
@@ -435,15 +435,15 @@ export const registerUiRoutes = async (
           throw error; // Re-throw HTTP errors
         }
         logger.error(`Error in /api/ui/users: ${error}`);
-        return reply.status(500).send({ error: "Internal server error" });
+        return reply.status(500).send({ error: 'Internal server error' });
       }
-    },
+    }
   );
 
   // POST /api/ui/apipassword - Regenerate API password for current user (session auth required)
   // DEPRECATED: Use /api/ui/apipasswords instead
   fastify.post(
-    "/apipassword",
+    '/apipassword',
     {
       preHandler: [sessionOnlyAuth],
     },
@@ -451,23 +451,23 @@ export const registerUiRoutes = async (
       const authRequest = request as AuthenticatedFastifyRequest;
       try {
         logger.info(
-          `[DEPRECATED] Regenerating API password for user: ${authRequest.user?.username}`,
+          `[DEPRECATED] Regenerating API password for user: ${authRequest.user?.username}`
         );
 
         const result = await userService.regenerateApiPassword(
-          authRequest.user?.username || "",
+          authRequest.user?.username || ''
         );
         if (!result) {
-          return reply.status(404).send({ error: "User not found" });
+          return reply.status(404).send({ error: 'User not found' });
         }
 
         logger.info(
-          `API password regenerated successfully for user: ${authRequest.user?.username}`,
+          `API password regenerated successfully for user: ${authRequest.user?.username}`
         );
 
         const response: ApiPasswordRegenerateResponse = {
           apiPassword: result.apiPassword,
-          username: authRequest.user?.username || "",
+          username: authRequest.user?.username || '',
         };
 
         return reply.send(response);
@@ -476,14 +476,14 @@ export const registerUiRoutes = async (
           throw error; // Re-throw HTTP errors
         }
         logger.error(`Error in /api/ui/apipassword: ${error}`);
-        return reply.status(500).send({ error: "Internal server error" });
+        return reply.status(500).send({ error: 'Internal server error' });
       }
-    },
+    }
   );
 
   // POST /api/ui/apipasswords - Manage multiple API passwords (session auth required)
   fastify.post(
-    "/apipasswords",
+    '/apipasswords',
     {
       preHandler: [sessionOnlyAuth],
     },
@@ -491,49 +491,49 @@ export const registerUiRoutes = async (
       const authRequest = request as AuthenticatedFastifyRequest;
       try {
         const body = request.body as {
-          action: "list" | "add" | "delete";
+          action: 'list' | 'add' | 'delete';
           label?: string;
         };
 
         const username = authRequest.user?.username;
         if (!username) {
-          return reply.status(401).send({ error: "User not authenticated" });
+          return reply.status(401).send({ error: 'User not authenticated' });
         }
 
         switch (body.action) {
-          case "list": {
+          case 'list': {
             logger.info(`Listing API passwords for user: ${username}`);
 
             const result = await userService.listApiPasswords(username);
             if (!result) {
-              return reply.status(404).send({ error: "User not found" });
+              return reply.status(404).send({ error: 'User not found' });
             }
 
             return reply.send(result);
           }
 
-          case "add": {
+          case 'add': {
             if (!body.label) {
               return reply
                 .status(400)
-                .send({ error: "Label is required for adding API password" });
+                .send({ error: 'Label is required for adding API password' });
             }
 
             logger.info(
-              `Adding API password with label "${body.label}" for user: ${username}`,
+              `Adding API password with label "${body.label}" for user: ${username}`
             );
 
             try {
               const result = await userService.addApiPassword(
                 username,
-                body.label,
+                body.label
               );
               if (!result) {
-                return reply.status(404).send({ error: "User not found" });
+                return reply.status(404).send({ error: 'User not found' });
               }
 
               logger.info(
-                `API password added successfully with label "${body.label}" for user: ${username}`,
+                `API password added successfully with label "${body.label}" for user: ${username}`
               );
               return reply.send(result);
             } catch (error: any) {
@@ -542,20 +542,20 @@ export const registerUiRoutes = async (
             }
           }
 
-          case "delete": {
+          case 'delete': {
             if (!body.label) {
               return reply
                 .status(400)
-                .send({ error: "Label is required for deleting API password" });
+                .send({ error: 'Label is required for deleting API password' });
             }
 
             logger.info(
-              `Deleting API password with label "${body.label}" for user: ${username}`,
+              `Deleting API password with label "${body.label}" for user: ${username}`
             );
 
             const result = await userService.deleteApiPassword(
               username,
-              body.label,
+              body.label
             );
 
             if (!result.success) {
@@ -564,7 +564,7 @@ export const registerUiRoutes = async (
             }
 
             logger.info(
-              `API password deleted successfully with label "${body.label}" for user: ${username}`,
+              `API password deleted successfully with label "${body.label}" for user: ${username}`
             );
             return reply.send(result);
           }
@@ -579,14 +579,14 @@ export const registerUiRoutes = async (
           throw error; // Re-throw HTTP errors
         }
         logger.error(`Error in /api/ui/apipasswords: ${error}`);
-        return reply.status(500).send({ error: "Internal server error" });
+        return reply.status(500).send({ error: 'Internal server error' });
       }
-    },
+    }
   );
 
   // POST /api/ui/password - Change password (session auth required)
   fastify.post(
-    "/password",
+    '/password',
     {
       preHandler: [sessionOnlyAuth],
     },
@@ -596,69 +596,69 @@ export const registerUiRoutes = async (
         const body = request.body as PasswordChangeRequest;
 
         if (!body.newPassword) {
-          return reply.status(400).send({ error: "New password is required" });
+          return reply.status(400).send({ error: 'New password is required' });
         }
 
         if (body.username) {
           // Admin changing another user's password
-          const roleCheck = requireRole(authRequest, reply, ["admin"]);
+          const roleCheck = requireRole(authRequest, reply, ['admin']);
           if (roleCheck) return roleCheck;
 
           logger.info(
-            `Admin ${authRequest.user?.username} changing password for user: ${body.username}`,
+            `Admin ${authRequest.user?.username} changing password for user: ${body.username}`
           );
 
           const updated = await userService.updateUser(body.username, {
             password: body.newPassword,
           });
           if (!updated) {
-            return reply.status(404).send({ error: "User not found" });
+            return reply.status(404).send({ error: 'User not found' });
           }
 
           logger.info(
-            `Password changed successfully for user: ${body.username}`,
+            `Password changed successfully for user: ${body.username}`
           );
         } else {
           // User changing their own password
           if (!body.currentPassword) {
             return reply.status(400).send({
-              error: "Current password is required for self password change",
+              error: 'Current password is required for self password change',
             });
           }
 
           // Validate current password
           const user = await userService.validateCredentials(
-            authRequest.user?.username || "",
-            body.currentPassword,
+            authRequest.user?.username || '',
+            body.currentPassword
           );
           if (!user) {
             return reply
               .status(401)
-              .send({ error: "Current password is incorrect" });
+              .send({ error: 'Current password is incorrect' });
           }
 
           logger.info(
-            `User ${authRequest.user?.username} changing their own password`,
+            `User ${authRequest.user?.username} changing their own password`
           );
 
           const updated = await userService.updateUser(
-            authRequest.user?.username || "",
+            authRequest.user?.username || '',
             {
               password: body.newPassword,
-            },
+            }
           );
           if (!updated) {
-            return reply.status(404).send({ error: "User not found" });
+            return reply.status(404).send({ error: 'User not found' });
           }
 
           logger.info(
-            `Password changed successfully for user: ${authRequest.user?.username}`,
+            `Password changed successfully for user: ${authRequest.user?.username}`
           );
         }
 
         const response: PasswordChangeResponse = {
           success: true,
-          message: "Password updated successfully",
+          message: 'Password updated successfully',
         };
 
         return reply.send(response);
@@ -667,18 +667,18 @@ export const registerUiRoutes = async (
           throw error; // Re-throw HTTP errors
         }
         logger.error(`Error in /api/ui/password: ${error}`);
-        return reply.status(500).send({ error: "Internal server error" });
+        return reply.status(500).send({ error: 'Internal server error' });
       }
-    },
+    }
   );
 
   // GET /api/ui/icon/{id}/{version} - Package icon (auth requirements based on authMode)
   fastify.get(
-    "/icon/:id/:version",
+    '/icon/:id/:version',
     {
       preHandler: async (request: FastifyRequest, reply: FastifyReply) => {
         const authMode = authService.getAuthMode();
-        if (authMode === "full") {
+        if (authMode === 'full') {
           // For full auth mode, require session authentication
           return sessionOnlyAuth(request, reply);
         }
@@ -699,7 +699,7 @@ export const registerUiRoutes = async (
 
         // Look for icon file in package directory (preserve original packageId case)
         const packageDir = join(packagesRoot, packageId, lowerVersion);
-        const iconExtensions = ["png", "jpg", "jpeg", "gif", "svg"];
+        const iconExtensions = ['png', 'jpg', 'jpeg', 'gif', 'svg'];
 
         for (const ext of iconExtensions) {
           try {
@@ -708,7 +708,7 @@ export const registerUiRoutes = async (
 
             // Use streamFile with appropriate content type and cache control
             const contentType =
-              ext === "svg" ? "image/svg+xml" : `image/${ext}`;
+              ext === 'svg' ? 'image/svg+xml' : `image/${ext}`;
             logger.info(`Icon served successfully: ${packageId} ${version}`);
 
             await streamFile(
@@ -718,9 +718,9 @@ export const registerUiRoutes = async (
               reply,
               {
                 contentType,
-                cacheControl: "public, max-age=3600",
+                cacheControl: 'public, max-age=3600',
               },
-              request.abortSignal,
+              request.abortSignal
             );
             return;
           } catch (error: any) {
@@ -730,19 +730,19 @@ export const registerUiRoutes = async (
 
         // Icon not found in specified version, try latest version as fallback
         logger.info(
-          `Icon not found in version ${version}, trying latest version for package: ${packageId}`,
+          `Icon not found in version ${version}, trying latest version for package: ${packageId}`
         );
 
         const latestEntry = metadataService.getLatestPackageEntry(packageId);
         if (latestEntry && latestEntry.metadata.version !== version) {
           logger.info(
-            `Trying fallback to latest version: ${latestEntry.metadata.version}`,
+            `Trying fallback to latest version: ${latestEntry.metadata.version}`
           );
 
           const latestPackageDir = join(
             packagesRoot,
             latestEntry.storage.dirName,
-            latestEntry.metadata.version,
+            latestEntry.metadata.version
           );
 
           for (const ext of iconExtensions) {
@@ -752,9 +752,9 @@ export const registerUiRoutes = async (
 
               // Use streamFile with appropriate content type and cache control
               const contentType =
-                ext === "svg" ? "image/svg+xml" : `image/${ext}`;
+                ext === 'svg' ? 'image/svg+xml' : `image/${ext}`;
               logger.info(
-                `Icon served from latest version: ${packageId} ${latestEntry.metadata.version} (requested: ${version})`,
+                `Icon served from latest version: ${packageId} ${latestEntry.metadata.version} (requested: ${version})`
               );
 
               await streamFile(
@@ -764,9 +764,9 @@ export const registerUiRoutes = async (
                 reply,
                 {
                   contentType,
-                  cacheControl: "public, max-age=3600",
+                  cacheControl: 'public, max-age=3600',
                 },
-                request.abortSignal,
+                request.abortSignal
               );
               return;
             } catch (error: any) {
@@ -777,17 +777,17 @@ export const registerUiRoutes = async (
 
         // Icon not found in both specified version and latest version
         logger.warn(
-          `Icon not found for package: ${packageId} ${version} (also checked latest version)`,
+          `Icon not found for package: ${packageId} ${version} (also checked latest version)`
         );
-        return reply.status(404).send({ error: "Icon not found" });
+        return reply.status(404).send({ error: 'Icon not found' });
       } catch (error) {
         logger.error(
-          `Error serving icon for ${packageId} ${version}: ${error}`,
+          `Error serving icon for ${packageId} ${version}: ${error}`
         );
-        return reply.status(500).send({ error: "Internal server error" });
+        return reply.status(500).send({ error: 'Internal server error' });
       }
-    },
+    }
   );
 
-  logger.info("UI Backend API routes registered successfully");
+  logger.info('UI Backend API routes registered successfully');
 };

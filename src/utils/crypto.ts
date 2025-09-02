@@ -2,7 +2,7 @@
 // Copyright (c) Kouji Matsui (@kekyo@mi.kekyo.net)
 // License under MIT.
 
-import { createHash, randomBytes } from "crypto";
+import { createHash, randomBytes } from 'crypto';
 
 /**
  * Generates a random salt for password hashing
@@ -10,7 +10,7 @@ import { createHash, randomBytes } from "crypto";
  * @returns Base64 encoded salt
  */
 export const generateSalt = (length: number = 16): string => {
-  return randomBytes(length).toString("base64");
+  return randomBytes(length).toString('base64');
 };
 
 /**
@@ -20,9 +20,9 @@ export const generateSalt = (length: number = 16): string => {
  * @returns SHA-1 hash in base64 format
  */
 export const hashPassword = (password: string, salt: string): string => {
-  const hash = createHash("sha1");
+  const hash = createHash('sha1');
   hash.update(password + salt);
-  return hash.digest("base64");
+  return hash.digest('base64');
 };
 
 /**
@@ -35,7 +35,7 @@ export const hashPassword = (password: string, salt: string): string => {
 export const verifyPassword = (
   password: string,
   hash: string,
-  salt: string,
+  salt: string
 ): boolean => {
   const computedHash = hashPassword(password, salt);
   return computedHash === hash;
@@ -47,7 +47,7 @@ export const verifyPassword = (
  * @returns Base64 encoded API password
  */
 export const generateApiPassword = (length: number = 24): string => {
-  return randomBytes(length).toString("base64");
+  return randomBytes(length).toString('base64');
 };
 
 /**
@@ -56,7 +56,7 @@ export const generateApiPassword = (length: number = 24): string => {
  * @returns Hex encoded session token
  */
 export const generateSessionToken = (length: number = 32): string => {
-  return randomBytes(length).toString("hex");
+  return randomBytes(length).toString('hex');
 };
 
 /**
@@ -64,5 +64,5 @@ export const generateSessionToken = (length: number = 32): string => {
  * @returns UUID-like string
  */
 export const generateUserId = (): string => {
-  return randomBytes(16).toString("hex");
+  return randomBytes(16).toString('hex');
 };

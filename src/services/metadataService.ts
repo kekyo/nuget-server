@@ -2,12 +2,12 @@
 // Copyright (c) Kouji Matsui (@kekyo@mi.kekyo.net)
 // License under MIT.
 
-import fs from "fs/promises";
-import path from "path";
-import xml2js from "xml2js";
-import { createReaderWriterLock } from "async-primitives";
-import { Logger, DuplicatePackagePolicy } from "../types";
-import { compareVersions } from "../utils/semver";
+import fs from 'fs/promises';
+import path from 'path';
+import xml2js from 'xml2js';
+import { createReaderWriterLock } from 'async-primitives';
+import { Logger, DuplicatePackagePolicy } from '../types';
+import { compareVersions } from '../utils/semver';
 
 /**
  * Group of package dependencies for a specific target framework
@@ -71,22 +71,22 @@ export interface MetadataService {
   readonly getPackageMetadata: (packageId: string) => PackageMetadata[];
   readonly getPackageVersion: (
     packageId: string,
-    version: string,
+    version: string
   ) => PackageMetadata | undefined;
   readonly getPackageEntry: (
     packageId: string,
-    version: string,
+    version: string
   ) => PackageEntry | undefined;
   readonly getAllPackageIds: () => string[];
   readonly getLatestPackageEntry: (
-    packageId: string,
+    packageId: string
   ) => PackageEntry | undefined;
   readonly updateBaseUrl: (baseUrl: string) => Promise<void>;
   readonly addPackage: (
     metadata: PackageMetadata,
-    policy?: DuplicatePackagePolicy,
+    policy?: DuplicatePackagePolicy
   ) => Promise<{
-    action: "added" | "overwritten" | "ignored" | "error";
+    action: 'added' | 'overwritten' | 'ignored' | 'error';
     message?: string;
   }>;
   readonly addPackageEntry: (entry: PackageEntry) => Promise<void>;
@@ -100,9 +100,9 @@ export interface MetadataService {
  * @returns Configured metadata service instance
  */
 export const createMetadataService = (
-  packagesRoot: string = "./packages",
-  baseUrl: string = "",
-  logger: Logger,
+  packagesRoot: string = './packages',
+  baseUrl: string = '',
+  logger: Logger
 ): MetadataService => {
   const packagesCache = new Map<string, PackageEntry[]>();
   let currentBaseUrl = baseUrl;
@@ -181,11 +181,11 @@ export const createMetadataService = (
   const loadPackageMetadata = async (
     packageId: string,
     version: string,
-    versionPath: string,
+    versionPath: string
   ): Promise<PackageEntry | undefined> => {
     try {
       const nuspecPath = path.join(versionPath, `${packageId}.nuspec`);
-      const nuspecContent = await fs.readFile(nuspecPath, "utf-8");
+      const nuspecContent = await fs.readFile(nuspecPath, 'utf-8');
 
       const parser = new xml2js.Parser({ explicitArray: false });
       const result = await parser.parseStringPromise(nuspecContent);
@@ -201,7 +201,7 @@ export const createMetadataService = (
 
       // Extract tags
       const tags = metadata.tags
-        ? typeof metadata.tags === "string"
+        ? typeof metadata.tags === 'string'
           ? metadata.tags.split(/[\s,;]+/).filter((t: string) => t)
           : []
         : [];
@@ -215,7 +215,7 @@ export const createMetadataService = (
         description: metadata.description,
         licenseUrl: metadata.licenseUrl,
         licenseExpression:
-          typeof metadata.license === "object"
+          typeof metadata.license === 'object'
             ? metadata.license._
             : metadata.license,
         projectUrl: metadata.projectUrl,
@@ -230,8 +230,8 @@ export const createMetadataService = (
 
       // Read actual file names from directory
       const files = await fs.readdir(versionPath);
-      const actualNupkgFile = files.find((file) => file.endsWith(".nupkg"));
-      const actualNuspecFile = files.find((file) => file.endsWith(".nuspec"));
+      const actualNupkgFile = files.find((file) => file.endsWith('.nupkg'));
+      const actualNuspecFile = files.find((file) => file.endsWith('.nuspec'));
 
       const packageStorage: PackageStorage = {
         dirName: packageId, // Actual directory name (e.g., "FlashCap")
@@ -245,7 +245,7 @@ export const createMetadataService = (
       };
     } catch (error) {
       logger.warn(
-        `Failed to load metadata for ${packageId} ${version}: ${error}`,
+        `Failed to load metadata for ${packageId} ${version}: ${error}`
       );
       return undefined;
     }
@@ -258,7 +258,7 @@ export const createMetadataService = (
    */
   const scanPackageVersions = async (
     packageId: string,
-    packagePath: string,
+    packagePath: string
   ): Promise<void> => {
     try {
       const versionDirs = await fs.readdir(packagePath);
@@ -272,7 +272,7 @@ export const createMetadataService = (
           const entry = await loadPackageMetadata(
             packageId,
             version,
-            versionPath,
+            versionPath
           );
           if (entry) {
             entries.push(entry);
@@ -282,7 +282,7 @@ export const createMetadataService = (
 
       if (entries.length > 0) {
         entries.sort((a, b) =>
-          compareVersions(b.metadata.version, a.metadata.version),
+          compareVersions(b.metadata.version, a.metadata.version)
         ); // Descending order (newest first)
         packagesCache.set(packageId.toLowerCase(), entries);
       }
@@ -319,19 +319,19 @@ export const createMetadataService = (
       const handle = await cacheLock.writeLock();
       try {
         const startTime = Date.now();
-        logger.info("Initializing metadata cache...");
+        logger.info('Initializing metadata cache...');
         packagesCache.clear();
 
         try {
           await scanPackages();
           const packageCount = Array.from(packagesCache.values()).reduce(
             (sum, versions) => sum + versions.length,
-            0,
+            0
           );
           const packageIds = packagesCache.size;
           const elapsedTime = Date.now() - startTime;
           logger.info(
-            `Metadata cache initialized: ${packageIds} packages, ${packageCount} versions (took ${elapsedTime}ms)`,
+            `Metadata cache initialized: ${packageIds} packages, ${packageCount} versions (took ${elapsedTime}ms)`
           );
         } catch (error) {
           logger.error(`Failed to initialize metadata cache: ${error}`);
@@ -361,7 +361,7 @@ export const createMetadataService = (
      */
     getPackageVersion: (
       packageId: string,
-      version: string,
+      version: string
     ): PackageMetadata | undefined => {
       // Simple read operation - no lock needed for atomic Map.get
       const entries = packagesCache.get(packageId.toLowerCase()) || [];
@@ -377,7 +377,7 @@ export const createMetadataService = (
      */
     getPackageEntry: (
       packageId: string,
-      version: string,
+      version: string
     ): PackageEntry | undefined => {
       // Simple read operation - no lock needed for atomic Map.get
       const entries = packagesCache.get(packageId.toLowerCase()) || [];
@@ -391,7 +391,7 @@ export const createMetadataService = (
     getAllPackageIds: (): string[] => {
       // Simple read operation - no lock needed for atomic Map.keys
       return Array.from(packagesCache.keys()).sort((a, b) =>
-        a.localeCompare(b, undefined, { sensitivity: "base" }),
+        a.localeCompare(b, undefined, { sensitivity: 'base' })
       );
     },
 
@@ -436,9 +436,9 @@ export const createMetadataService = (
      */
     addPackage: async (
       metadata: PackageMetadata,
-      policy: DuplicatePackagePolicy = "ignore",
+      policy: DuplicatePackagePolicy = 'ignore'
     ): Promise<{
-      action: "added" | "overwritten" | "ignored" | "error";
+      action: 'added' | 'overwritten' | 'ignored' | 'error';
       message?: string;
     }> => {
       const handle = await cacheLock.writeLock();
@@ -461,58 +461,58 @@ export const createMetadataService = (
 
         // Check if this exact version already exists
         const existingVersion = existingEntries.find(
-          (e) => e.metadata.version === packageEntry.metadata.version,
+          (e) => e.metadata.version === packageEntry.metadata.version
         );
 
         if (existingVersion) {
           // Package version already exists - apply policy
           switch (policy) {
-            case "overwrite":
+            case 'overwrite':
               // Remove existing version and add new one
               const filteredEntries = existingEntries.filter(
-                (e) => e.metadata.version !== packageEntry.metadata.version,
+                (e) => e.metadata.version !== packageEntry.metadata.version
               );
               filteredEntries.push(packageEntry);
               filteredEntries.sort((a, b) =>
-                compareVersions(b.metadata.version, a.metadata.version),
+                compareVersions(b.metadata.version, a.metadata.version)
               ); // Descending order (newest first)
               packagesCache.set(packageId, filteredEntries);
 
               logger.info(
-                `Package overwritten in cache: ${packageEntry.metadata.id} ${packageEntry.metadata.version}`,
+                `Package overwritten in cache: ${packageEntry.metadata.id} ${packageEntry.metadata.version}`
               );
-              return { action: "overwritten" };
+              return { action: 'overwritten' };
 
-            case "ignore":
+            case 'ignore':
               logger.info(
-                `Package already exists in cache, ignored: ${packageEntry.metadata.id} ${packageEntry.metadata.version}`,
+                `Package already exists in cache, ignored: ${packageEntry.metadata.id} ${packageEntry.metadata.version}`
               );
-              return { action: "ignored" };
+              return { action: 'ignored' };
 
-            case "error":
+            case 'error':
               const errorMessage = `Package ${packageEntry.metadata.id} version ${packageEntry.metadata.version} already exists`;
               logger.warn(errorMessage);
-              return { action: "error", message: errorMessage };
+              return { action: 'error', message: errorMessage };
 
             default:
               // Default to ignore for safety
               logger.info(
-                `Package already exists in cache, ignored (default policy): ${packageEntry.metadata.id} ${packageEntry.metadata.version}`,
+                `Package already exists in cache, ignored (default policy): ${packageEntry.metadata.id} ${packageEntry.metadata.version}`
               );
-              return { action: "ignored" };
+              return { action: 'ignored' };
           }
         } else {
           // New version - add it
           existingEntries.push(packageEntry);
           existingEntries.sort((a, b) =>
-            compareVersions(b.metadata.version, a.metadata.version),
+            compareVersions(b.metadata.version, a.metadata.version)
           ); // Descending order (newest first)
           packagesCache.set(packageId, existingEntries);
 
           logger.info(
-            `Package added to cache: ${packageEntry.metadata.id} ${packageEntry.metadata.version}`,
+            `Package added to cache: ${packageEntry.metadata.id} ${packageEntry.metadata.version}`
           );
-          return { action: "added" };
+          return { action: 'added' };
         }
       } finally {
         handle.release();
@@ -531,19 +531,19 @@ export const createMetadataService = (
 
         // Remove existing version if it exists (for overwrite)
         const filteredEntries = existingEntries.filter(
-          (e) => e.metadata.version !== entry.metadata.version,
+          (e) => e.metadata.version !== entry.metadata.version
         );
 
         // Add new version
         filteredEntries.push(entry);
         filteredEntries.sort((a, b) =>
-          compareVersions(b.metadata.version, a.metadata.version),
+          compareVersions(b.metadata.version, a.metadata.version)
         ); // Descending order (newest first)
 
         packagesCache.set(packageId, filteredEntries);
 
         logger.info(
-          `Package added to cache: ${entry.metadata.id} ${entry.metadata.version}`,
+          `Package added to cache: ${entry.metadata.id} ${entry.metadata.version}`
         );
       } finally {
         handle.release();

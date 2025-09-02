@@ -2,10 +2,10 @@
 // Copyright (c) Kouji Matsui (@kekyo@mi.kekyo.net)
 // License under MIT.
 
-import dayjs from "dayjs";
-import { Logger, LogLevel } from "./types";
+import dayjs from 'dayjs';
+import { Logger, LogLevel } from './types';
 
-const nowDate = () => dayjs().format("YYYY/MM/DD HH:mm:ss.SSS");
+const nowDate = () => dayjs().format('YYYY/MM/DD HH:mm:ss.SSS');
 
 const logLevelPriority: Record<LogLevel, number> = {
   debug: 0,
@@ -23,7 +23,7 @@ const logLevelPriority: Record<LogLevel, number> = {
  */
 export const createConsoleLogger = (
   prefix?: string,
-  logLevel: LogLevel = "info",
+  logLevel: LogLevel = 'info'
 ): Logger => {
   const currentLogLevel = logLevelPriority[logLevel];
 
@@ -35,33 +35,33 @@ export const createConsoleLogger = (
 
   return prefix
     ? {
-        debug: shouldLog("debug")
+        debug: shouldLog('debug')
           ? (msg) =>
               console.debug(`[${prefix}]: [${nowDate()}]: [debug]: ${msg}`)
           : noop,
-        info: shouldLog("info")
+        info: shouldLog('info')
           ? (msg) => console.info(`[${prefix}]: [${nowDate()}]: [info]: ${msg}`)
           : noop,
-        warn: shouldLog("warn")
+        warn: shouldLog('warn')
           ? (msg) =>
               console.warn(`[${prefix}]: [${nowDate()}]: [warning]: ${msg}`)
           : noop,
-        error: shouldLog("error")
+        error: shouldLog('error')
           ? (msg) =>
               console.error(`[${prefix}]: [${nowDate()}]: [error]: ${msg}`)
           : noop,
       }
     : {
-        debug: shouldLog("debug")
+        debug: shouldLog('debug')
           ? (msg) => console.debug(`[${nowDate()}]: [debug]: ${msg}`)
           : noop,
-        info: shouldLog("info")
+        info: shouldLog('info')
           ? (msg) => console.info(`[${nowDate()}]: [info]: ${msg}`)
           : noop,
-        warn: shouldLog("warn")
+        warn: shouldLog('warn')
           ? (msg) => console.warn(`[${nowDate()}]: [warning]: ${msg}`)
           : noop,
-        error: shouldLog("error")
+        error: shouldLog('error')
           ? (msg) => console.error(`[${nowDate()}]: [error]: ${msg}`)
           : noop,
       };

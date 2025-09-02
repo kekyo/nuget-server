@@ -2,9 +2,9 @@
 // Copyright (c) Kouji Matsui (@kekyo@mi.kekyo.net)
 // License under MIT.
 
-import { createReaderWriterLock } from "async-primitives";
-import { Logger } from "../types";
-import { generateSessionToken } from "../utils/crypto";
+import { createReaderWriterLock } from 'async-primitives';
+import { Logger } from '../types';
+import { generateSessionToken } from '../utils/crypto';
 
 /**
  * Session data structure
@@ -58,7 +58,7 @@ export interface SessionService {
  * @returns Session service instance
  */
 export const createSessionService = (
-  config: SessionServiceConfig,
+  config: SessionServiceConfig
 ): SessionService => {
   const { logger, cleanupIntervalMinutes = 60 } = config;
   const sessions: Map<string, Session> = new Map();
@@ -103,11 +103,11 @@ export const createSessionService = (
       async () => {
         await cleanupExpiredSessions();
       },
-      cleanupIntervalMinutes * 60 * 1000,
+      cleanupIntervalMinutes * 60 * 1000
     );
 
     logger.debug(
-      `Started session cleanup timer (interval: ${cleanupIntervalMinutes} minutes)`,
+      `Started session cleanup timer (interval: ${cleanupIntervalMinutes} minutes)`
     );
   };
 
@@ -118,7 +118,7 @@ export const createSessionService = (
     if (cleanupInterval) {
       clearInterval(cleanupInterval);
       cleanupInterval = undefined;
-      logger.debug("Stopped session cleanup timer");
+      logger.debug('Stopped session cleanup timer');
     }
   };
 
@@ -151,10 +151,10 @@ export const createSessionService = (
     initialize: async (): Promise<void> => {
       const handle = await sessionLock.writeLock();
       try {
-        logger.info("Initializing session service");
+        logger.info('Initializing session service');
         sessions.clear();
         startCleanupTimer();
-        logger.info("Session service initialization completed");
+        logger.info('Session service initialization completed');
       } finally {
         handle.release();
       }
@@ -166,10 +166,10 @@ export const createSessionService = (
     destroy: async (): Promise<void> => {
       const handle = await sessionLock.writeLock();
       try {
-        logger.info("Destroying session service");
+        logger.info('Destroying session service');
         stopCleanupTimer();
         sessions.clear();
-        logger.info("Session service destroyed");
+        logger.info('Session service destroyed');
       } finally {
         handle.release();
       }
@@ -187,7 +187,7 @@ export const createSessionService = (
         const now = new Date();
         const expirationHours = request.expirationHours || 24;
         const expiresAt = new Date(
-          now.getTime() + expirationHours * 60 * 60 * 1000,
+          now.getTime() + expirationHours * 60 * 60 * 1000
         );
 
         const session: Session = {
@@ -202,7 +202,7 @@ export const createSessionService = (
         sessions.set(token, session);
 
         logger.info(
-          `Created session for user: ${request.username} (expires: ${expiresAt.toISOString()})`,
+          `Created session for user: ${request.username} (expires: ${expiresAt.toISOString()})`
         );
         logger.debug(`Active sessions count: ${sessions.size}`);
 
@@ -293,7 +293,7 @@ export const createSessionService = (
 
         if (deletedCount > 0) {
           logger.info(
-            `Deleted ${deletedCount} sessions for user ID: ${userId}`,
+            `Deleted ${deletedCount} sessions for user ID: ${userId}`
           );
           logger.debug(`Active sessions count: ${sessions.size}`);
         }

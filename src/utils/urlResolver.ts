@@ -2,7 +2,7 @@
 // Copyright (c) Kouji Matsui (@kekyo@mi.kekyo.net)
 // License under MIT.
 
-import { Logger } from "../types";
+import { Logger } from '../types';
 
 /**
  * Generic request interface for URL resolution
@@ -38,14 +38,14 @@ export interface ResolvedUrl {
  * @returns Path prefix (e.g., "/nuget") or empty string
  */
 export const extractPathFromBaseUrl = (baseUrl: string | undefined): string => {
-  if (!baseUrl) return "";
+  if (!baseUrl) return '';
 
   try {
     const url = new URL(baseUrl);
     // Remove trailing slash and return path
-    return url.pathname.replace(/\/$/, "");
+    return url.pathname.replace(/\/$/, '');
   } catch {
-    return "";
+    return '';
   }
 };
 
@@ -57,7 +57,7 @@ export const extractPathFromBaseUrl = (baseUrl: string | undefined): string => {
  */
 export const createUrlResolver = (
   logger: Logger,
-  config: UrlResolverConfig = {},
+  config: UrlResolverConfig = {}
 ) => {
   const { baseUrl: fixedBaseUrl, trustedProxies = [] } = config;
 
@@ -73,17 +73,17 @@ export const createUrlResolver = (
     }
 
     const clientIp = req.ip || req.socket.remoteAddress;
-    const forwardedFor = req.headers["x-forwarded-for"] as string;
+    const forwardedFor = req.headers['x-forwarded-for'] as string;
 
     logger.debug(`resolveUrl: clientIp: ${clientIp}`);
     logger.debug(`resolveUrl: x-forwarded-for: ${forwardedFor}`);
 
     const sourceIps = [clientIp];
     if (forwardedFor) {
-      sourceIps.push(...forwardedFor.split(",").map((ip) => ip.trim()));
+      sourceIps.push(...forwardedFor.split(',').map((ip) => ip.trim()));
     }
 
-    const result = sourceIps.some((ip) => trustedProxies.includes(ip || ""));
+    const result = sourceIps.some((ip) => trustedProxies.includes(ip || ''));
     logger.debug(`resolveUrl: trustedProxies: ${result}`);
 
     return result;
@@ -97,11 +97,11 @@ export const createUrlResolver = (
   const parseForwardedHeader = (forwarded: string): Record<string, string> => {
     const parsed: Record<string, string> = {};
 
-    const pairs = forwarded.split(";").map((s) => s.trim());
+    const pairs = forwarded.split(';').map((s) => s.trim());
     for (const pair of pairs) {
-      const [key, value] = pair.split("=").map((s) => s.trim());
+      const [key, value] = pair.split('=').map((s) => s.trim());
       if (key && value) {
-        parsed[key.toLowerCase()] = value.replace(/"/g, "");
+        parsed[key.toLowerCase()] = value.replace(/"/g, '');
       }
     }
 
@@ -117,23 +117,23 @@ export const createUrlResolver = (
     if (fixedBaseUrl) {
       logger.debug(`resolveUrl: resolved: ${fixedBaseUrl} (fixed)`);
       return {
-        baseUrl: fixedBaseUrl.replace(/\/$/, ""),
+        baseUrl: fixedBaseUrl.replace(/\/$/, ''),
         isFixed: true,
       };
     }
 
     let protocol = req.protocol;
-    let host = (req.headers.host as string) || "localhost";
+    let host = (req.headers.host as string) || 'localhost';
     logger.debug(`resolveUrl: protocol: ${protocol}`);
     logger.debug(`resolveUrl: host: ${host}`);
 
     let port: string | undefined;
 
     if (isRequestFromTrustedProxy(req)) {
-      const forwardedProto = req.headers["x-forwarded-proto"] as string;
-      const forwardedHost = req.headers["x-forwarded-host"] as string;
-      const forwardedPort = req.headers["x-forwarded-port"] as string;
-      const forwarded = req.headers["forwarded"] as string;
+      const forwardedProto = req.headers['x-forwarded-proto'] as string;
+      const forwardedHost = req.headers['x-forwarded-host'] as string;
+      const forwardedPort = req.headers['x-forwarded-port'] as string;
+      const forwarded = req.headers['forwarded'] as string;
 
       logger.debug(`resolveUrl: x-forwarded-proto: ${forwardedProto}`);
       logger.debug(`resolveUrl: x-forwarded-host: ${forwardedHost}`);
@@ -152,7 +152,7 @@ export const createUrlResolver = (
       }
     }
 
-    const hostWithPort = port && !host.includes(":") ? `${host}:${port}` : host;
+    const hostWithPort = port && !host.includes(':') ? `${host}:${port}` : host;
 
     const baseUrl = `${protocol}://${hostWithPort}`;
     logger.debug(`resolveUrl: resolved: ${baseUrl}`);
@@ -180,16 +180,16 @@ export const createUrlResolver = (
 
     // Then check x-forwarded-path header if from trusted proxy
     if (isRequestFromTrustedProxy(req)) {
-      const forwardedPath = req.headers["x-forwarded-path"] as string;
+      const forwardedPath = req.headers['x-forwarded-path'] as string;
       if (forwardedPath) {
         // Remove trailing slash
-        const pathPrefix = forwardedPath.replace(/\/$/, "");
+        const pathPrefix = forwardedPath.replace(/\/$/, '');
         logger.debug(`extractPathPrefix: from x-forwarded-path: ${pathPrefix}`);
         return pathPrefix;
       }
     }
 
-    return "";
+    return '';
   };
 
   return {
@@ -216,7 +216,7 @@ export const getTrustedProxiesFromEnv = (): string[] | undefined => {
   if (!proxies) return undefined;
 
   return proxies
-    .split(",")
+    .split(',')
     .map((ip) => ip.trim())
     .filter(Boolean);
 };

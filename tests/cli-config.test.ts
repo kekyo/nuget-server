@@ -1,19 +1,19 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
-import { exec } from "child_process";
-import { promisify } from "util";
-import { createTestDirectory, getTestPort } from "./helpers/test-helper";
-import { writeFile } from "fs/promises";
-import { join, resolve } from "path";
+import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { exec } from 'child_process';
+import { promisify } from 'util';
+import { createTestDirectory, getTestPort } from './helpers/test-helper';
+import { writeFile } from 'fs/promises';
+import { join, resolve } from 'path';
 
 const execAsync = promisify(exec);
 
-describe("CLI configuration priority", () => {
+describe('CLI configuration priority', () => {
   let testDir: string;
   let testPort: number;
-  const cliPath = join(process.cwd(), "dist", "cli.js");
+  const cliPath = join(process.cwd(), 'dist', 'cli.js');
 
   beforeEach(async (fn) => {
-    testDir = await createTestDirectory("cli-config", fn.task.name);
+    testDir = await createTestDirectory('cli-config', fn.task.name);
     testPort = getTestPort(6200);
   });
 
@@ -28,8 +28,8 @@ describe("CLI configuration priority", () => {
   });
 
   const runCli = async (
-    args: string = "",
-    env: Record<string, string> = {},
+    args: string = '',
+    env: Record<string, string> = {}
   ): Promise<{ stdout: string; stderr: string }> => {
     // Merge environment variables with current process env
     const fullEnv = { ...process.env, ...env };
@@ -39,79 +39,79 @@ describe("CLI configuration priority", () => {
     return execAsync(command, { env: fullEnv });
   };
 
-  it("should use CLI options as highest priority", async () => {
+  it('should use CLI options as highest priority', async () => {
     // Create config.json
     await writeFile(
-      join(testDir, "config.json"),
+      join(testDir, 'config.json'),
       JSON.stringify({
         port: 9000,
-        logLevel: "debug",
-        authMode: "full",
-      }),
+        logLevel: 'debug',
+        authMode: 'full',
+      })
     );
 
     // Set environment variables
     const env = {
-      NUGET_SERVER_PORT: "8000",
-      NUGET_SERVER_LOG_LEVEL: "warn",
-      NUGET_SERVER_AUTH_MODE: "publish",
+      NUGET_SERVER_PORT: '8000',
+      NUGET_SERVER_LOG_LEVEL: 'warn',
+      NUGET_SERVER_AUTH_MODE: 'publish',
     };
 
     // Run with CLI options
-    const configPath = join(testDir, "config.json");
+    const configPath = join(testDir, 'config.json');
     const { stdout } = await runCli(
       `--port ${testPort} --log-level info --auth-mode none -c ${configPath}`,
-      env,
+      env
     );
 
     // CLI options should take precedence
     expect(stdout).toContain(`Port: ${testPort}`);
-    expect(stdout).toContain("Log level: info");
-    expect(stdout).toContain("Authentication mode: none");
+    expect(stdout).toContain('Log level: info');
+    expect(stdout).toContain('Authentication mode: none');
   }, 10000);
 
-  it("should use environment variables when CLI options not provided", async () => {
+  it('should use environment variables when CLI options not provided', async () => {
     // Create config.json
     await writeFile(
-      join(testDir, "config.json"),
+      join(testDir, 'config.json'),
       JSON.stringify({
         port: 9000,
-        packageDir: "./config-packages",
-        authMode: "full",
-      }),
+        packageDir: './config-packages',
+        authMode: 'full',
+      })
     );
 
     // Set environment variables
     const env = {
       NUGET_SERVER_PORT: String(testPort),
-      NUGET_SERVER_PACKAGE_DIR: "./env-packages",
-      NUGET_SERVER_AUTH_MODE: "publish",
+      NUGET_SERVER_PACKAGE_DIR: './env-packages',
+      NUGET_SERVER_AUTH_MODE: 'publish',
     };
 
     // Run without CLI options (except config file)
-    const configPath = join(testDir, "config.json");
+    const configPath = join(testDir, 'config.json');
     const { stdout } = await runCli(`-c ${configPath}`, env);
 
     // Environment variables should take precedence over config.json
     expect(stdout).toContain(`Port: ${testPort}`);
-    expect(stdout).toContain("Package directory: ./env-packages");
-    expect(stdout).toContain("Authentication mode: publish");
+    expect(stdout).toContain('Package directory: ./env-packages');
+    expect(stdout).toContain('Authentication mode: publish');
   }, 10000);
 
-  it("should use config.json when CLI and env not provided", async () => {
+  it('should use config.json when CLI and env not provided', async () => {
     // Create config.json
     await writeFile(
-      join(testDir, "config.json"),
+      join(testDir, 'config.json'),
       JSON.stringify({
         port: testPort,
-        packageDir: "./json-packages",
-        logLevel: "debug",
-        authMode: "publish",
-      }),
+        packageDir: './json-packages',
+        logLevel: 'debug',
+        authMode: 'publish',
+      })
     );
 
     // Run without CLI options or environment variables
-    const configPath = join(testDir, "config.json");
+    const configPath = join(testDir, 'config.json');
     const { stdout, stderr } = await runCli(`-c ${configPath}`);
 
     // Check if there's any output
@@ -121,209 +121,209 @@ describe("CLI configuration priority", () => {
     expect(output).toContain(`Port: ${testPort}`);
     // packageDir is now resolved to absolute path from config directory
     expect(output).toContain(
-      `Package directory: ${resolve(testDir, "./json-packages")}`,
+      `Package directory: ${resolve(testDir, './json-packages')}`
     );
-    expect(output).toContain("Log level: debug");
-    expect(output).toContain("Authentication mode: publish");
+    expect(output).toContain('Log level: debug');
+    expect(output).toContain('Authentication mode: publish');
     expect(output).toContain(`Configuration loaded from ${configPath}`);
   }, 10000);
 
-  it("should use defaults when nothing is provided", async () => {
+  it('should use defaults when nothing is provided', async () => {
     // Run without any configuration (nonexistent file)
-    const configPath = join(testDir, "nonexistent.json");
+    const configPath = join(testDir, 'nonexistent.json');
     const { stdout, stderr } = await runCli(`-c ${configPath}`);
 
     // Check if there's any output
     const output = stdout || stderr;
 
     // Default values should be used
-    expect(output).toContain("Port: 5963");
-    expect(output).toContain("Package directory: ./packages");
-    expect(output).toContain("Log level: info");
-    expect(output).toContain("Authentication mode: none");
+    expect(output).toContain('Port: 5963');
+    expect(output).toContain('Package directory: ./packages');
+    expect(output).toContain('Log level: info');
+    expect(output).toContain('Authentication mode: none');
   }, 10000);
 
-  it("should handle mixed configuration sources", async () => {
+  it('should handle mixed configuration sources', async () => {
     // Create config.json with some values
     await writeFile(
-      join(testDir, "config.json"),
+      join(testDir, 'config.json'),
       JSON.stringify({
-        logLevel: "debug",
-        realm: "Config Realm",
-        trustedProxies: ["192.168.1.1"],
-      }),
+        logLevel: 'debug',
+        realm: 'Config Realm',
+        trustedProxies: ['192.168.1.1'],
+      })
     );
 
     // Set some environment variables
     const env = {
       NUGET_SERVER_PORT: String(testPort),
-      NUGET_SERVER_AUTH_MODE: "publish",
+      NUGET_SERVER_AUTH_MODE: 'publish',
     };
 
     // Run with some CLI options
-    const configPath = join(testDir, "config.json");
+    const configPath = join(testDir, 'config.json');
     const { stdout } = await runCli(
       `--package-dir ./cli-packages -c ${configPath}`,
-      env,
+      env
     );
 
     // Mixed sources
     expect(stdout).toContain(`Port: ${testPort}`); // from env
-    expect(stdout).toContain("Package directory: ./cli-packages"); // from CLI
-    expect(stdout).toContain("Log level: debug"); // from config.json
-    expect(stdout).toContain("Authentication mode: publish"); // from env
-    expect(stdout).toContain("Realm: Config Realm"); // from config.json
-    expect(stdout).toContain("Trusted proxies: 192.168.1.1"); // from config.json
+    expect(stdout).toContain('Package directory: ./cli-packages'); // from CLI
+    expect(stdout).toContain('Log level: debug'); // from config.json
+    expect(stdout).toContain('Authentication mode: publish'); // from env
+    expect(stdout).toContain('Realm: Config Realm'); // from config.json
+    expect(stdout).toContain('Trusted proxies: 192.168.1.1'); // from config.json
   }, 10000);
 
-  it("should handle array trustedProxies from config.json", async () => {
+  it('should handle array trustedProxies from config.json', async () => {
     await writeFile(
-      join(testDir, "config.json"),
+      join(testDir, 'config.json'),
       JSON.stringify({
         port: testPort,
-        trustedProxies: ["192.168.1.1", "10.0.0.1", "::1"],
-      }),
+        trustedProxies: ['192.168.1.1', '10.0.0.1', '::1'],
+      })
     );
 
-    const configPath = join(testDir, "config.json");
+    const configPath = join(testDir, 'config.json');
     const { stdout } = await runCli(`-c ${configPath}`);
-    expect(stdout).toContain("Trusted proxies: 192.168.1.1, 10.0.0.1, ::1");
+    expect(stdout).toContain('Trusted proxies: 192.168.1.1, 10.0.0.1, ::1');
   }, 10000);
 
-  it("should validate configuration values from all sources", async () => {
+  it('should validate configuration values from all sources', async () => {
     // Create config.json with invalid values
     await writeFile(
-      join(testDir, "config.json"),
+      join(testDir, 'config.json'),
       JSON.stringify({
         port: testPort,
-        logLevel: "invalid-level",
-        authMode: "invalid-mode",
-      }),
+        logLevel: 'invalid-level',
+        authMode: 'invalid-mode',
+      })
     );
 
-    const configPath = join(testDir, "config.json");
+    const configPath = join(testDir, 'config.json');
     const { stdout } = await runCli(`-c ${configPath}`);
 
     // Invalid values should fall back to defaults
     expect(stdout).toContain(`Port: ${testPort}`); // valid from config
-    expect(stdout).toContain("Log level: info"); // default (invalid in config)
-    expect(stdout).toContain("Authentication mode: none"); // default (invalid in config)
+    expect(stdout).toContain('Log level: info'); // default (invalid in config)
+    expect(stdout).toContain('Authentication mode: none'); // default (invalid in config)
   }, 10000);
 
-  it("should handle sessionSecret from environment only", async () => {
+  it('should handle sessionSecret from environment only', async () => {
     // sessionSecret in config.json should work but show warning
     await writeFile(
-      join(testDir, "config.json"),
+      join(testDir, 'config.json'),
       JSON.stringify({
         port: testPort,
-        sessionSecret: "config-secret",
-      }),
+        sessionSecret: 'config-secret',
+      })
     );
 
     const env = {
-      NUGET_SERVER_SESSION_SECRET: "env-secret",
+      NUGET_SERVER_SESSION_SECRET: 'env-secret',
     };
 
     // Environment variable should take precedence
     // Note: We can't directly check sessionSecret in output, but it's used internally
-    const configPath = join(testDir, "config.json");
+    const configPath = join(testDir, 'config.json');
     const { stdout } = await runCli(`-c ${configPath}`, env);
     expect(stdout).toContain(`Port: ${testPort}`);
   }, 10000);
 
-  it("should handle usersFile configuration from CLI", async () => {
-    const usersFilePath = join(testDir, "custom-users.json");
-    const configPath = join(testDir, "config.json");
+  it('should handle usersFile configuration from CLI', async () => {
+    const usersFilePath = join(testDir, 'custom-users.json');
+    const configPath = join(testDir, 'config.json');
 
     const { stdout } = await runCli(
-      `-c ${configPath} --users-file ${usersFilePath}`,
+      `-c ${configPath} --users-file ${usersFilePath}`
     );
 
     expect(stdout).toContain(`Users file: ${usersFilePath}`);
   }, 10000);
 
-  it("should handle usersFile configuration from environment", async () => {
-    const usersFilePath = join(testDir, "env-users.json");
+  it('should handle usersFile configuration from environment', async () => {
+    const usersFilePath = join(testDir, 'env-users.json');
 
     const env = {
       NUGET_SERVER_USERS_FILE: usersFilePath,
     };
 
-    const configPath = join(testDir, "config.json");
+    const configPath = join(testDir, 'config.json');
     const { stdout } = await runCli(`-c ${configPath}`, env);
 
     expect(stdout).toContain(`Users file: ${usersFilePath}`);
   }, 10000);
 
-  it("should handle usersFile configuration from config.json", async () => {
-    const usersFilePath = "config-users.json";
+  it('should handle usersFile configuration from config.json', async () => {
+    const usersFilePath = 'config-users.json';
 
     await writeFile(
-      join(testDir, "config.json"),
+      join(testDir, 'config.json'),
       JSON.stringify({
         port: testPort,
         usersFile: usersFilePath,
-      }),
+      })
     );
 
-    const configPath = join(testDir, "config.json");
+    const configPath = join(testDir, 'config.json');
     const { stdout } = await runCli(`-c ${configPath}`);
 
     // usersFile path should be resolved relative to config dir
     expect(stdout).toContain(`Users file: ${resolve(testDir, usersFilePath)}`);
   }, 10000);
 
-  it("should prioritize usersFile configuration correctly", async () => {
+  it('should prioritize usersFile configuration correctly', async () => {
     // Create config.json with usersFile
     await writeFile(
-      join(testDir, "config.json"),
+      join(testDir, 'config.json'),
       JSON.stringify({
         port: testPort,
-        usersFile: "config-users.json",
-      }),
+        usersFile: 'config-users.json',
+      })
     );
 
     // Set environment variable
     const env = {
-      NUGET_SERVER_USERS_FILE: join(testDir, "env-users.json"),
+      NUGET_SERVER_USERS_FILE: join(testDir, 'env-users.json'),
     };
 
     // CLI option should have highest priority
-    const cliUsersFile = join(testDir, "cli-users.json");
-    const configPath = join(testDir, "config.json");
+    const cliUsersFile = join(testDir, 'cli-users.json');
+    const configPath = join(testDir, 'config.json');
     const { stdout } = await runCli(
       `-c ${configPath} --users-file ${cliUsersFile}`,
-      env,
+      env
     );
 
     expect(stdout).toContain(`Users file: ${cliUsersFile}`);
   }, 10000);
 
-  it("should not show users file in output when not specified", async () => {
-    const configPath = join(testDir, "nonexistent.json");
+  it('should not show users file in output when not specified', async () => {
+    const configPath = join(testDir, 'nonexistent.json');
     const { stdout } = await runCli(`-c ${configPath}`);
 
-    expect(stdout).not.toContain("Users file:");
+    expect(stdout).not.toContain('Users file:');
   }, 10000);
 
-  it("should handle config-file from environment variable", async () => {
-    const configPath = join(testDir, "env-config.json");
+  it('should handle config-file from environment variable', async () => {
+    const configPath = join(testDir, 'env-config.json');
     await writeFile(
       configPath,
       JSON.stringify({
         port: testPort,
-        logLevel: "debug",
-      }),
+        logLevel: 'debug',
+      })
     );
 
     const env = {
       NUGET_SERVER_CONFIG_FILE: configPath,
     };
 
-    const { stdout } = await runCli("", env);
+    const { stdout } = await runCli('', env);
 
     expect(stdout).toContain(`Port: ${testPort}`);
-    expect(stdout).toContain("Log level: debug");
+    expect(stdout).toContain('Log level: debug');
     expect(stdout).toContain(`Config file: ${configPath}`);
   }, 10000);
 });

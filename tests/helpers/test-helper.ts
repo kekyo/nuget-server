@@ -1,46 +1,46 @@
-import path from "path";
-import dayjs from "dayjs";
-import { exec } from "child_process";
-import { promisify } from "util";
-import { LogLevel } from "../../src/types";
-import { ensureDir } from "./fs-utils";
+import path from 'path';
+import dayjs from 'dayjs';
+import { exec } from 'child_process';
+import { promisify } from 'util';
+import { LogLevel } from '../../src/types';
+import { ensureDir } from './fs-utils';
 
 const execAsync = promisify(exec);
 
 // Test global log level string
 export const testGlobalLogLevel =
-  (process.env["NUGET_SERVER_TEST_LOGLEVEL"] as LogLevel | undefined) ?? "warn";
+  (process.env['NUGET_SERVER_TEST_LOGLEVEL'] as LogLevel | undefined) ?? 'warn';
 
 // Timestamp for test directories
-const timestamp = dayjs().format("YYYYMMDD_HHmmss");
+const timestamp = dayjs().format('YYYYMMDD_HHmmss');
 
 /**
  * Creates a test directory with timestamp for test isolation
  */
 export const createTestDirectory = async (
   categoryName: string,
-  testName: string,
+  testName: string
 ): Promise<string> => {
   // Sanitize names to be filesystem-safe
   const sanitize = (name: string) =>
     name
-      .replaceAll(" ", "-")
-      .replaceAll("/", "_") // Replace slash with underscore
-      .replaceAll("\\", "_") // Replace backslash
-      .replaceAll(":", "_") // Replace colon
-      .replaceAll("*", "_") // Replace asterisk
-      .replaceAll("?", "_") // Replace question mark
-      .replaceAll('"', "_") // Replace double quote
-      .replaceAll("<", "_") // Replace less than
-      .replaceAll(">", "_") // Replace greater than
-      .replaceAll("|", "_"); // Replace pipe
+      .replaceAll(' ', '-')
+      .replaceAll('/', '_') // Replace slash with underscore
+      .replaceAll('\\', '_') // Replace backslash
+      .replaceAll(':', '_') // Replace colon
+      .replaceAll('*', '_') // Replace asterisk
+      .replaceAll('?', '_') // Replace question mark
+      .replaceAll('"', '_') // Replace double quote
+      .replaceAll('<', '_') // Replace less than
+      .replaceAll('>', '_') // Replace greater than
+      .replaceAll('|', '_'); // Replace pipe
 
   const testDir = path.join(
     process.cwd(),
-    "test-results",
+    'test-results',
     timestamp,
     sanitize(categoryName),
-    sanitize(testName),
+    sanitize(testName)
   );
   await ensureDir(testDir);
   return testDir;
@@ -90,9 +90,9 @@ export const cleanupCLIProcesses = async (): Promise<void> => {
  */
 export const waitForServerReady = async (
   serverPort: number,
-  authMode: "none" | "publish" | "full",
+  authMode: 'none' | 'publish' | 'full',
   maxRetries: number = 30,
-  retryDelay: number = 500,
+  retryDelay: number = 500
 ): Promise<void> => {
   const url = `http://localhost:${serverPort}/v3/index.json`;
 
@@ -105,18 +105,18 @@ export const waitForServerReady = async (
       const response = await fetch(url, {
         signal: controller.signal,
         // Avoid following redirects that might hang
-        redirect: "manual",
+        redirect: 'manual',
       });
 
       clearTimeout(timeoutId);
 
       // Check expected status based on auth mode
-      if (authMode === "none" || authMode === "publish") {
+      if (authMode === 'none' || authMode === 'publish') {
         // These modes should allow anonymous access to V3 API
         if (response.status === 200) {
           return; // Server is ready
         }
-      } else if (authMode === "full") {
+      } else if (authMode === 'full') {
         // Full auth mode should return 401 for unauthorized access
         if (response.status === 401) {
           return; // Server is ready (and properly rejecting unauthorized requests)
@@ -126,7 +126,7 @@ export const waitForServerReady = async (
       // Unexpected status, continue retrying
       if (i === maxRetries - 1) {
         throw new Error(
-          `Server returned unexpected status ${response.status} for authMode=${authMode}`,
+          `Server returned unexpected status ${response.status} for authMode=${authMode}`
         );
       }
     } catch (error: any) {
@@ -134,7 +134,7 @@ export const waitForServerReady = async (
       if (i === maxRetries - 1) {
         // Last attempt failed
         throw new Error(
-          `Server failed to start within ${(maxRetries * retryDelay) / 1000} seconds: ${error.message}`,
+          `Server failed to start within ${(maxRetries * retryDelay) / 1000} seconds: ${error.message}`
         );
       }
 

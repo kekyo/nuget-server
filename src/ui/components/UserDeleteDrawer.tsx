@@ -2,7 +2,7 @@
 // Copyright (c) Kouji Matsui (@kekyo@mi.kekyo.net)
 // License under MIT.
 
-import { useState, useEffect } from "react";
+import { useState, useEffect } from 'react';
 import {
   Drawer,
   Box,
@@ -20,17 +20,17 @@ import {
   DialogContent,
   DialogContentText,
   DialogActions,
-} from "@mui/material";
+} from '@mui/material';
 import {
   Close as CloseIcon,
   PersonRemove as PersonRemoveIcon,
   CheckCircle as SuccessIcon,
   Error as ErrorIcon,
   Warning as WarningIcon,
-} from "@mui/icons-material";
-import { apiFetch } from "../utils/apiClient";
-import { TypedMessage, useTypedMessage } from "typed-message";
-import { messages } from "../../generated/messages";
+} from '@mui/icons-material';
+import { apiFetch } from '../utils/apiClient';
+import { TypedMessage, useTypedMessage } from 'typed-message';
+import { messages } from '../../generated/messages';
 
 interface UserDeleteDrawerProps {
   open: boolean;
@@ -74,20 +74,20 @@ const UserDeleteDrawer = ({
   const loadUsers = async () => {
     setLoadingUsers(true);
     try {
-      const response = await apiFetch("api/ui/users", {
-        method: "POST",
+      const response = await apiFetch('api/ui/users', {
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
-        credentials: "same-origin",
-        body: JSON.stringify({ action: "list" }),
+        credentials: 'same-origin',
+        body: JSON.stringify({ action: 'list' }),
       });
 
       if (response.ok) {
         const data = await response.json();
         // Filter out the current user to prevent self-deletion
         const filteredUsers = (data.users || []).filter(
-          (user: User) => user.username !== currentUsername,
+          (user: User) => user.username !== currentUsername
         );
         setUsers(filteredUsers);
       } else if (response.status === 401) {
@@ -131,14 +131,14 @@ const UserDeleteDrawer = ({
     setResult(null);
 
     try {
-      const response = await apiFetch("api/ui/users", {
-        method: "POST",
+      const response = await apiFetch('api/ui/users', {
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
-        credentials: "same-origin",
+        credentials: 'same-origin',
         body: JSON.stringify({
-          action: "delete",
+          action: 'delete',
           username: selectedUsername,
         }),
       });
@@ -208,18 +208,18 @@ const UserDeleteDrawer = ({
         sx={{
           width: 400,
           flexShrink: 0,
-          "& .MuiDrawer-paper": {
+          '& .MuiDrawer-paper': {
             width: 400,
-            boxSizing: "border-box",
+            boxSizing: 'border-box',
           },
         }}
       >
-        <Box sx={{ p: 3, height: "100%" }}>
+        <Box sx={{ p: 3, height: '100%' }}>
           <Box
             sx={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
               mb: 3,
             }}
           >
@@ -242,7 +242,7 @@ const UserDeleteDrawer = ({
               </Typography>
 
               {loadingUsers ? (
-                <Box sx={{ display: "flex", justifyContent: "center", p: 3 }}>
+                <Box sx={{ display: 'flex', justifyContent: 'center', p: 3 }}>
                   <CircularProgress />
                 </Box>
               ) : (
@@ -264,7 +264,7 @@ const UserDeleteDrawer = ({
                         }
                         onChange={(_event, newValue) => {
                           setSelectedUsername(
-                            newValue ? newValue.username : null,
+                            newValue ? newValue.username : null
                           );
                         }}
                         disabled={deleting}
@@ -281,23 +281,23 @@ const UserDeleteDrawer = ({
 
                       {selectedUser && (
                         <Paper
-                          sx={{ p: 2, mb: 3, bgcolor: "warning.dark" }}
+                          sx={{ p: 2, mb: 3, bgcolor: 'warning.dark' }}
                           variant="outlined"
                           elevation={0}
                         >
                           <Box
                             sx={{
-                              display: "flex",
-                              alignItems: "center",
+                              display: 'flex',
+                              alignItems: 'center',
                               mb: 1,
                             }}
                           >
                             <WarningIcon
-                              sx={{ mr: 1, color: "warning.main" }}
+                              sx={{ mr: 1, color: 'warning.main' }}
                             />
                             <Typography
                               variant="body2"
-                              sx={{ fontWeight: "bold" }}
+                              sx={{ fontWeight: 'bold' }}
                             >
                               <TypedMessage message={messages.WARNING_LABEL} />
                             </Typography>
@@ -338,7 +338,7 @@ const UserDeleteDrawer = ({
           ) : (
             <Box>
               <Alert
-                severity={result.success ? "success" : "error"}
+                severity={result.success ? 'success' : 'error'}
                 icon={result.success ? <SuccessIcon /> : <ErrorIcon />}
                 sx={{ mb: 3 }}
               >
@@ -367,9 +367,9 @@ const UserDeleteDrawer = ({
                     <Typography
                       variant="body2"
                       sx={{
-                        fontFamily: "monospace",
-                        fontSize: "0.75rem",
-                        whiteSpace: "pre-wrap",
+                        fontFamily: 'monospace',
+                        fontSize: '0.75rem',
+                        whiteSpace: 'pre-wrap',
                       }}
                     >
                       {result.message}
@@ -378,7 +378,7 @@ const UserDeleteDrawer = ({
                 </Box>
               )}
 
-              <Box sx={{ display: "flex", gap: 1 }}>
+              <Box sx={{ display: 'flex', gap: 1 }}>
                 {result.success ? (
                   <>
                     <Button
@@ -414,7 +414,7 @@ const UserDeleteDrawer = ({
           <DialogContentText id="delete-dialog-description">
             <TypedMessage
               message={messages.CONFIRM_DELETE_MESSAGE}
-              params={{ username: selectedUsername || "" }}
+              params={{ username: selectedUsername || '' }}
             />
           </DialogContentText>
         </DialogContent>

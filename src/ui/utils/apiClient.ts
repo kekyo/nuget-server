@@ -11,9 +11,9 @@
  */
 export const apiFetch = (
   path: string,
-  options?: RequestInit,
+  options?: RequestInit
 ): Promise<Response> => {
   // Remove leading slash if present to ensure relative path
-  const relativePath = path.startsWith("/") ? path.slice(1) : path;
+  const relativePath = path.startsWith('/') ? path.slice(1) : path;
   return fetch(relativePath, options);
 };

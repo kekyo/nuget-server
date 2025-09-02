@@ -2,14 +2,14 @@
 // Copyright (c) Kouji Matsui (@kekyo@mi.kekyo.net)
 // License under MIT.
 
-import { Logger, LogLevel } from "../types";
+import { Logger, LogLevel } from '../types';
 
 /**
  * Format log message from various input types
  */
 const formatMessage = (obj: any, msg?: string, ..._args: any[]): string => {
   // String only case
-  if (typeof obj === "string") {
+  if (typeof obj === 'string') {
     return obj;
   }
 
@@ -19,7 +19,7 @@ const formatMessage = (obj: any, msg?: string, ..._args: any[]): string => {
     if (obj && obj.err) {
       const error = obj.err;
       if (error instanceof Error) {
-        return `${msg}: ${error.message}${error.stack ? `\n${error.stack}` : ""}`;
+        return `${msg}: ${error.message}${error.stack ? `\n${error.stack}` : ''}`;
       }
       return `${msg}: ${JSON.stringify(error)}`;
     }
@@ -28,10 +28,10 @@ const formatMessage = (obj: any, msg?: string, ..._args: any[]): string => {
   }
 
   // Object only case
-  if (obj && typeof obj === "object") {
+  if (obj && typeof obj === 'object') {
     // Error object
     if (obj instanceof Error) {
-      return `${obj.message}${obj.stack ? `\n${obj.stack}` : ""}`;
+      return `${obj.message}${obj.stack ? `\n${obj.stack}` : ''}`;
     }
     // Plain object
     return JSON.stringify(obj);
@@ -49,7 +49,7 @@ const formatMessage = (obj: any, msg?: string, ..._args: any[]): string => {
  */
 export const createFastifyLoggerAdapter = (
   logger: Logger,
-  logLevel: LogLevel = "info",
+  logLevel: LogLevel = 'info'
 ) => {
   const adapter = {
     // Basic log methods required by Fastify
@@ -94,8 +94,8 @@ export const createFastifyLoggerAdapter = (
 
     // Additional properties required by FastifyBaseLogger
     level: logLevel,
-    silent: logLevel === "ignore",
-    msgPrefix: "",
+    silent: logLevel === 'ignore',
+    msgPrefix: '',
   };
 
   return adapter;

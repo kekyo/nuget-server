@@ -2,8 +2,8 @@
 // Copyright (c) Kouji Matsui (@kekyo@mi.kekyo.net)
 // License under MIT.
 
-import fs from "fs/promises";
-import path from "path";
+import fs from 'fs/promises';
+import path from 'path';
 
 /**
  * Represents a package version with file paths
@@ -29,23 +29,23 @@ export interface PackageService {
   readonly getPackageVersions: (packageId: string) => Promise<string[]>;
   readonly getPackageFile: (
     packageId: string,
-    version: string,
+    version: string
   ) => Promise<Buffer | undefined>;
   readonly getNuspecFile: (
     packageId: string,
-    version: string,
+    version: string
   ) => Promise<Buffer | undefined>;
   readonly getPackageFilePath: (
     packageId: string,
-    version: string,
+    version: string
   ) => Promise<string | undefined>;
   readonly getNuspecFilePath: (
     packageId: string,
-    version: string,
+    version: string
   ) => Promise<string | undefined>;
   readonly packageExists: (
     packageId: string,
-    version: string,
+    version: string
   ) => Promise<boolean>;
 }
 
@@ -55,7 +55,7 @@ export interface PackageService {
  * @returns Configured package service instance
  */
 export const createPackageService = (
-  packagesRoot: string = "./packages",
+  packagesRoot: string = './packages'
 ): PackageService => {
   return {
     /**
@@ -102,14 +102,14 @@ export const createPackageService = (
      */
     getPackageFile: async (
       packageId: string,
-      version: string,
+      version: string
     ): Promise<Buffer | undefined> => {
       const packageFile = `${packageId}.${version}.nupkg`;
       const packagePath = path.join(
         packagesRoot,
         packageId,
         version,
-        packageFile,
+        packageFile
       );
 
       try {
@@ -127,14 +127,14 @@ export const createPackageService = (
      */
     getNuspecFile: async (
       packageId: string,
-      version: string,
+      version: string
     ): Promise<Buffer | undefined> => {
       const nuspecFile = `${packageId}.nuspec`;
       const nuspecPath = path.join(
         packagesRoot,
         packageId,
         version,
-        nuspecFile,
+        nuspecFile
       );
 
       try {
@@ -152,14 +152,14 @@ export const createPackageService = (
      */
     getPackageFilePath: async (
       packageId: string,
-      version: string,
+      version: string
     ): Promise<string | undefined> => {
       const packageFile = `${packageId}.${version}.nupkg`;
       const packagePath = path.join(
         packagesRoot,
         packageId,
         version,
-        packageFile,
+        packageFile
       );
 
       try {
@@ -178,14 +178,14 @@ export const createPackageService = (
      */
     getNuspecFilePath: async (
       packageId: string,
-      version: string,
+      version: string
     ): Promise<string | undefined> => {
       const nuspecFile = `${packageId}.nuspec`;
       const nuspecPath = path.join(
         packagesRoot,
         packageId,
         version,
-        nuspecFile,
+        nuspecFile
       );
 
       try {
@@ -204,14 +204,14 @@ export const createPackageService = (
      */
     packageExists: async (
       packageId: string,
-      version: string,
+      version: string
     ): Promise<boolean> => {
       const packageFile = `${packageId}.${version}.nupkg`;
       const packagePath = path.join(
         packagesRoot,
         packageId,
         version,
-        packageFile,
+        packageFile
       );
 
       try {

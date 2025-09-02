@@ -1,14 +1,14 @@
-import { describe, test, expect, beforeEach, afterEach } from "vitest";
-import path from "path";
-import fs from "fs/promises";
-import { startFastifyServer, FastifyServerInstance } from "../src/server";
-import { createConsoleLogger } from "../src/logger";
-import { ServerConfig } from "../src/types";
+import { describe, test, expect, beforeEach, afterEach } from 'vitest';
+import path from 'path';
+import fs from 'fs/promises';
+import { startFastifyServer, FastifyServerInstance } from '../src/server';
+import { createConsoleLogger } from '../src/logger';
+import { ServerConfig } from '../src/types';
 import {
   createTestDirectory,
   getTestPort,
   testGlobalLogLevel,
-} from "./helpers/test-helper.js";
+} from './helpers/test-helper.js';
 
 /**
  * Fastify Server Basic Tests - Phase 1
@@ -20,7 +20,7 @@ import {
  * - Configuration endpoint (when UI enabled)
  * - Parallel operation with Express server
  */
-describe("Fastify Server - Phase 1 Basic Tests", () => {
+describe('Fastify Server - Phase 1 Basic Tests', () => {
   let testBaseDir: string;
   let testPackagesDir: string;
   let testConfigDir: string;
@@ -29,10 +29,10 @@ describe("Fastify Server - Phase 1 Basic Tests", () => {
   beforeEach(async (fn) => {
     // Create isolated test directory for each test
     testBaseDir = await createTestDirectory(
-      "fastify-server-phase1",
-      fn.task.name,
+      'fastify-server-phase1',
+      fn.task.name
     );
-    testPackagesDir = path.join(testBaseDir, "packages");
+    testPackagesDir = path.join(testBaseDir, 'packages');
     testConfigDir = testBaseDir;
 
     // Create packages directory to avoid warnings
@@ -42,36 +42,36 @@ describe("Fastify Server - Phase 1 Basic Tests", () => {
     serverPort = getTestPort(6000);
   });
 
-  test("should start Fastify server successfully", async () => {
-    const logger = createConsoleLogger("fastify-server", testGlobalLogLevel);
+  test('should start Fastify server successfully', async () => {
+    const logger = createConsoleLogger('fastify-server', testGlobalLogLevel);
     const testConfig: ServerConfig = {
       port: serverPort,
       packageDir: testPackagesDir,
       configDir: testConfigDir,
-      realm: "Test Fastify Server",
+      realm: 'Test Fastify Server',
       logLevel: testGlobalLogLevel,
-      authMode: "none",
+      authMode: 'none',
       passwordStrengthCheck: false,
     };
 
     const server = await startFastifyServer(testConfig, logger);
     try {
       expect(server).toBeDefined();
-      expect(typeof server.close).toBe("function");
+      expect(typeof server.close).toBe('function');
     } finally {
       await server.close();
     }
   }, 30000);
 
-  test("should respond to health check endpoint", async () => {
-    const logger = createConsoleLogger("fastify-server", testGlobalLogLevel);
+  test('should respond to health check endpoint', async () => {
+    const logger = createConsoleLogger('fastify-server', testGlobalLogLevel);
     const testConfig: ServerConfig = {
       port: serverPort,
       packageDir: testPackagesDir,
       configDir: testConfigDir,
-      realm: "Test Fastify Server",
+      realm: 'Test Fastify Server',
       logLevel: testGlobalLogLevel,
-      authMode: "none",
+      authMode: 'none',
       passwordStrengthCheck: false,
     };
 
@@ -82,7 +82,7 @@ describe("Fastify Server - Phase 1 Basic Tests", () => {
 
       const data = await response.json();
       expect(data).toEqual({
-        status: "ok",
+        status: 'ok',
         version: expect.any(String),
       });
     } finally {
@@ -90,15 +90,15 @@ describe("Fastify Server - Phase 1 Basic Tests", () => {
     }
   }, 30000);
 
-  test("should respond to root endpoint with HTML UI when UI enabled", async () => {
-    const logger = createConsoleLogger("fastify-server", testGlobalLogLevel);
+  test('should respond to root endpoint with HTML UI when UI enabled', async () => {
+    const logger = createConsoleLogger('fastify-server', testGlobalLogLevel);
     const testConfig: ServerConfig = {
       port: serverPort,
       packageDir: testPackagesDir,
       configDir: testConfigDir,
-      realm: "Test Fastify Server",
+      realm: 'Test Fastify Server',
       logLevel: testGlobalLogLevel,
-      authMode: "none",
+      authMode: 'none',
       passwordStrengthCheck: false,
     };
 
@@ -106,25 +106,25 @@ describe("Fastify Server - Phase 1 Basic Tests", () => {
     try {
       const response = await fetch(`http://localhost:${serverPort}/`);
       expect(response.status).toBe(200);
-      expect(response.headers.get("content-type")).toContain("text/html");
+      expect(response.headers.get('content-type')).toContain('text/html');
 
       const html = await response.text();
-      expect(html).toContain("<!doctype html>");
-      expect(html).toContain("<title>nuget-server</title>");
+      expect(html).toContain('<!doctype html>');
+      expect(html).toContain('<title>nuget-server</title>');
     } finally {
       await server.close();
     }
   }, 30000);
 
-  test("should respond to config endpoint when UI is enabled", async () => {
-    const logger = createConsoleLogger("fastify-server", testGlobalLogLevel);
+  test('should respond to config endpoint when UI is enabled', async () => {
+    const logger = createConsoleLogger('fastify-server', testGlobalLogLevel);
     const testConfig: ServerConfig = {
       port: serverPort,
       packageDir: testPackagesDir,
       configDir: testConfigDir,
-      realm: "Test Fastify Server",
+      realm: 'Test Fastify Server',
       logLevel: testGlobalLogLevel,
-      authMode: "none",
+      authMode: 'none',
       passwordStrengthCheck: false,
     };
 
@@ -134,24 +134,24 @@ describe("Fastify Server - Phase 1 Basic Tests", () => {
       expect(response.status).toBe(200);
 
       const data = await response.json();
-      expect(data).toHaveProperty("realm");
-      expect(data).toHaveProperty("name");
-      expect(data).toHaveProperty("version");
-      expect(data).toHaveProperty("authMode", "none");
+      expect(data).toHaveProperty('realm');
+      expect(data).toHaveProperty('name');
+      expect(data).toHaveProperty('version');
+      expect(data).toHaveProperty('authMode', 'none');
     } finally {
       await server.close();
     }
   }, 30000);
 
-  test("should shutdown gracefully", async () => {
-    const logger = createConsoleLogger("fastify-server", testGlobalLogLevel);
+  test('should shutdown gracefully', async () => {
+    const logger = createConsoleLogger('fastify-server', testGlobalLogLevel);
     const testConfig: ServerConfig = {
       port: serverPort,
       packageDir: testPackagesDir,
       configDir: testConfigDir,
-      realm: "Test Fastify Server",
+      realm: 'Test Fastify Server',
       logLevel: testGlobalLogLevel,
-      authMode: "none",
+      authMode: 'none',
       passwordStrengthCheck: false,
     };
 

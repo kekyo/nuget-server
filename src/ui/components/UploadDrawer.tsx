@@ -2,7 +2,7 @@
 // Copyright (c) Kouji Matsui (@kekyo@mi.kekyo.net)
 // License under MIT.
 
-import { useState, useRef } from "react";
+import { useState, useRef } from 'react';
 import {
   Drawer,
   Box,
@@ -14,7 +14,7 @@ import {
   IconButton,
   Divider,
   Paper,
-} from "@mui/material";
+} from '@mui/material';
 import {
   Close as CloseIcon,
   CloudUpload as UploadIcon,
@@ -22,8 +22,8 @@ import {
   Error as ErrorIcon,
   FileUpload as FileUploadIcon,
   Clear as ClearIcon,
-} from "@mui/icons-material";
-import { apiFetch } from "../utils/apiClient";
+} from '@mui/icons-material';
+import { apiFetch } from '../utils/apiClient';
 import {
   Chip,
   LinearProgress,
@@ -33,10 +33,10 @@ import {
   AccordionSummary,
   AccordionDetails,
   Stack,
-} from "@mui/material";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
-import { TypedMessage, useTypedMessage } from "typed-message";
-import { messages } from "../../generated/messages";
+} from '@mui/material';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import { TypedMessage, useTypedMessage } from 'typed-message';
+import { messages } from '../../generated/messages';
 
 interface UploadDrawerProps {
   open: boolean;
@@ -50,7 +50,7 @@ interface UploadResult {
   packageName?: string;
   version?: string;
   message?: string;
-  status: "pending" | "uploading" | "success" | "error";
+  status: 'pending' | 'uploading' | 'success' | 'error';
 }
 
 const UploadDrawer = ({
@@ -68,12 +68,12 @@ const UploadDrawer = ({
   const hasTriggeredAuthReload = useRef(false);
 
   const handleFileSelection = (files: File[]) => {
-    const validFiles = files.filter((file) => file.name.endsWith(".nupkg"));
+    const validFiles = files.filter((file) => file.name.endsWith('.nupkg'));
     const invalidCount = files.length - validFiles.length;
 
     if (invalidCount > 0) {
       alert(
-        getMessage(messages.INVALID_FILES_EXCLUDED, { count: invalidCount }),
+        getMessage(messages.INVALID_FILES_EXCLUDED, { count: invalidCount })
       );
     }
 
@@ -107,8 +107,8 @@ const UploadDrawer = ({
       const result: UploadResult = {
         fileName: file.name,
         success: false,
-        status: "uploading",
-        packageName: file.name.replace(".nupkg", ""),
+        status: 'uploading',
+        packageName: file.name.replace('.nupkg', ''),
       };
 
       try {
@@ -118,19 +118,19 @@ const UploadDrawer = ({
         // Read file as ArrayBuffer to send as binary data
         const fileBuffer = await file.arrayBuffer();
 
-        const response = await apiFetch("api/publish", {
-          method: "POST",
+        const response = await apiFetch('api/publish', {
+          method: 'POST',
           headers: {
-            "Content-Type": "application/octet-stream",
+            'Content-Type': 'application/octet-stream',
           },
           body: fileBuffer,
-          credentials: "same-origin",
+          credentials: 'same-origin',
         });
 
         if (response.ok) {
           const apiResult = await response.json();
           result.success = true;
-          result.status = "success";
+          result.status = 'success';
           result.version = apiResult.version;
           result.message = `${apiResult.message}\nResolved: ${apiResult.id} ${apiResult.version}`;
         } else if (response.status === 401 && !hasTriggeredAuthReload.current) {
@@ -140,11 +140,11 @@ const UploadDrawer = ({
           return;
         } else {
           const errorText = await response.text();
-          result.status = "error";
+          result.status = 'error';
           result.message = `Upload failed: ${response.status} ${response.statusText}\n${errorText}`;
         }
       } catch (error) {
-        result.status = "error";
+        result.status = 'error';
         result.message = `${getMessage(messages.UPLOAD_ERROR)}: ${error instanceof Error ? error.message : getMessage(messages.UNKNOWN_ERROR)}`;
       }
 
@@ -230,14 +230,14 @@ const UploadDrawer = ({
       sx={{
         width: 400,
         flexShrink: 0,
-        "& .MuiDrawer-paper": {
+        '& .MuiDrawer-paper': {
           width: 400,
-          boxSizing: "border-box",
+          boxSizing: 'border-box',
         },
       }}
     >
       <Box
-        sx={{ p: 3, height: "100%" }}
+        sx={{ p: 3, height: '100%' }}
         onDragEnter={handleDragEnter}
         onDragLeave={handleDragLeave}
         onDragOver={handleDragOver}
@@ -245,9 +245,9 @@ const UploadDrawer = ({
       >
         <Box
           sx={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
             mb: 3,
           }}
         >
@@ -271,34 +271,34 @@ const UploadDrawer = ({
               sx={{
                 p: 4,
                 mb: 3,
-                textAlign: "center",
-                border: isDragging ? "2px dashed #2196f3" : "2px dashed #ccc",
+                textAlign: 'center',
+                border: isDragging ? '2px dashed #2196f3' : '2px dashed #ccc',
                 backgroundColor: isDragging
                   ? (theme) =>
-                      theme.palette.mode === "dark"
-                        ? "rgba(33, 150, 243, 0.1)"
-                        : "rgba(33, 150, 243, 0.05)"
-                  : "transparent",
-                cursor: "pointer",
-                transition: "all 0.3s ease",
-                "&:hover": {
+                      theme.palette.mode === 'dark'
+                        ? 'rgba(33, 150, 243, 0.1)'
+                        : 'rgba(33, 150, 243, 0.05)'
+                  : 'transparent',
+                cursor: 'pointer',
+                transition: 'all 0.3s ease',
+                '&:hover': {
                   backgroundColor: (theme) =>
-                    theme.palette.mode === "dark"
-                      ? "rgba(255, 255, 255, 0.05)"
-                      : "rgba(0, 0, 0, 0.02)",
-                  borderColor: "#999",
+                    theme.palette.mode === 'dark'
+                      ? 'rgba(255, 255, 255, 0.05)'
+                      : 'rgba(0, 0, 0, 0.02)',
+                  borderColor: '#999',
                 },
               }}
               variant="outlined"
               elevation={0}
-              onClick={() => document.getElementById("file-input")?.click()}
+              onClick={() => document.getElementById('file-input')?.click()}
             >
               <FileUploadIcon
                 sx={{
                   fontSize: 48,
-                  color: isDragging ? "#2196f3" : "text.secondary",
+                  color: isDragging ? '#2196f3' : 'text.secondary',
                   mb: 2,
-                  transition: "color 0.3s ease",
+                  transition: 'color 0.3s ease',
                 }}
               />
 
@@ -324,11 +324,11 @@ const UploadDrawer = ({
               fullWidth
               variant="outlined"
               inputProps={{
-                accept: ".nupkg",
+                accept: '.nupkg',
                 multiple: true,
               }}
               onChange={handleFileChange}
-              sx={{ display: "none" }}
+              sx={{ display: 'none' }}
             />
 
             {selectedFiles.length > 0 && (
@@ -342,7 +342,7 @@ const UploadDrawer = ({
                     message={messages.SELECTED_FILES}
                     params={{
                       count: selectedFiles.length,
-                      plural: selectedFiles.length !== 1 ? "s" : "",
+                      plural: selectedFiles.length !== 1 ? 's' : '',
                       size: (getTotalSize() / 1024 / 1024).toFixed(2),
                     }}
                   />
@@ -375,7 +375,7 @@ const UploadDrawer = ({
                     params={{
                       current: currentUploadIndex + 1,
                       total: selectedFiles.length,
-                      fileName: selectedFiles[currentUploadIndex]?.name || "",
+                      fileName: selectedFiles[currentUploadIndex]?.name || '',
                     }}
                   />
                 </Typography>
@@ -403,7 +403,7 @@ const UploadDrawer = ({
                   })
                 : getMessage(messages.UPLOAD_N_FILES, {
                     count: selectedFiles.length,
-                    plural: selectedFiles.length !== 1 ? "s" : "",
+                    plural: selectedFiles.length !== 1 ? 's' : '',
                   })}
             </Button>
           </Box>
@@ -411,18 +411,18 @@ const UploadDrawer = ({
           <Box>
             {/* Summary */}
             <Box sx={{ mb: 3 }}>
-              {uploadResults.filter((r) => r.status === "success").length ===
+              {uploadResults.filter((r) => r.status === 'success').length ===
               uploadResults.length ? (
                 <Alert severity="success" icon={<SuccessIcon />}>
                   <TypedMessage
                     message={messages.ALL_UPLOADS_SUCCESS}
                     params={{
                       count: uploadResults.length,
-                      plural: uploadResults.length !== 1 ? "s" : "",
+                      plural: uploadResults.length !== 1 ? 's' : '',
                     }}
                   />
                 </Alert>
-              ) : uploadResults.filter((r) => r.status === "error").length ===
+              ) : uploadResults.filter((r) => r.status === 'error').length ===
                 uploadResults.length ? (
                 <Alert severity="error" icon={<ErrorIcon />}>
                   <TypedMessage message={messages.ALL_UPLOADS_FAILED} />
@@ -433,10 +433,10 @@ const UploadDrawer = ({
                     message={messages.PARTIAL_UPLOAD_SUCCESS}
                     params={{
                       success: uploadResults.filter(
-                        (r) => r.status === "success",
+                        (r) => r.status === 'success'
                       ).length,
                       total: uploadResults.length,
-                      plural: uploadResults.length !== 1 ? "s" : "",
+                      plural: uploadResults.length !== 1 ? 's' : '',
                     }}
                   />
                 </Alert>
@@ -452,15 +452,15 @@ const UploadDrawer = ({
               {uploadResults.map((result, index) => (
                 <Accordion
                   key={index}
-                  defaultExpanded={result.status === "error"}
+                  defaultExpanded={result.status === 'error'}
                 >
                   <AccordionSummary expandIcon={<ExpandMoreIcon />}>
                     <ListItemIcon sx={{ minWidth: 40 }}>
-                      {result.status === "success" ? (
+                      {result.status === 'success' ? (
                         <SuccessIcon color="success" />
-                      ) : result.status === "error" ? (
+                      ) : result.status === 'error' ? (
                         <ErrorIcon color="error" />
-                      ) : result.status === "uploading" ? (
+                      ) : result.status === 'uploading' ? (
                         <CircularProgress size={20} />
                       ) : null}
                     </ListItemIcon>
@@ -480,9 +480,9 @@ const UploadDrawer = ({
                           p: 1,
                           borderRadius: 1,
                           backgroundColor: (theme) =>
-                            theme.palette.mode === "dark"
-                              ? "rgba(255, 255, 255, 0.05)"
-                              : "rgba(0, 0, 0, 0.02)",
+                            theme.palette.mode === 'dark'
+                              ? 'rgba(255, 255, 255, 0.05)'
+                              : 'rgba(0, 0, 0, 0.02)',
                         }}
                         variant="outlined"
                         elevation={0}
@@ -490,9 +490,9 @@ const UploadDrawer = ({
                         <Typography
                           variant="body2"
                           sx={{
-                            fontFamily: "monospace",
-                            fontSize: "0.75rem",
-                            whiteSpace: "pre-wrap",
+                            fontFamily: 'monospace',
+                            fontSize: '0.75rem',
+                            whiteSpace: 'pre-wrap',
                           }}
                         >
                           {result.message}
@@ -504,7 +504,7 @@ const UploadDrawer = ({
               ))}
             </List>
 
-            <Box sx={{ display: "flex", gap: 1 }}>
+            <Box sx={{ display: 'flex', gap: 1 }}>
               <Button variant="outlined" onClick={resetForm} sx={{ flex: 1 }}>
                 <TypedMessage message={messages.UPLOAD_MORE} />
               </Button>

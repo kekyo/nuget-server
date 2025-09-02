@@ -2,7 +2,7 @@
 // Copyright (c) Kouji Matsui (@kekyo@mi.kekyo.net)
 // License under MIT.
 
-import { useState } from "react";
+import { useState } from 'react';
 import {
   Drawer,
   Box,
@@ -13,17 +13,17 @@ import {
   CircularProgress,
   IconButton,
   InputAdornment,
-} from "@mui/material";
+} from '@mui/material';
 import {
   Close as CloseIcon,
   Visibility,
   VisibilityOff,
   LockReset as LockResetIcon,
-} from "@mui/icons-material";
-import { PasswordStrengthIndicator } from "./PasswordStrengthIndicator";
-import { apiFetch } from "../utils/apiClient";
-import { TypedMessage, useTypedMessage } from "typed-message";
-import { messages } from "../../generated/messages";
+} from '@mui/icons-material';
+import { PasswordStrengthIndicator } from './PasswordStrengthIndicator';
+import { apiFetch } from '../utils/apiClient';
+import { TypedMessage, useTypedMessage } from 'typed-message';
+import { messages } from '../../generated/messages';
 
 interface UserPasswordChangeDrawerProps {
   open: boolean;
@@ -40,25 +40,25 @@ const UserPasswordChangeDrawer = ({
   onClose,
 }: UserPasswordChangeDrawerProps) => {
   const getMessage = useTypedMessage();
-  const [currentPassword, setCurrentPassword] = useState("");
-  const [newPassword, setNewPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<PasswordChangeResult | null>(null);
-  const [validationError, setValidationError] = useState("");
+  const [validationError, setValidationError] = useState('');
 
   const resetForm = () => {
-    setCurrentPassword("");
-    setNewPassword("");
-    setConfirmPassword("");
+    setCurrentPassword('');
+    setNewPassword('');
+    setConfirmPassword('');
     setShowCurrentPassword(false);
     setShowNewPassword(false);
     setShowConfirmPassword(false);
     setResult(null);
-    setValidationError("");
+    setValidationError('');
   };
 
   const handleClose = () => {
@@ -71,13 +71,13 @@ const UserPasswordChangeDrawer = ({
   const validateForm = (): boolean => {
     if (!currentPassword) {
       setValidationError(
-        getMessage(messages.CURRENT_PASSWORD) + " is required",
+        getMessage(messages.CURRENT_PASSWORD) + ' is required'
       );
       return false;
     }
 
     if (!newPassword) {
-      setValidationError(getMessage(messages.NEW_PASSWORD) + " is required");
+      setValidationError(getMessage(messages.NEW_PASSWORD) + ' is required');
       return false;
     }
 
@@ -96,7 +96,7 @@ const UserPasswordChangeDrawer = ({
       return false;
     }
 
-    setValidationError("");
+    setValidationError('');
     return true;
   };
 
@@ -109,12 +109,12 @@ const UserPasswordChangeDrawer = ({
       setLoading(true);
       setResult(null);
 
-      const response = await apiFetch("api/ui/password", {
-        method: "POST",
+      const response = await apiFetch('api/ui/password', {
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
-        credentials: "same-origin",
+        credentials: 'same-origin',
         body: JSON.stringify({
           currentPassword,
           newPassword,
@@ -142,11 +142,11 @@ const UserPasswordChangeDrawer = ({
 
         // Clear password fields on error
         if (response.status === 401) {
-          setCurrentPassword("");
+          setCurrentPassword('');
         }
       }
     } catch (error) {
-      console.error("Failed to change password:", error);
+      console.error('Failed to change password:', error);
       setResult({
         success: false,
         message: getMessage(messages.NETWORK_ERROR_TRY_AGAIN),
@@ -157,7 +157,7 @@ const UserPasswordChangeDrawer = ({
   };
 
   const handleKeyPress = (event: React.KeyboardEvent) => {
-    if (event.key === "Enter" && !loading && !validationError) {
+    if (event.key === 'Enter' && !loading && !validationError) {
       handleSubmit();
     }
   };
@@ -178,15 +178,15 @@ const UserPasswordChangeDrawer = ({
     >
       <Box
         sx={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
           mb: 3,
         }}
       >
         <Typography
           variant="h5"
-          sx={{ display: "flex", alignItems: "center", gap: 1 }}
+          sx={{ display: 'flex', alignItems: 'center', gap: 1 }}
         >
           <LockResetIcon />
           <TypedMessage message={messages.CHANGE_PASSWORD} />
@@ -202,10 +202,10 @@ const UserPasswordChangeDrawer = ({
             <TypedMessage message={messages.CHANGE_PASSWORD_INSTRUCTION} />
           </Alert>
 
-          <Box sx={{ display: "flex", flexDirection: "column", gap: 2 }}>
+          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
             <TextField
               label={getMessage(messages.CURRENT_PASSWORD)}
-              type={showCurrentPassword ? "text" : "password"}
+              type={showCurrentPassword ? 'text' : 'password'}
               value={currentPassword}
               onChange={(e) => setCurrentPassword(e.target.value)}
               onKeyDown={handleKeyPress}
@@ -237,7 +237,7 @@ const UserPasswordChangeDrawer = ({
 
             <TextField
               label={getMessage(messages.NEW_PASSWORD)}
-              type={showNewPassword ? "text" : "password"}
+              type={showNewPassword ? 'text' : 'password'}
               value={newPassword}
               onChange={(e) => setNewPassword(e.target.value)}
               onKeyDown={handleKeyPress}
@@ -270,7 +270,7 @@ const UserPasswordChangeDrawer = ({
 
             <TextField
               label={getMessage(messages.CONFIRM_PASSWORD)}
-              type={showConfirmPassword ? "text" : "password"}
+              type={showConfirmPassword ? 'text' : 'password'}
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
               onKeyDown={handleKeyPress}
@@ -326,7 +326,7 @@ const UserPasswordChangeDrawer = ({
       )}
 
       {result && (
-        <Alert severity={result.success ? "success" : "error"} sx={{ mt: 2 }}>
+        <Alert severity={result.success ? 'success' : 'error'} sx={{ mt: 2 }}>
           {result.message}
         </Alert>
       )}

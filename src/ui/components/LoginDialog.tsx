@@ -2,9 +2,9 @@
 // Copyright (c) Kouji Matsui (@kekyo@mi.kekyo.net)
 // License under MIT.
 
-import { useState } from "react";
-import { TypedMessage, useTypedMessage } from "typed-message";
-import { messages } from "../../generated/messages";
+import { useState } from 'react';
+import { TypedMessage, useTypedMessage } from 'typed-message';
+import { messages } from '../../generated/messages';
 import {
   Dialog,
   DialogTitle,
@@ -20,9 +20,9 @@ import {
   useTheme,
   useMediaQuery,
   IconButton,
-} from "@mui/material";
-import { Login as LoginIcon, Close as CloseIcon } from "@mui/icons-material";
-import { apiFetch } from "../utils/apiClient";
+} from '@mui/material';
+import { Login as LoginIcon, Close as CloseIcon } from '@mui/icons-material';
+import { apiFetch } from '../utils/apiClient';
 
 interface LoginResponse {
   success: boolean;
@@ -49,11 +49,11 @@ const LoginDialog = ({
   disableBackdropClick = false,
 }: LoginDialogProps) => {
   const theme = useTheme();
-  const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const getMessage = useTypedMessage();
 
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -70,17 +70,17 @@ const LoginDialog = ({
     setError(null);
 
     try {
-      const response = await apiFetch("api/auth/login", {
-        method: "POST",
+      const response = await apiFetch('api/auth/login', {
+        method: 'POST',
         headers: {
-          "Content-Type": "application/json",
+          'Content-Type': 'application/json',
         },
         body: JSON.stringify({
           username: username.trim(),
           password,
           rememberMe,
         }),
-        credentials: "same-origin",
+        credentials: 'same-origin',
       });
 
       const data: LoginResponse = await response.json();
@@ -89,8 +89,8 @@ const LoginDialog = ({
         // Login successful, call success callback
         onLoginSuccess();
         // Clear form
-        setUsername("");
-        setPassword("");
+        setUsername('');
+        setPassword('');
         setRememberMe(false);
         setError(null);
       } else {
@@ -98,7 +98,7 @@ const LoginDialog = ({
       }
     } catch (err) {
       setError(getMessage(messages.NETWORK_ERROR_TRY_AGAIN));
-      console.error("Login error:", err);
+      console.error('Login error:', err);
     } finally {
       setIsLoading(false);
     }
@@ -127,13 +127,13 @@ const LoginDialog = ({
     >
       <DialogTitle
         sx={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
           pb: 1,
         }}
       >
-        <Box sx={{ display: "flex", alignItems: "center" }}>
+        <Box sx={{ display: 'flex', alignItems: 'center' }}>
           <LoginIcon
             sx={{
               fontSize: 32,
@@ -141,7 +141,7 @@ const LoginDialog = ({
               mr: 1,
             }}
           />
-          <Typography variant="h5" component="div" sx={{ fontWeight: "bold" }}>
+          <Typography variant="h5" component="div" sx={{ fontWeight: 'bold' }}>
             {realm || getMessage(messages.NUGET_SERVER)}
           </Typography>
         </Box>
@@ -166,8 +166,8 @@ const LoginDialog = ({
           component="form"
           onSubmit={handleSubmit}
           sx={{
-            display: "flex",
-            flexDirection: "column",
+            display: 'flex',
+            flexDirection: 'column',
             gap: 2,
           }}
         >
@@ -228,7 +228,7 @@ const LoginDialog = ({
               mt: 1,
               mb: 2,
               height: 48,
-              fontSize: "1.1rem",
+              fontSize: '1.1rem',
             }}
             startIcon={
               isLoading ? <CircularProgress size={20} /> : <LoginIcon />
@@ -243,7 +243,7 @@ const LoginDialog = ({
         <Typography
           variant="body2"
           color="text.secondary"
-          sx={{ mt: 2, textAlign: "center" }}
+          sx={{ mt: 2, textAlign: 'center' }}
         >
           <TypedMessage message={messages.NEED_HELP_CONTACT} />
         </Typography>
