@@ -190,20 +190,6 @@ const UserRegistrationDrawer = ({
     }
   };
 
-  const copyToClipboard = async (text: string) => {
-    try {
-      await navigator.clipboard.writeText(text);
-    } catch (err) {
-      // Fallback for older browsers
-      const textArea = document.createElement('textarea');
-      textArea.value = text;
-      document.body.appendChild(textArea);
-      textArea.select();
-      document.execCommand('copy');
-      document.body.removeChild(textArea);
-    }
-  };
-
   return (
     <Drawer
       anchor="right"
@@ -364,70 +350,6 @@ const UserRegistrationDrawer = ({
                 >
                   {getMessage(messages.ROLE)}: {getRoleDisplayName(role)}
                 </Typography>
-
-                {result.apiPassword && (
-                  <>
-                    <Alert severity="warning" sx={{ mb: 2 }}>
-                      <Typography
-                        variant="body2"
-                        sx={{ fontWeight: 'bold', mb: 1 }}
-                      >
-                        <TypedMessage
-                          message={messages.IMPORTANT_SAVE_API_PASSWORD}
-                        />
-                      </Typography>
-                      <Typography variant="body2">
-                        <TypedMessage
-                          message={messages.API_PASSWORD_SHOWN_ONCE}
-                        />
-                      </Typography>
-                    </Alert>
-
-                    <Typography
-                      variant="body2"
-                      color="text.secondary"
-                      gutterBottom
-                    >
-                      <TypedMessage message={messages.API_PASSWORD_LABEL} />
-                    </Typography>
-                    <Paper
-                      sx={{
-                        p: 2,
-                        bgcolor: (theme) =>
-                          theme.palette.mode === 'dark'
-                            ? 'grey.800'
-                            : 'grey.100',
-                        border: '2px dashed',
-                        borderColor: 'primary.main',
-                        cursor: 'pointer',
-                        '&:hover': {
-                          bgcolor: (theme) =>
-                            theme.palette.mode === 'dark'
-                              ? 'grey.700'
-                              : 'grey.200',
-                        },
-                      }}
-                      onClick={() => copyToClipboard(result.apiPassword!)}
-                    >
-                      <Typography
-                        variant="body2"
-                        sx={{
-                          fontFamily: 'monospace',
-                          fontSize: '0.9rem',
-                          wordBreak: 'break-all',
-                          mb: 1,
-                        }}
-                      >
-                        {result.apiPassword}
-                      </Typography>
-                      <Typography variant="caption" color="text.secondary">
-                        <TypedMessage
-                          message={messages.CLICK_TO_COPY_CLIPBOARD}
-                        />
-                      </Typography>
-                    </Paper>
-                  </>
-                )}
               </Paper>
             )}
 
