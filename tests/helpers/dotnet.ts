@@ -177,6 +177,7 @@ export const runDotNetRestore = async (
       logger.info('dotnet version:' + versionResult.stdout.trim());
     } catch (versionError) {
       logger.warn('dotnet version check failed: ' + versionError);
+      throw versionError;
     }
 
     const result = await spawnAsync(

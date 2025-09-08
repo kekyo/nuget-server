@@ -44,6 +44,11 @@ export type AuthMode = 'none' | 'publish' | 'full';
 export type DuplicatePackagePolicy = 'overwrite' | 'ignore' | 'error';
 
 /**
+ * Missing package response mode
+ */
+export type MissingPackageResponseMode = 'empty-array' | 'not-found';
+
+/**
  * Server configuration
  */
 export interface ServerConfig {
@@ -61,6 +66,7 @@ export interface ServerConfig {
   passwordStrengthCheck?: boolean; // default: true
   duplicatePackagePolicy?: DuplicatePackagePolicy; // default: "ignore"
   maxUploadSizeMb?: number; // Maximum upload size in MB, default: 100
+  missingPackageResponse?: MissingPackageResponseMode; // default: "empty-array"
 }
 
 /**
