@@ -1,6 +1,6 @@
 # nuget-server
 
-Simple modenized NuGet server implementation on Node.js
+Simple modernized NuGet server implementation on Node.js
 
 ![nuget-server](images/nuget-server-120.png)
 

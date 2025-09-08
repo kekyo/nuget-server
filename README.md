@@ -1,6 +1,6 @@
 # nuget-server
 
-Simple modenized NuGet server implementation.
+Simple modernized NuGet server implementation.
 
 ![nuget-server](images/nuget-server-120.png)
 
