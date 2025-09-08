@@ -15,5 +15,14 @@ export const apiFetch = (
 ): Promise<Response> => {
   // Remove leading slash if present to ensure relative path
   const relativePath = path.startsWith('/') ? path.slice(1) : path;
-  return fetch(relativePath, options);
+
+  // Add X-Requested-With header to identify UI client requests
+  // This prevents browser Basic auth popup on 401 responses
+  const headers = new Headers(options?.headers);
+  headers.set('X-Requested-With', 'XMLHttpRequest');
+
+  return fetch(relativePath, {
+    ...options,
+    headers,
+  });
 };

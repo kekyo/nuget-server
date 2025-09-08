@@ -91,8 +91,9 @@ const UserDeleteDrawer = ({
         );
         setUsers(filteredUsers);
       } else if (response.status === 401) {
-        // Authentication required
-        window.location.reload();
+        // Session expired - close drawer and let AppContent handle login
+        handleClose();
+        return;
       } else {
         setResult({
           success: false,
@@ -156,8 +157,8 @@ const UserDeleteDrawer = ({
         // Reload users list
         loadUsers();
       } else if (response.status === 401) {
-        // Authentication required
-        window.location.reload();
+        // Session expired - close drawer and let AppContent handle login
+        handleClose();
         return;
       } else {
         setResult({

@@ -232,8 +232,10 @@ const PackageList = forwardRef<PackageListRef, PackageListProps>(
           credentials: 'same-origin',
         });
         if (response.status === 401) {
-          // Authentication required
-          setError('Authentication required');
+          // For authMode=full, login dialog will be shown by AppContent
+          // For authMode=publish, we should continue without error
+          // Don't set error state to avoid showing error message
+          setLoading(false);
           return;
         }
         if (!response.ok) {

@@ -393,13 +393,14 @@ describe('Fastify Authentication - Phase 2 Tests', () => {
       expect(data).toHaveProperty('currentUser', null); // Not authenticated
     });
 
-    test('should not trigger Basic auth popup for browser requests', async () => {
-      // Simulate browser fetch with default Accept header
+    test('should not trigger Basic auth popup for UI requests with X-Requested-With', async () => {
+      // Simulate UI fetch with X-Requested-With header
       const response = await fetch(
         `http://localhost:${serverPort}/api/config`,
         {
           headers: {
-            Accept: '*/*', // Browser default
+            'X-Requested-With': 'XMLHttpRequest', // UI client header
+            Accept: 'application/json',
           },
         }
       );

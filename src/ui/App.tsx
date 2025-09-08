@@ -161,9 +161,10 @@ const App = () => {
         const config = await response.json();
         setServerConfig(config);
       } else if (response.status === 401) {
-        // Authentication required - don't reload to avoid Basic auth popup
-        // The config will be fetched again after login
-        console.warn('Authentication required for config endpoint');
+        // Authentication required - UI will handle this appropriately
+        // For authMode=full, AppContent will show login dialog
+        // For authMode=publish, app will work in unauthenticated mode
+        console.debug('Authentication required for config endpoint');
         return;
       }
     } catch (error) {

@@ -65,7 +65,6 @@ const UploadDrawer = ({
   const [currentUploadIndex, setCurrentUploadIndex] = useState<number>(-1);
   const [isDragging, setIsDragging] = useState(false);
   const dragCounter = useRef(0);
-  const hasTriggeredAuthReload = useRef(false);
 
   const handleFileSelection = (files: File[]) => {
     const validFiles = files.filter((file) => file.name.endsWith('.nupkg'));
@@ -95,7 +94,6 @@ const UploadDrawer = ({
     if (selectedFiles.length === 0) return;
 
     setUploading(true);
-    hasTriggeredAuthReload.current = false;
     const results: UploadResult[] = [];
 
     for (let i = 0; i < selectedFiles.length; i++) {
@@ -133,10 +131,9 @@ const UploadDrawer = ({
           result.status = 'success';
           result.version = apiResult.version;
           result.message = `${apiResult.message}\nResolved: ${apiResult.id} ${apiResult.version}`;
-        } else if (response.status === 401 && !hasTriggeredAuthReload.current) {
-          // Authentication required - reload to trigger browser's Basic auth popup (only once)
-          hasTriggeredAuthReload.current = true;
-          window.location.reload();
+        } else if (response.status === 401) {
+          // Session expired - close drawer and let AppContent handle login
+          handleClose();
           return;
         } else {
           const errorText = await response.text();
@@ -203,7 +200,6 @@ const UploadDrawer = ({
     setCurrentUploadIndex(-1);
     setIsDragging(false);
     dragCounter.current = 0;
-    hasTriggeredAuthReload.current = false;
     onClose();
   };
 

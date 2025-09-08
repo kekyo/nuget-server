@@ -81,8 +81,9 @@ const UserPasswordResetDrawer = ({
         const data = await response.json();
         setUsers(data.users || []);
       } else if (response.status === 401) {
-        // Authentication required
-        window.location.reload();
+        // Session expired - close drawer and let AppContent handle login
+        handleClose();
+        return;
       } else {
         setResult({
           success: false,
@@ -161,8 +162,8 @@ const UserPasswordResetDrawer = ({
           onPasswordResetSuccess();
         }
       } else if (response.status === 401) {
-        // Authentication required
-        window.location.reload();
+        // Session expired - close drawer and let AppContent handle login
+        handleClose();
         return;
       } else {
         setResult({
