@@ -4,7 +4,13 @@
 
 import { readFile } from 'fs/promises';
 import { join, resolve } from 'path';
-import { LogLevel, AuthMode, DuplicatePackagePolicy, Logger } from '../types';
+import {
+  LogLevel,
+  AuthMode,
+  DuplicatePackagePolicy,
+  MissingPackageResponseMode,
+  Logger,
+} from '../types';
 
 /**
  * Configuration file structure for nuget-server
@@ -23,6 +29,7 @@ export interface ConfigFile {
   passwordStrengthCheck?: boolean;
   duplicatePackagePolicy?: DuplicatePackagePolicy;
   maxUploadSizeMb?: number;
+  missingPackageResponse?: MissingPackageResponseMode;
 }
 
 /**
@@ -171,6 +178,26 @@ const validateConfig = (
     logger?.warn(
       `Invalid maxUploadSizeMb in config.json: ${config.maxUploadSizeMb}. Must be between 1 and 10000 MB.`
     );
+  }
+
+  // Validate missingPackageResponse
+  if (typeof config.missingPackageResponse === 'string') {
+    const validModes: MissingPackageResponseMode[] = [
+      'empty-array',
+      'not-found',
+    ];
+    if (
+      validModes.includes(
+        config.missingPackageResponse as MissingPackageResponseMode
+      )
+    ) {
+      validated.missingPackageResponse =
+        config.missingPackageResponse as MissingPackageResponseMode;
+    } else {
+      logger?.warn(
+        `Invalid missingPackageResponse in config.json: ${config.missingPackageResponse}`
+      );
+    }
   }
 
   return validated;

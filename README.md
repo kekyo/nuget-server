@@ -729,6 +729,15 @@ Without QEMU, you can only build for your native architecture.
 
 ## Note
 
+### Supported NuGet V3 API endpoints
+
+The server implements a subset of the NuGet V3 API protocol:
+
+- Service index: `/v3/index.json`
+- Package content: `/v3/package/{id}/index.json`
+- Package downloads: `/v3/package/{id}/{version}/{filename}`
+- Registration index: `/v3/registrations/{id}/index.json`
+
 ### Non-interactive mode (CI/CD)
 
 The `--auth-init` and `--import-packages` options require interactive responses from the operator.
@@ -756,14 +765,26 @@ nuget-server
 
 If not set, a random secret is generated (warning will be logged).
 
-### Supported NuGet V3 API endpoints
+### Response to requests for non-existent package IDs
 
-The server implements a subset of the NuGet V3 API protocol:
+By default, nuget-server responds to NuGet V3 API requests for non-existent package IDs by returning an empty package list (endpoint: `/v3/package/{id}/index.json`).
+This violates the NuGet V3 API specification: [PackageBaseAddress/3.0.0 response](https://learn.microsoft.com/en-us/nuget/api/package-base-address-resource#response)
 
-- Service index: `/v3/index.json`
-- Package content: `/v3/package/{id}/index.json`
-- Package downloads: `/v3/package/{id}/{version}/{filename}`
-- Registration index: `/v3/registrations/{id}/index.json`
+This behavior exists to avoid a weird implementation where NuGet clients, when configured with multiple package sources, return an error immediately if any single source returns an error like a 404, without waiting for results from other sources.
+
+For details, see the following discussion:
+
+https://github.com/NuGet/Home/issues/6373
+
+To prevent users from being troubled by this behavior (I too was greatly troubled), I deliberately modified the response to violate the V3 API specification. If a fully V3-compliant response (i.e., returning a 404 error) is required, you can achieve this by setting the `missingPackageResponse` configuration to `not-found`.
+
+```json
+{
+  “missingPackageResponse”: “not-found”  // Default is “empty-array”
+}
+```
+
+Alternatively, you can use the CLI option `--missing-package-response <mode>` or the environment variable `NUGET_SERVER_MISSING_PACKAGE_RESPONSE`.
 
 ---
 

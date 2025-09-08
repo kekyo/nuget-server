@@ -18,6 +18,7 @@ import {
   LogLevel,
   AuthMode,
   DuplicatePackagePolicy,
+  MissingPackageResponseMode,
 } from './types';
 import {
   getBaseUrlFromEnv,
@@ -109,6 +110,16 @@ const getMaxUploadSizeMbFromEnv = (): number | undefined => {
   return undefined;
 };
 
+const getMissingPackageResponseFromEnv = ():
+  | MissingPackageResponseMode
+  | undefined => {
+  const mode = process.env.NUGET_SERVER_MISSING_PACKAGE_RESPONSE;
+  if (mode === 'empty-array' || mode === 'not-found') {
+    return mode;
+  }
+  return undefined;
+};
+
 /////////////////////////////////////////////////////////////////////////
 
 const program = new Command();
@@ -138,6 +149,10 @@ program
   .option(
     '--max-upload-size-mb <size>',
     'maximum package upload size in MB (1-10000)'
+  )
+  .option(
+    '--missing-package-response <mode>',
+    'response mode for missing packages (empty-array, not-found)'
   )
   .option(
     '--auth-init',
@@ -203,6 +218,11 @@ program
       options.maxUploadSizeMb !== undefined
         ? parseInt(options.maxUploadSizeMb, 10)
         : getMaxUploadSizeMbFromEnv() || configFile.maxUploadSizeMb || 100;
+    const missingPackageResponse =
+      options.missingPackageResponse ||
+      getMissingPackageResponseFromEnv() ||
+      configFile.missingPackageResponse ||
+      'empty-array';
 
     // Validate log level
     const validLogLevels: LogLevel[] = [
@@ -247,6 +267,22 @@ program
       process.exit(1);
     }
 
+    // Validate missingPackageResponse
+    const validMissingPackageModes: MissingPackageResponseMode[] = [
+      'empty-array',
+      'not-found',
+    ];
+    if (
+      !validMissingPackageModes.includes(
+        missingPackageResponse as MissingPackageResponseMode
+      )
+    ) {
+      console.error(
+        `Invalid missing package response mode: ${missingPackageResponse}. Valid modes are: ${validMissingPackageModes.join(', ')}`
+      );
+      process.exit(1);
+    }
+
     // Display banner
     logger.info(`${packageName} [${version}-${git_commit_hash}] Starting...`);
 
@@ -268,6 +304,7 @@ program
     logger.info(`Authentication mode: ${authMode}`);
     logger.info(`Log level: ${logLevel}`);
     logger.info(`Max upload size: ${maxUploadSizeMb}MB`);
+    logger.info(`Missing package response: ${missingPackageResponse}`);
     if (trustedProxies && trustedProxies.length > 0) {
       logger.info(`Trusted proxies: ${trustedProxies.join(', ')}`);
     }
@@ -290,6 +327,8 @@ program
       passwordStrengthCheck,
       duplicatePackagePolicy: duplicatePackagePolicy as DuplicatePackagePolicy,
       maxUploadSizeMb,
+      missingPackageResponse:
+        missingPackageResponse as MissingPackageResponseMode,
     };
 
     // Handle auth-init mode

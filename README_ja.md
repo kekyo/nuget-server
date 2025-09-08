@@ -722,6 +722,15 @@ QEMUなしでは、ネイティブアーキテクチャ用にのみビルドで�
 
 ## 備考
 
+### サポートされるNuGet V3 APIエンドポイント
+
+サーバーはNuGet V3 APIプロトコルのサブセットを実装しています：
+
+- サービスインデックス：`/v3/index.json`
+- パッケージコンテンツ：`/v3/package/{id}/index.json`
+- パッケージダウンロード：`/v3/package/{id}/{version}/{filename}`
+- 登録インデックス：`/v3/registrations/{id}/index.json`
+
 ### 非対話モード（CI/CD）
 
 `--auth-init`や`--import-packages`では、管理者によるインタラクティブ応答を前提としています。
@@ -750,14 +759,25 @@ nuget-server
 
 設定されていない場合、ランダムなシークレットが生成されます（警告がログに記録されます）。
 
-### サポートされるNuGet V3 APIエンドポイント
+### 存在しないパッケージIDの要求に対する応答
 
-サーバーはNuGet V3 APIプロトコルのサブセットを実装しています：
+nuget-serverは、NuGet V3 API要求で存在しないパッケージIDを要求された場合、
+既定では空のパッケージリストを返すことで応答します（エンドポイント: `/v3/package/{id}/index.json`）。
+これは、NuGet V3 APIの仕様に違反しています: [PackageBaseAddress/3.0.0 response](https://learn.microsoft.com/en-us/nuget/api/package-base-address-resource#response)
 
-- サービスインデックス：`/v3/index.json`
-- パッケージコンテンツ：`/v3/package/{id}/index.json`
-- パッケージダウンロード：`/v3/package/{id}/{version}/{filename}`
-- 登録インデックス：`/v3/registrations/{id}/index.json`
+この動作は、NuGetクライアントが、マルチパッケージソースを構成している時に、そのどれかのパッケージソースが404などのエラーを返した場合、他のパッケージソースの結果を待たずにエラーとする、奇妙な実装を回避するためです。詳しくは以下の議論を参照して下さい:
+
+https://github.com/NuGet/Home/issues/6373
+
+私はユーザーがこの動作に悩まされることを防ぐため（私も大いに悩んだ）、あえてV3 APIの仕様に違反した応答を行うように修正を加えました。もし、V3 APIに完全に準拠した応答（つまり、404エラーを返す）が必要であれば、`missingPackageResponse` 設定を `not-found` とすることで、対応できます。
+
+```json
+{
+  "missingPackageResponse": "not-found" // デフォルトは "empty-array"
+}
+```
+
+あるいは、CLIオプション `--missing-package-response <mode>` や 環境変数 `NUGET_SERVER_MISSING_PACKAGE_RESPONSE` も使用できます。
 
 ---
 

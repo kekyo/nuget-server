@@ -4,7 +4,7 @@
 
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { ReaderWriterLock } from 'async-primitives';
-import { Logger } from '../../types';
+import { Logger, MissingPackageResponseMode } from '../../types';
 import {
   MetadataService,
   PackageMetadata,
@@ -159,6 +159,7 @@ export interface V3RoutesConfig {
   packagesRoot: string;
   logger: Logger;
   urlResolver: ReturnType<typeof createUrlResolver>;
+  missingPackageResponse: MissingPackageResponseMode;
 }
 
 /**
@@ -452,8 +453,23 @@ export const registerV3Routes = async (
         const versions = metadataService.getPackageMetadata(lowerId);
 
         if (versions.length === 0) {
-          logger.debug(`V3: Package versions list not found: ${packageId}`);
-          return reply.status(404).send({ error: 'Package not found' });
+          // Check the missing package response mode configuration
+          const responseMode = config.missingPackageResponse;
+
+          if (responseMode === 'not-found') {
+            logger.debug(
+              `V3: Package versions list not found: ${packageId} - returning 404`
+            );
+            return reply.status(404).send({ error: 'Package not found' });
+          } else {
+            logger.debug(
+              `V3: Package versions list not found: ${packageId} - returning empty array`
+            );
+            return reply
+              .status(200)
+              .type('application/json')
+              .send({ versions: [] });
+          }
         }
 
         // Return PackageBaseAddress index format with list of versions

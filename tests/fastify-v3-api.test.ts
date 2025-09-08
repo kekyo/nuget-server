@@ -85,6 +85,7 @@ describe('Fastify NuGet V3 API - Phase 3 Tests', () => {
         logLevel: testGlobalLogLevel,
         authMode: 'none',
         passwordStrengthCheck: false,
+        missingPackageResponse: 'not-found', // Use 404 for backwards compatibility with existing tests
       };
 
       const logger = createConsoleLogger('fastify-v3-api', testGlobalLogLevel);
@@ -246,6 +247,7 @@ describe('Fastify NuGet V3 API - Phase 3 Tests', () => {
         logLevel: testGlobalLogLevel,
         authMode: 'publish',
         passwordStrengthCheck: false,
+        missingPackageResponse: 'not-found', // Use 404 for backwards compatibility with existing tests
       };
 
       const logger = createConsoleLogger('fastify-v3-api', testGlobalLogLevel);
@@ -315,6 +317,7 @@ describe('Fastify NuGet V3 API - Phase 3 Tests', () => {
         logLevel: testGlobalLogLevel,
         authMode: 'full',
         passwordStrengthCheck: false,
+        missingPackageResponse: 'not-found', // Use 404 for backwards compatibility with existing tests
       };
 
       const logger = createConsoleLogger('fastify-v3-api', testGlobalLogLevel);

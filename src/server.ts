@@ -549,6 +549,7 @@ export const createFastifyInstance = async (
         packagesRoot,
         logger,
         urlResolver,
+        missingPackageResponse: config.missingPackageResponse || 'empty-array',
       },
       locker
     );
