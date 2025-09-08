@@ -125,8 +125,8 @@ const UserRegistrationDrawer = ({
         });
         onRegistrationSuccess();
       } else if (response.status === 401) {
-        // Authentication required - reload to trigger browser's Basic auth popup
-        window.location.reload();
+        // Session expired - handled by apiFetch interceptor
+        handleClose();
         return;
       } else {
         setResult({

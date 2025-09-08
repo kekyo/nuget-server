@@ -458,6 +458,21 @@ describe('Fastify NuGet V3 API - Phase 3 Tests', () => {
       expect(response.headers.get('www-authenticate')).toMatch(/Basic realm=/);
     });
 
+    test('should not send WWW-Authenticate for UI requests on 401', async () => {
+      const response = await fetch(
+        `http://localhost:${serverPort}/v3/package/nonexistent/index.json`,
+        {
+          headers: {
+            'X-Requested-With': 'XMLHttpRequest', // UI client header
+            Accept: 'application/json',
+          },
+        }
+      );
+      expect(response.status).toBe(401);
+      // Should not have WWW-Authenticate header for UI requests
+      expect(response.headers.get('www-authenticate')).toBeNull();
+    });
+
     test('should allow authenticated access to package versions list', async () => {
       // First login to get session
       const loginResponse = await fetch(

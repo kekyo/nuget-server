@@ -11,8 +11,9 @@ import {
 } from '@mui/material';
 import { SnackbarProvider } from 'notistack';
 import { TypedMessageProvider } from 'typed-message';
-import AppContent, { ServerConfig } from './AppContent';
-import { apiFetch } from './utils/apiClient';
+import AppContentUI, { ServerConfig } from './AppContent';
+import { apiFetch, setSessionHandler } from './utils/apiClient';
+import { SessionProvider, useSession } from './contexts/SessionContext';
 
 // Language detection function
 const detectLanguage = (availableLanguages?: string[]): string => {
@@ -38,7 +39,7 @@ const detectLanguage = (availableLanguages?: string[]): string => {
   return 'en';
 };
 
-const App = () => {
+const AppContent = () => {
   const prefersDarkMode = useMediaQuery('(prefers-color-scheme: dark)');
   const [locale, setLocale] = useState(detectLanguage());
   const [localeMessages, setLocaleMessages] = useState<Record<string, string>>(
@@ -161,9 +162,10 @@ const App = () => {
         const config = await response.json();
         setServerConfig(config);
       } else if (response.status === 401) {
-        // Authentication required - don't reload to avoid Basic auth popup
-        // The config will be fetched again after login
-        console.warn('Authentication required for config endpoint');
+        // Authentication required - UI will handle this appropriately
+        // For authMode=full, AppContent will show login dialog
+        // For authMode=publish, app will work in unauthenticated mode
+        console.debug('Authentication required for config endpoint');
         return;
       }
     } catch (error) {
@@ -204,18 +206,46 @@ const App = () => {
         autoHideDuration={2000}
       >
         <TypedMessageProvider messages={localeMessages}>
-          <AppContent
-            locale={locale}
-            themeMode={themeMode}
-            languageNames={languageNames}
-            prefersDarkMode={prefersDarkMode}
-            onLanguageChange={handleLanguageChange}
-            onThemeChange={handleThemeChange}
-          />
+          <SessionProvider>
+            <AppContentWrapper
+              locale={locale}
+              themeMode={themeMode}
+              languageNames={languageNames}
+              prefersDarkMode={prefersDarkMode}
+              onLanguageChange={handleLanguageChange}
+              onThemeChange={handleThemeChange}
+              serverConfig={serverConfig}
+            />
+          </SessionProvider>
         </TypedMessageProvider>
       </SnackbarProvider>
     </ThemeProvider>
   );
+};
+
+// Wrapper component that uses SessionContext
+const AppContentWrapper = (props: any) => {
+  const { handleSessionExpired, setLoginDialogOpen, loginDialogOpen } =
+    useSession();
+
+  // Set up session handler when serverConfig changes
+  useEffect(() => {
+    if (props.serverConfig?.authMode) {
+      setSessionHandler(handleSessionExpired, props.serverConfig.authMode);
+    }
+  }, [props.serverConfig?.authMode, handleSessionExpired]);
+
+  return (
+    <AppContentUI
+      {...props}
+      setLoginDialogOpen={setLoginDialogOpen}
+      loginDialogOpenFromSession={loginDialogOpen}
+    />
+  );
+};
+
+const App = () => {
+  return <AppContent />;
 };
 
 export default App;

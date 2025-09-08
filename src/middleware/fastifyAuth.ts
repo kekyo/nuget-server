@@ -37,6 +37,17 @@ export interface AuthenticatedFastifyRequest extends FastifyRequest {
  * @returns True if request appears to be from UI
  */
 const isUIRequest = (request: FastifyRequest): boolean => {
+  // Check for X-Requested-With header (added by UI's apiFetch)
+  const xRequestedWith = request.headers['x-requested-with'];
+  if (xRequestedWith === 'XMLHttpRequest') {
+    return true;
+  }
+
+  // Check if request is to UI-specific endpoints
+  if (request.url.startsWith('/api/ui/')) {
+    return true;
+  }
+
   const acceptHeader = request.headers.accept || '';
   // Only consider requests specifically asking for HTML as UI requests
   // Don't treat generic */*, application/json or other API content types as UI requests
@@ -266,9 +277,13 @@ export const createHybridAuthMiddleware = (config: FastifyAuthConfig) => {
       );
 
       if (isUIRequest(request)) {
-        // For UI requests, redirect to login page
-        logger.debug('Redirecting UI request to login');
-        return reply.redirect('/login');
+        // For UI requests, send 401 without WWW-Authenticate header
+        // This prevents browser Basic auth popup
+        logger.debug('Sending 401 for UI request without WWW-Authenticate');
+        return reply.status(401).send({
+          error: 'Authentication required',
+          message: 'Session expired or invalid. Please log in again.',
+        });
       } else {
         // For API requests, send 401 with WWW-Authenticate header
         logger.debug('Sending 401 for API request');

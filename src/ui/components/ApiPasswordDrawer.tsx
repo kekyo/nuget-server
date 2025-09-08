@@ -28,7 +28,6 @@ import {
 import {
   Close as CloseIcon,
   VpnKey as VpnKeyIcon,
-  Add as AddIcon,
   Delete as DeleteIcon,
 } from '@mui/icons-material';
 import { buildAddSourceCommand } from '../utils/commandBuilder';
@@ -67,7 +66,6 @@ const ApiPasswordDrawer = ({
   const { enqueueSnackbar } = useSnackbar();
   const [loading, setLoading] = useState(false);
   const [apiPasswords, setApiPasswords] = useState<ApiPassword[]>([]);
-  const [addDialogOpen, setAddDialogOpen] = useState(false);
   const [newLabel, setNewLabel] = useState('');
   const [newApiPassword, setNewApiPassword] =
     useState<ApiPasswordAddResponse | null>(null);
@@ -90,6 +88,7 @@ const ApiPasswordDrawer = ({
       setNewApiPassword(null);
       setError(null);
       setNewLabel('');
+      setDeleteConfirmDialog(null);
     }
   }, [open, serverConfig]);
 
@@ -131,6 +130,9 @@ const ApiPasswordDrawer = ({
       return;
     }
 
+    // Clear previous generated API password
+    setNewApiPassword(null);
+
     try {
       setLoading(true);
       setError(null);
@@ -147,7 +149,6 @@ const ApiPasswordDrawer = ({
       if (response.ok) {
         const data: ApiPasswordAddResponse = await response.json();
         setNewApiPassword(data);
-        setAddDialogOpen(false);
         setNewLabel('');
         // Reload the list
         await loadApiPasswords();
@@ -156,13 +157,11 @@ const ApiPasswordDrawer = ({
         setError(
           errorData.error || getMessage(messages.API_KEY_GENERATION_FAILED)
         );
-        setAddDialogOpen(false);
       }
     } catch (err) {
       setError(
         `${getMessage(messages.ERROR)}: ${err instanceof Error ? err.message : getMessage(messages.UNKNOWN_ERROR)}`
       );
-      setAddDialogOpen(false);
     } finally {
       setLoading(false);
     }
@@ -356,33 +355,59 @@ const ApiPasswordDrawer = ({
             </Alert>
           )}
 
-          <Box
-            sx={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              mb: 2,
-            }}
-          >
-            <Typography variant="body2" color="text.secondary">
-              <TypedMessage
-                message={messages.API_PASSWORDS_COUNT}
-                params={{ current: apiPasswords.length }}
-              />
-            </Typography>
-            <Button
-              variant="contained"
-              size="small"
-              startIcon={<AddIcon />}
-              onClick={() => {
-                setNewApiPassword(null);
-                setAddDialogOpen(true);
-              }}
-              disabled={loading || apiPasswords.length >= 10}
-            >
-              <TypedMessage message={messages.ADD_NEW} />
-            </Button>
-          </Box>
+          {/* Inline input field for adding new API password OR max limit warning */}
+          {apiPasswords.length < 10 ? (
+            <Box sx={{ mb: 3 }}>
+              <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-start' }}>
+                <Box sx={{ flex: 1 }}>
+                  <TextField
+                    fullWidth
+                    size="small"
+                    label={getMessage(messages.TABLE_LABEL)}
+                    value={newLabel}
+                    onChange={(e) => setNewLabel(e.target.value)}
+                    disabled={loading}
+                    onKeyPress={(e) => {
+                      if (e.key === 'Enter' && newLabel.trim() && !loading) {
+                        handleAddApiPassword();
+                      }
+                    }}
+                  />
+                </Box>
+                <Button
+                  variant="contained"
+                  size="small"
+                  onClick={handleAddApiPassword}
+                  disabled={loading || !newLabel.trim()}
+                  startIcon={
+                    loading ? <CircularProgress size={20} /> : <VpnKeyIcon />
+                  }
+                  sx={{ mt: '4px' }}
+                >
+                  <TypedMessage message={messages.GENERATE} />
+                </Button>
+              </Box>
+              <Typography
+                variant="caption"
+                color="text.secondary"
+                sx={{ display: 'block', mt: 0.5 }}
+              >
+                {getMessage(messages.API_PASSWORD_LABEL_HELPER)}
+              </Typography>
+            </Box>
+          ) : (
+            <Alert severity="warning" sx={{ mb: 2 }}>
+              <TypedMessage message={messages.MAX_API_PASSWORDS} />
+            </Alert>
+          )}
+
+          {/* API passwords count display */}
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+            <TypedMessage
+              message={messages.API_PASSWORDS_COUNT}
+              params={{ current: apiPasswords.length }}
+            />
+          </Typography>
 
           {loading && !apiPasswords.length ? (
             <Box sx={{ display: 'flex', justifyContent: 'center', p: 4 }}>
@@ -445,55 +470,8 @@ const ApiPasswordDrawer = ({
               </Table>
             </TableContainer>
           )}
-
-          {apiPasswords.length >= 10 && (
-            <Alert severity="warning" sx={{ mt: 2 }}>
-              <TypedMessage message={messages.MAX_API_PASSWORDS} />
-            </Alert>
-          )}
         </Box>
       </Drawer>
-
-      {/* Add Dialog */}
-      <Dialog
-        open={addDialogOpen}
-        onClose={() => !loading && setAddDialogOpen(false)}
-        maxWidth="sm"
-        fullWidth
-      >
-        <DialogTitle>
-          <TypedMessage message={messages.ADD_NEW_API_PASSWORD_TITLE} />
-        </DialogTitle>
-        <DialogContent>
-          <TextField
-            autoFocus
-            margin="dense"
-            label={getMessage(messages.TABLE_LABEL)}
-            type="text"
-            fullWidth
-            variant="outlined"
-            value={newLabel}
-            onChange={(e) => setNewLabel(e.target.value)}
-            disabled={loading}
-            helperText={getMessage(messages.API_PASSWORD_LABEL_HELPER)}
-          />
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setAddDialogOpen(false)} disabled={loading}>
-            <TypedMessage message={messages.CANCEL} />
-          </Button>
-          <Button
-            onClick={handleAddApiPassword}
-            variant="contained"
-            disabled={loading || !newLabel.trim()}
-            startIcon={
-              loading ? <CircularProgress size={20} /> : <VpnKeyIcon />
-            }
-          >
-            <TypedMessage message={messages.GENERATE} />
-          </Button>
-        </DialogActions>
-      </Dialog>
 
       {/* Delete Confirmation Dialog */}
       <Dialog

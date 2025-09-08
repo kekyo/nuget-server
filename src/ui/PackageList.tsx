@@ -232,8 +232,9 @@ const PackageList = forwardRef<PackageListRef, PackageListProps>(
           credentials: 'same-origin',
         });
         if (response.status === 401) {
-          // Authentication required
-          setError('Authentication required');
+          // Session expired - handled by apiFetch interceptor
+          // Don't set error state to avoid showing error message
+          setLoading(false);
           return;
         }
         if (!response.ok) {
