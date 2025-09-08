@@ -68,6 +68,8 @@ interface AppContentProps {
   prefersDarkMode: boolean;
   onLanguageChange: (languageCode: string) => void;
   onThemeChange: (mode: 'auto' | 'light' | 'dark') => void;
+  setLoginDialogOpen?: (open: boolean) => void;
+  loginDialogOpenFromSession?: boolean;
 }
 
 const AppContent = ({
@@ -77,6 +79,8 @@ const AppContent = ({
   prefersDarkMode,
   onLanguageChange,
   onThemeChange,
+  setLoginDialogOpen: setLoginDialogOpenProp,
+  loginDialogOpenFromSession,
 }: AppContentProps) => {
   const getMessage = useTypedMessage();
   const { enqueueSnackbar } = useSnackbar();
@@ -87,7 +91,11 @@ const AppContent = ({
   const [apiPasswordDrawerOpen, setApiPasswordDrawerOpen] = useState(false);
   const [passwordChangeDrawerOpen, setPasswordChangeDrawerOpen] =
     useState(false);
-  const [loginDialogOpen, setLoginDialogOpen] = useState(false);
+  const [loginDialogOpenState, setLoginDialogOpenState] = useState(false);
+
+  // Use prop if provided, otherwise use local state
+  const setLoginDialogOpen = setLoginDialogOpenProp || setLoginDialogOpenState;
+  const loginDialogOpen = loginDialogOpenFromSession ?? loginDialogOpenState;
   const [serverConfig, setServerConfig] = useState<ServerConfig | null>(null);
   const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
   const packageListRef = useRef<PackageListRef>(null);

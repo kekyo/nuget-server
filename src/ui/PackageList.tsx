@@ -232,8 +232,7 @@ const PackageList = forwardRef<PackageListRef, PackageListProps>(
           credentials: 'same-origin',
         });
         if (response.status === 401) {
-          // For authMode=full, login dialog will be shown by AppContent
-          // For authMode=publish, we should continue without error
+          // Session expired - handled by apiFetch interceptor
           // Don't set error state to avoid showing error message
           setLoading(false);
           return;

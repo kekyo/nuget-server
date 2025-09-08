@@ -32,6 +32,8 @@
   "LOGIN_SUCCESS": "Successfully logged in as {username}",
   "NETWORK_ERROR_TRY_AGAIN": "Network error. Please try again.",
   "USERNAME_PASSWORD_REQUIRED": "Username and password are required",
+  "SESSION_EXPIRED": "Your session has expired",
+  "SESSION_EXPIRED_LOGIN_REQUIRED": "Your session has expired. Please log in again.",
 
   "ADD_SERVER_AS_SOURCE": "Add this server as a NuGet source:",
   "COPY_COMMAND": "copy command",

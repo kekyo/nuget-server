@@ -222,6 +222,20 @@ export const messages = {
     fallback: "Username and password are required" 
   } as SimpleMessageItem,
   /**
+   * Messgae: "Your session has expired"
+   */
+  SESSION_EXPIRED: { 
+    key: "SESSION_EXPIRED", 
+    fallback: "Your session has expired" 
+  } as SimpleMessageItem,
+  /**
+   * Messgae: "Your session has expired. Please log in again."
+   */
+  SESSION_EXPIRED_LOGIN_REQUIRED: { 
+    key: "SESSION_EXPIRED_LOGIN_REQUIRED", 
+    fallback: "Your session has expired. Please log in again." 
+  } as SimpleMessageItem,
+  /**
    * Messgae: "Add this server as a NuGet source:"
    */
   ADD_SERVER_AS_SOURCE: { 

@@ -132,7 +132,7 @@ const UploadDrawer = ({
           result.version = apiResult.version;
           result.message = `${apiResult.message}\nResolved: ${apiResult.id} ${apiResult.version}`;
         } else if (response.status === 401) {
-          // Session expired - close drawer and let AppContent handle login
+          // Session expired - handled by apiFetch interceptor
           handleClose();
           return;
         } else {

@@ -125,7 +125,7 @@ const UserRegistrationDrawer = ({
         });
         onRegistrationSuccess();
       } else if (response.status === 401) {
-        // Session expired - close drawer and let AppContent handle login
+        // Session expired - handled by apiFetch interceptor
         handleClose();
         return;
       } else {

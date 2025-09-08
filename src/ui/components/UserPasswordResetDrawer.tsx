@@ -81,7 +81,7 @@ const UserPasswordResetDrawer = ({
         const data = await response.json();
         setUsers(data.users || []);
       } else if (response.status === 401) {
-        // Session expired - close drawer and let AppContent handle login
+        // Session expired - handled by apiFetch interceptor
         handleClose();
         return;
       } else {
@@ -162,7 +162,7 @@ const UserPasswordResetDrawer = ({
           onPasswordResetSuccess();
         }
       } else if (response.status === 401) {
-        // Session expired - close drawer and let AppContent handle login
+        // Session expired - handled by apiFetch interceptor
         handleClose();
         return;
       } else {

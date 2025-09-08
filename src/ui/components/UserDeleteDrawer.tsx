@@ -91,7 +91,7 @@ const UserDeleteDrawer = ({
         );
         setUsers(filteredUsers);
       } else if (response.status === 401) {
-        // Session expired - close drawer and let AppContent handle login
+        // Session expired - handled by apiFetch interceptor
         handleClose();
         return;
       } else {
@@ -157,7 +157,7 @@ const UserDeleteDrawer = ({
         // Reload users list
         loadUsers();
       } else if (response.status === 401) {
-        // Session expired - close drawer and let AppContent handle login
+        // Session expired - handled by apiFetch interceptor
         handleClose();
         return;
       } else {
