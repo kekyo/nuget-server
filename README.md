@@ -58,6 +58,10 @@ A modern browser-based UI is also provided:
 
 Node.js 20.18.0 or later
 
+Uses stacks: Node.js, Typescript, Vite, Vitest, prettier-max, screw-up, Fastify, Passport, zxcvbn, React, React MUI, react-infinite-scroll, notistack, typed-message, dayjs, commander, adm-zip, xml2js
+
+By implementing everything in a TypeScript environment, we keep our development environment and development cycle simple.
+
 ---
 
 ## Installation
@@ -729,6 +733,16 @@ Without QEMU, you can only build for your native architecture.
 
 ## Note
 
+### Tested environment
+
+* Ubuntu 24.04 x86-64
+* Ubuntu 24.04 x86-64 (podman hosted container)
+* Ubuntu 22.04 x86-64
+* Ubuntu 24.04 arm64
+* Ubuntu 24.04 arm64 (podman hosted container)
+* Cloudflare tunnel serviced global IPv4/IPv6 endpoint
+* Direct global IPv4 endpoint
+
 ### Supported NuGet V3 API endpoints
 
 The server implements a subset of the NuGet V3 API protocol:
@@ -782,27 +796,27 @@ To prevent users from being troubled by this behavior (I too was greatly trouble
 
 All configuration options can be set via CLI arguments, environment variables, or config.json. The priority order is: **CLI > Environment Variable > config.json > Default**.
 
-| CLI Option | Environment Variable | config.json Key | Description | Valid Values | Default |
-|------------|---------------------|-----------------|-------------|--------------|---------|
-| `-p, --port <port>` | `NUGET_SERVER_PORT` | `port` | Server port number | 1-65535 | 5963 |
-| `-b, --base-url <url>` | `NUGET_SERVER_BASE_URL` | `baseUrl` | Fixed base URL for API endpoints (overrides auto-detection) | Valid URL | Auto-detect |
-| `-d, --package-dir <dir>` | `NUGET_SERVER_PACKAGE_DIR` | `packageDir` | Package storage directory | Valid path | `./packages` |
-| `-c, --config-file <path>` | `NUGET_SERVER_CONFIG_FILE` | N/A | Path to config.json file | Valid path | `./config.json` |
-| `-u, --users-file <path>` | `NUGET_SERVER_USERS_FILE` | `usersFile` | Path to users.json file | Valid path | None |
-| `-r, --realm <realm>` | `NUGET_SERVER_REALM` | `realm` | Authentication realm | String | `nuget-server [version]` |
-| `-l, --log-level <level>` | `NUGET_SERVER_LOG_LEVEL` | `logLevel` | Logging verbosity level | `debug`, `info`, `warn`, `error`, `ignore` | `info` |
-| `--trusted-proxies <ips>` | `NUGET_SERVER_TRUSTED_PROXIES` | `trustedProxies` | Comma-separated list of trusted proxy IPs | IP addresses | None |
-| `--auth-mode <mode>` | `NUGET_SERVER_AUTH_MODE` | `authMode` | Authentication mode | `none`, `publish`, `full` | `none` |
-| N/A | `NUGET_SERVER_SESSION_SECRET` | `sessionSecret` | Secret key for session management (required for auth) | String | None |
-| N/A | `NUGET_SERVER_PASSWORD_MIN_SCORE` | `passwordMinScore` | Minimum password strength score | 0-4 | 2 |
-| N/A | `NUGET_SERVER_PASSWORD_STRENGTH_CHECK` | `passwordStrengthCheck` | Enable password strength checking | `true`, `false` | `true` |
-| N/A | `NUGET_SERVER_DUPLICATE_PACKAGE_POLICY` | `duplicatePackagePolicy` | Policy for handling duplicate package uploads | `overwrite`, `ignore`, `error` | `ignore` |
-| `--max-upload-size-mb <size>` | `NUGET_SERVER_MAX_UPLOAD_SIZE_MB` | `maxUploadSizeMb` | Maximum package upload size in MB | 1-10000 | 100 |
-| `--missing-package-response <mode>` | `NUGET_SERVER_MISSING_PACKAGE_RESPONSE` | `missingPackageResponse` | Response mode for missing packages | `empty-array`, `not-found` | `empty-array` |
-| N/A | `NUGET_SERVER_AUTH_FAILURE_DELAY_ENABLED` | N/A | Enable progressive delays for failed auth attempts | `true`, `false` | `true` |
-| N/A | `NUGET_SERVER_AUTH_FAILURE_MAX_DELAY` | N/A | Maximum delay for failed auth attempts (ms) | Number | 10000 |
-| `--auth-init` | N/A | N/A | Initialize authentication with interactive admin user creation | Flag | N/A |
-| `--import-packages` | N/A | N/A | Import packages from another NuGet server interactively | Flag | N/A |
+| CLI Option                          | Environment Variable                      | config.json Key          | Description                                                    | Valid Values                               | Default                  |
+| ----------------------------------- | ----------------------------------------- | ------------------------ | -------------------------------------------------------------- | ------------------------------------------ | ------------------------ |
+| `-p, --port <port>`                 | `NUGET_SERVER_PORT`                       | `port`                   | Server port number                                             | 1-65535                                    | 5963                     |
+| `-b, --base-url <url>`              | `NUGET_SERVER_BASE_URL`                   | `baseUrl`                | Fixed base URL for API endpoints (overrides auto-detection)    | Valid URL                                  | Auto-detect              |
+| `-d, --package-dir <dir>`           | `NUGET_SERVER_PACKAGE_DIR`                | `packageDir`             | Package storage directory                                      | Valid path                                 | `./packages`             |
+| `-c, --config-file <path>`          | `NUGET_SERVER_CONFIG_FILE`                | N/A                      | Path to config.json file                                       | Valid path                                 | `./config.json`          |
+| `-u, --users-file <path>`           | `NUGET_SERVER_USERS_FILE`                 | `usersFile`              | Path to users.json file                                        | Valid path                                 | None                     |
+| `-r, --realm <realm>`               | `NUGET_SERVER_REALM`                      | `realm`                  | Authentication realm                                           | String                                     | `nuget-server [version]` |
+| `-l, --log-level <level>`           | `NUGET_SERVER_LOG_LEVEL`                  | `logLevel`               | Logging verbosity level                                        | `debug`, `info`, `warn`, `error`, `ignore` | `info`                   |
+| `--trusted-proxies <ips>`           | `NUGET_SERVER_TRUSTED_PROXIES`            | `trustedProxies`         | Comma-separated list of trusted proxy IPs                      | IP addresses                               | None                     |
+| `--auth-mode <mode>`                | `NUGET_SERVER_AUTH_MODE`                  | `authMode`               | Authentication mode                                            | `none`, `publish`, `full`                  | `none`                   |
+| N/A                                 | `NUGET_SERVER_SESSION_SECRET`             | `sessionSecret`          | Secret key for session management (required for auth)          | String                                     | None                     |
+| N/A                                 | `NUGET_SERVER_PASSWORD_MIN_SCORE`         | `passwordMinScore`       | Minimum password strength score                                | 0-4                                        | 2                        |
+| N/A                                 | `NUGET_SERVER_PASSWORD_STRENGTH_CHECK`    | `passwordStrengthCheck`  | Enable password strength checking                              | `true`, `false`                            | `true`                   |
+| N/A                                 | `NUGET_SERVER_DUPLICATE_PACKAGE_POLICY`   | `duplicatePackagePolicy` | Policy for handling duplicate package uploads                  | `overwrite`, `ignore`, `error`             | `ignore`                 |
+| `--max-upload-size-mb <size>`       | `NUGET_SERVER_MAX_UPLOAD_SIZE_MB`         | `maxUploadSizeMb`        | Maximum package upload size in MB                              | 1-10000                                    | 100                      |
+| `--missing-package-response <mode>` | `NUGET_SERVER_MISSING_PACKAGE_RESPONSE`   | `missingPackageResponse` | Response mode for missing packages                             | `empty-array`, `not-found`                 | `empty-array`            |
+| N/A                                 | `NUGET_SERVER_AUTH_FAILURE_DELAY_ENABLED` | N/A                      | Enable progressive delays for failed auth attempts             | `true`, `false`                            | `true`                   |
+| N/A                                 | `NUGET_SERVER_AUTH_FAILURE_MAX_DELAY`     | N/A                      | Maximum delay for failed auth attempts (ms)                    | Number                                     | 10000                    |
+| `--auth-init`                       | N/A                                       | N/A                      | Initialize authentication with interactive admin user creation | Flag                                       | N/A                      |
+| `--import-packages`                 | N/A                                       | N/A                      | Import packages from another NuGet server interactively        | Flag                                       | N/A                      |
 
 ```json
 {
@@ -813,6 +827,17 @@ All configuration options can be set via CLI arguments, environment variables, o
 Alternatively, you can use the CLI option `--missing-package-response <mode>` or the environment variable `NUGET_SERVER_MISSING_PACKAGE_RESPONSE`.
 
 ---
+
+## Other
+
+NuGet is the .NET package system, and NuGet servers host it.
+There are likely differing opinions about NOT building this with .NET.
+
+I chose this configuration as the minimal means to achieve the goal of requiring a private NuGet server.
+In fact, I feel it ensured the shortest development time relative to scale while providing sufficient functionality, so I'm very satisfied.
+
+There are other reasons too, but first, just give it a try.
+I think it'll be a great fit for anyone who thinks they need a private NuGet server.
 
 ## License
 

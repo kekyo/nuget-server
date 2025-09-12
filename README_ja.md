@@ -58,6 +58,10 @@ Node.js上に構築された、NuGet V3 APIエンドポイントを提供する�
 
 Node.js 20.18.0以降
 
+使用スタック: Node.js, Typescript, Vite, Vitest, prettier-max, screw-up, Fastify, Passport, zxcvbn, React, React MUI, react-infinite-scroll, notistack, typed-message, dayjs, commander, adm-zip, xml2js
+
+すべてをTypescript環境で実装することで、開発環境と開発サイクルをシンプルに保っています。
+
 ---
 
 ## インストール
@@ -722,6 +726,16 @@ QEMUなしでは、ネイティブアーキテクチャ用にのみビルドで�
 
 ## 備考
 
+### テスト環境
+
+* Ubuntu 24.04 x86-64
+* Ubuntu 24.04 x86-64 (podman hosted container)
+* Ubuntu 22.04 x86-64
+* Ubuntu 24.04 arm64
+* Ubuntu 24.04 arm64 (podman hosted container)
+* Cloudflare tunnel serviced global IPv4/IPv6 endpoint
+* Direct global IPv4 endpoint
+
 ### サポートされるNuGet V3 APIエンドポイント
 
 サーバーはNuGet V3 APIプロトコルのサブセットを実装しています：
@@ -783,29 +797,40 @@ https://github.com/NuGet/Home/issues/6373
 
 すべての設定オプションは、CLIの引数、環境変数、またはconfig.jsonで設定できます。優先順位は次の通りです: **CLI > 環境変数 > config.json > デフォルト**
 
-| CLIオプション | 環境変数 | config.jsonキー | 説明 | 有効な値 | デフォルト |
-|------------|---------------------|-----------------|-------------|--------------|---------|
-| `-p, --port <port>` | `NUGET_SERVER_PORT` | `port` | サーバーのポート番号 | 1-65535 | 5963 |
-| `-b, --base-url <url>` | `NUGET_SERVER_BASE_URL` | `baseUrl` | APIエンドポイントの固定ベースURL（自動検出を上書き） | 有効なURL | 自動検出 |
-| `-d, --package-dir <dir>` | `NUGET_SERVER_PACKAGE_DIR` | `packageDir` | パッケージの保存ディレクトリ | 有効なパス | `./packages` |
-| `-c, --config-file <path>` | `NUGET_SERVER_CONFIG_FILE` | N/A | config.jsonファイルへのパス | 有効なパス | `./config.json` |
-| `-u, --users-file <path>` | `NUGET_SERVER_USERS_FILE` | `usersFile` | users.jsonファイルへのパス | 有効なパス | なし |
-| `-r, --realm <realm>` | `NUGET_SERVER_REALM` | `realm` | 認証レルム | 文字列 | `nuget-server [version]` |
-| `-l, --log-level <level>` | `NUGET_SERVER_LOG_LEVEL` | `logLevel` | ログの詳細レベル | `debug`, `info`, `warn`, `error`, `ignore` | `info` |
-| `--trusted-proxies <ips>` | `NUGET_SERVER_TRUSTED_PROXIES` | `trustedProxies` | 信頼されたプロキシIPのカンマ区切りリスト | IPアドレス | なし |
-| `--auth-mode <mode>` | `NUGET_SERVER_AUTH_MODE` | `authMode` | 認証モード | `none`, `publish`, `full` | `none` |
-| N/A | `NUGET_SERVER_SESSION_SECRET` | `sessionSecret` | セッション管理用のシークレットキー（認証に必要） | 文字列 | なし |
-| N/A | `NUGET_SERVER_PASSWORD_MIN_SCORE` | `passwordMinScore` | パスワードの最小強度スコア | 0-4 | 2 |
-| N/A | `NUGET_SERVER_PASSWORD_STRENGTH_CHECK` | `passwordStrengthCheck` | パスワード強度チェックを有効にする | `true`, `false` | `true` |
-| N/A | `NUGET_SERVER_DUPLICATE_PACKAGE_POLICY` | `duplicatePackagePolicy` | 重複パッケージアップロードの処理ポリシー | `overwrite`, `ignore`, `error` | `ignore` |
-| `--max-upload-size-mb <size>` | `NUGET_SERVER_MAX_UPLOAD_SIZE_MB` | `maxUploadSizeMb` | 最大パッケージアップロードサイズ (MB) | 1-10000 | 100 |
-| `--missing-package-response <mode>` | `NUGET_SERVER_MISSING_PACKAGE_RESPONSE` | `missingPackageResponse` | 存在しないパッケージのレスポンスモード | `empty-array`, `not-found` | `empty-array` |
-| N/A | `NUGET_SERVER_AUTH_FAILURE_DELAY_ENABLED` | N/A | 認証失敗時の段階的遅延を有効にする | `true`, `false` | `true` |
-| N/A | `NUGET_SERVER_AUTH_FAILURE_MAX_DELAY` | N/A | 認証失敗時の最大遅延時間 (ms) | 数値 | 10000 |
-| `--auth-init` | N/A | N/A | 対話的な管理者ユーザー作成で認証を初期化 | フラグ | N/A |
-| `--import-packages` | N/A | N/A | 他のNuGetサーバーから対話的にパッケージをインポート | フラグ | N/A |
+| CLIオプション                       | 環境変数                                  | config.jsonキー          | 説明                                                 | 有効な値                                   | デフォルト               |
+| ----------------------------------- | ----------------------------------------- | ------------------------ | ---------------------------------------------------- | ------------------------------------------ | ------------------------ |
+| `-p, --port <port>`                 | `NUGET_SERVER_PORT`                       | `port`                   | サーバーのポート番号                                 | 1-65535                                    | 5963                     |
+| `-b, --base-url <url>`              | `NUGET_SERVER_BASE_URL`                   | `baseUrl`                | APIエンドポイントの固定ベースURL（自動検出を上書き） | 有効なURL                                  | 自動検出                 |
+| `-d, --package-dir <dir>`           | `NUGET_SERVER_PACKAGE_DIR`                | `packageDir`             | パッケージの保存ディレクトリ                         | 有効なパス                                 | `./packages`             |
+| `-c, --config-file <path>`          | `NUGET_SERVER_CONFIG_FILE`                | N/A                      | config.jsonファイルへのパス                          | 有効なパス                                 | `./config.json`          |
+| `-u, --users-file <path>`           | `NUGET_SERVER_USERS_FILE`                 | `usersFile`              | users.jsonファイルへのパス                           | 有効なパス                                 | なし                     |
+| `-r, --realm <realm>`               | `NUGET_SERVER_REALM`                      | `realm`                  | 認証レルム                                           | 文字列                                     | `nuget-server [version]` |
+| `-l, --log-level <level>`           | `NUGET_SERVER_LOG_LEVEL`                  | `logLevel`               | ログの詳細レベル                                     | `debug`, `info`, `warn`, `error`, `ignore` | `info`                   |
+| `--trusted-proxies <ips>`           | `NUGET_SERVER_TRUSTED_PROXIES`            | `trustedProxies`         | 信頼されたプロキシIPのカンマ区切りリスト             | IPアドレス                                 | なし                     |
+| `--auth-mode <mode>`                | `NUGET_SERVER_AUTH_MODE`                  | `authMode`               | 認証モード                                           | `none`, `publish`, `full`                  | `none`                   |
+| N/A                                 | `NUGET_SERVER_SESSION_SECRET`             | `sessionSecret`          | セッション管理用のシークレットキー（認証に必要）     | 文字列                                     | なし                     |
+| N/A                                 | `NUGET_SERVER_PASSWORD_MIN_SCORE`         | `passwordMinScore`       | パスワードの最小強度スコア                           | 0-4                                        | 2                        |
+| N/A                                 | `NUGET_SERVER_PASSWORD_STRENGTH_CHECK`    | `passwordStrengthCheck`  | パスワード強度チェックを有効にする                   | `true`, `false`                            | `true`                   |
+| N/A                                 | `NUGET_SERVER_DUPLICATE_PACKAGE_POLICY`   | `duplicatePackagePolicy` | 重複パッケージアップロードの処理ポリシー             | `overwrite`, `ignore`, `error`             | `ignore`                 |
+| `--max-upload-size-mb <size>`       | `NUGET_SERVER_MAX_UPLOAD_SIZE_MB`         | `maxUploadSizeMb`        | 最大パッケージアップロードサイズ (MB)                | 1-10000                                    | 100                      |
+| `--missing-package-response <mode>` | `NUGET_SERVER_MISSING_PACKAGE_RESPONSE`   | `missingPackageResponse` | 存在しないパッケージのレスポンスモード               | `empty-array`, `not-found`                 | `empty-array`            |
+| N/A                                 | `NUGET_SERVER_AUTH_FAILURE_DELAY_ENABLED` | N/A                      | 認証失敗時の段階的遅延を有効にする                   | `true`, `false`                            | `true`                   |
+| N/A                                 | `NUGET_SERVER_AUTH_FAILURE_MAX_DELAY`     | N/A                      | 認証失敗時の最大遅延時間 (ms)                        | 数値                                       | 10000                    |
+| `--auth-init`                       | N/A                                       | N/A                      | 対話的な管理者ユーザー作成で認証を初期化             | フラグ                                     | N/A                      |
+| `--import-packages`                 | N/A                                       | N/A                      | 他のNuGetサーバーから対話的にパッケージをインポート  | フラグ                                     | N/A                      |
 
 ---
+
+## その他
+
+NuGetは.NETのパッケージシステムで、NuGetサーバーはそれをホストするためのものです。
+これを.NETで作っていないことについて、賛否両論あるかと思います。
+
+私は、NuGetのプライベートサーバーが必要、という目的を達成するための最小の手段として、この構成を選択しました。
+実際、規模に対して最小の開発期間と十分な機能性を確保できたと感じているので、とても満足しています。
+
+他にも色々理由はあるのですが、まあまずは触ってみて下さい。
+NuGetのプライベートサーバーが必要と考えている人に、かなりフィットすると思います。
 
 ## ライセンス
 

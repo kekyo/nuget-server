@@ -382,6 +382,7 @@ const AppContent = ({
         textArea.value = command;
         document.body.appendChild(textArea);
         textArea.select();
+        // @prettier-max-ignore-deprecated
         document.execCommand('copy');
         document.body.removeChild(textArea);
         enqueueSnackbar(getMessage(messages.COPIED_TO_CLIPBOARD), {
