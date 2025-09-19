@@ -792,6 +792,14 @@ https://github.com/NuGet/Home/issues/6373
 
 To prevent users from being troubled by this behavior (I too was greatly troubled), I deliberately modified the response to violate the V3 API specification. If a fully V3-compliant response (i.e., returning a 404 error) is required, you can achieve this by setting the `missingPackageResponse` configuration to `not-found`.
 
+```json
+{
+  “missingPackageResponse”: “not-found”  // Default is “empty-array”
+}
+```
+
+Alternatively, you can use the CLI option `--missing-package-response <mode>` or the environment variable `NUGET_SERVER_MISSING_PACKAGE_RESPONSE`.
+
 ### Configuration Reference Table
 
 All configuration options can be set via CLI arguments, environment variables, or config.json. The priority order is: **CLI > Environment Variable > config.json > Default**.
@@ -818,14 +826,6 @@ All configuration options can be set via CLI arguments, environment variables, o
 | `--auth-init`                       | N/A                                       | N/A                      | Initialize authentication with interactive admin user creation | Flag                                       | N/A                      |
 | `--import-packages`                 | N/A                                       | N/A                      | Import packages from another NuGet server interactively        | Flag                                       | N/A                      |
 
-```json
-{
-  “missingPackageResponse”: “not-found”  // Default is “empty-array”
-}
-```
-
-Alternatively, you can use the CLI option `--missing-package-response <mode>` or the environment variable `NUGET_SERVER_MISSING_PACKAGE_RESPONSE`.
-
 ---
 
 ## Other
@@ -838,6 +838,12 @@ In fact, I feel it ensured the shortest development time relative to scale while
 
 There are other reasons too, but first, just give it a try.
 I think it'll be a great fit for anyone who thinks they need a private NuGet server.
+
+## Discussions and Pull Requests
+
+For discussions, please refer to the [GitHub Discussions page](https://github.com/kekyo/nuget-server/discussions). We have currently stopped issue-based discussions.
+
+Pull requests are welcome! Please submit them as diffs against the `develop` branch and squashed changes before send.
 
 ## License
 
