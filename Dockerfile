@@ -1,5 +1,5 @@
 # Single stage build for nuget-server (pre-built on host)
-FROM node:22-alpine AS runtime
+FROM node:20-alpine AS runtime
 
 # Create app directory
 WORKDIR /app
