@@ -19,15 +19,15 @@
   "readme": "README_pack.md",
   "type": "module",
   "main": "./dist/index.cjs",
-  "module": "./dist/index.js",
+  "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
   "bin": {
-    "nuget-server": "./dist/cli.js"
+    "nuget-server": "./dist/cli.mjs"
   },
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.js",
+      "import": "./dist/index.mjs",
       "require": "./dist/index.cjs"
     }
   },
@@ -42,9 +42,9 @@
     "build:ui": "./gen-packageMetadata.sh && BUILD_TARGET=ui vite build",
     "dev": "./gen-packageMetadata.sh && vite dev",
     "test": "npm run build && vitest run",
-    "init": "npm run build && node dist/cli.js -c ./dev/config.json -d ./dev/packages --auth-init",
-    "import": "npm run build && node dist/cli.js -c ./dev/config.json -d ./dev/packages --import-packages",
-    "start": "npm run build && node dist/cli.js -c ./dev/config.json -d ./dev/packages",
+    "init": "npm run build && node dist/cli.mjs -c ./dev/config.json -d ./dev/packages --auth-init",
+    "import": "npm run build && node dist/cli.mjs -c ./dev/config.json -d ./dev/packages --import-packages",
+    "start": "npm run build && node dist/cli.mjs -c ./dev/config.json -d ./dev/packages",
     "dump": "npm run build && screw-up dump",
     "pack": "npm run build && screw-up pack --pack-destination artifacts/"
   },

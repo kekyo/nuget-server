@@ -39,4 +39,4 @@ HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
 VOLUME ["/packages", "/data"]
 
 # Default command with explicit arguments - can be overridden for custom options
-CMD ["node", "dist/cli.js", "--config-file", "/data/config.json", "--package-dir", "/packages"]
+CMD ["node", "dist/cli.mjs", "--config-file", "/data/config.json", "--package-dir", "/packages"]

@@ -16,7 +16,7 @@ const execAsync = promisify(exec);
 describe('Max Upload Size Configuration - Config file validation', () => {
   let testDir: string;
   let testPort: number;
-  const cliPath = join(process.cwd(), 'dist', 'cli.js');
+  const cliPath = join(process.cwd(), 'dist', 'cli.mjs');
 
   beforeEach(async (fn) => {
     testDir = await createTestDirectory('max-upload-size', fn.task.name);
@@ -159,7 +159,7 @@ describe('Max Upload Size Configuration - Config file validation', () => {
 describe('Max Upload Size Configuration - CLI argument parsing', () => {
   let testDir: string;
   let testPort: number;
-  const cliPath = join(process.cwd(), 'dist', 'cli.js');
+  const cliPath = join(process.cwd(), 'dist', 'cli.mjs');
 
   beforeEach(async (fn) => {
     testDir = await createTestDirectory('max-upload-size', fn.task.name);
@@ -228,7 +228,7 @@ describe('Max Upload Size Configuration - CLI argument parsing', () => {
 describe('Max Upload Size Configuration - Environment variable parsing', () => {
   let testDir: string;
   let testPort: number;
-  const cliPath = join(process.cwd(), 'dist', 'cli.js');
+  const cliPath = join(process.cwd(), 'dist', 'cli.mjs');
 
   beforeEach(async (fn) => {
     testDir = await createTestDirectory('max-upload-size', fn.task.name);
@@ -291,7 +291,7 @@ describe('Max Upload Size Configuration - Environment variable parsing', () => {
 describe('Max Upload Size Configuration - Configuration priority', () => {
   let testDir: string;
   let testPort: number;
-  const cliPath = join(process.cwd(), 'dist', 'cli.js');
+  const cliPath = join(process.cwd(), 'dist', 'cli.mjs');
 
   beforeEach(async (fn) => {
     testDir = await createTestDirectory('max-upload-size', fn.task.name);
