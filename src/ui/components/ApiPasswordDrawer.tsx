@@ -368,8 +368,9 @@ const ApiPasswordDrawer = ({
                     value={newLabel}
                     onChange={(e) => setNewLabel(e.target.value)}
                     disabled={loading}
-                    onKeyPress={(e) => {
+                    onKeyDown={(e) => {
                       if (e.key === 'Enter' && newLabel.trim() && !loading) {
+                        e.preventDefault();
                         handleAddApiPassword();
                       }
                     }}

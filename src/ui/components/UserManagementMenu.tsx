@@ -77,9 +77,6 @@ const UserManagementMenu = ({
         anchorEl={anchorEl}
         open={open}
         onClose={handleClose}
-        MenuListProps={{
-          'aria-labelledby': 'user-management-button',
-        }}
         anchorOrigin={{
           vertical: 'bottom',
           horizontal: 'left',
@@ -87,6 +84,11 @@ const UserManagementMenu = ({
         transformOrigin={{
           vertical: 'top',
           horizontal: 'left',
+        }}
+        slotProps={{
+          list: {
+            'aria-labelledby': 'user-management-button',
+          },
         }}
       >
         <MenuItem onClick={handleAddUser}>

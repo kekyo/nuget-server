@@ -735,13 +735,13 @@ Without QEMU, you can only build for your native architecture.
 
 ### Tested environment
 
-* Ubuntu 24.04 x86-64
-* Ubuntu 24.04 x86-64 (podman hosted container)
-* Ubuntu 22.04 x86-64
-* Ubuntu 24.04 arm64
-* Ubuntu 24.04 arm64 (podman hosted container)
-* Cloudflare tunnel serviced global IPv4/IPv6 endpoint
-* Direct global IPv4 endpoint
+- Ubuntu 24.04 x86-64
+- Ubuntu 24.04 x86-64 (podman hosted container)
+- Ubuntu 22.04 x86-64
+- Ubuntu 24.04 arm64
+- Ubuntu 24.04 arm64 (podman hosted container)
+- Cloudflare tunnel serviced global IPv4/IPv6 endpoint
+- Direct global IPv4 endpoint
 
 ### Supported NuGet V3 API endpoints
 

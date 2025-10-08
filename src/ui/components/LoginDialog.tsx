@@ -119,10 +119,12 @@ const LoginDialog = ({
       disableEscapeKeyDown={disableBackdropClick}
       maxWidth="sm"
       fullWidth
-      PaperProps={{
-        sx: {
-          borderRadius: 2,
-          p: isMobile ? 1 : 2,
+      slotProps={{
+        paper: {
+          sx: {
+            borderRadius: 2,
+            p: isMobile ? 1 : 2,
+          },
         },
       }}
     >

@@ -126,7 +126,7 @@ export default defineConfig(({ mode, command }) => {
         },
         name: 'nuget-server',
         fileName: (format, entryName) =>
-          `${entryName}.${format === 'es' ? 'js' : 'cjs'}`,
+          `${entryName}.${format === 'es' ? 'mjs' : 'cjs'}`,
         formats: ['es', 'cjs'],
       },
       rollupOptions: {

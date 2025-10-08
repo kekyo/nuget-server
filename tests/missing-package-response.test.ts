@@ -55,7 +55,7 @@ describe('Missing Package Response Configuration', () => {
 
   it('should return empty array by default for missing packages', async () => {
     // Start server with default configuration
-    const cliPath = path.join(__dirname, '..', 'dist', 'cli.js');
+    const cliPath = path.join(__dirname, '..', 'dist', 'cli.mjs');
     serverProcess = spawn(
       'node',
       [
@@ -88,7 +88,7 @@ describe('Missing Package Response Configuration', () => {
 
   it('should return 404 when configured with not-found mode', async () => {
     // Start server with not-found mode
-    const cliPath = path.join(__dirname, '..', 'dist', 'cli.js');
+    const cliPath = path.join(__dirname, '..', 'dist', 'cli.mjs');
     serverProcess = spawn(
       'node',
       [
@@ -123,7 +123,7 @@ describe('Missing Package Response Configuration', () => {
 
   it('should respect environment variable configuration', async () => {
     // Start server with environment variable set to not-found
-    const cliPath = path.join(__dirname, '..', 'dist', 'cli.js');
+    const cliPath = path.join(__dirname, '..', 'dist', 'cli.mjs');
     serverProcess = spawn(
       'node',
       [
@@ -157,7 +157,7 @@ describe('Missing Package Response Configuration', () => {
 
   it('should prioritize CLI argument over environment variable', async () => {
     // Start server with conflicting CLI and env settings
-    const cliPath = path.join(__dirname, '..', 'dist', 'cli.js');
+    const cliPath = path.join(__dirname, '..', 'dist', 'cli.mjs');
     serverProcess = spawn(
       'node',
       [

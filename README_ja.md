@@ -728,13 +728,13 @@ QEMUなしでは、ネイティブアーキテクチャ用にのみビルドで�
 
 ### テスト環境
 
-* Ubuntu 24.04 x86-64
-* Ubuntu 24.04 x86-64 (podman hosted container)
-* Ubuntu 22.04 x86-64
-* Ubuntu 24.04 arm64
-* Ubuntu 24.04 arm64 (podman hosted container)
-* Cloudflare tunnel serviced global IPv4/IPv6 endpoint
-* Direct global IPv4 endpoint
+- Ubuntu 24.04 x86-64
+- Ubuntu 24.04 x86-64 (podman hosted container)
+- Ubuntu 22.04 x86-64
+- Ubuntu 24.04 arm64
+- Ubuntu 24.04 arm64 (podman hosted container)
+- Cloudflare tunnel serviced global IPv4/IPv6 endpoint
+- Direct global IPv4 endpoint
 
 ### サポートされるNuGet V3 APIエンドポイント
 

@@ -10,7 +10,7 @@ const execAsync = promisify(exec);
 describe('CLI configuration priority', () => {
   let testDir: string;
   let testPort: number;
-  const cliPath = join(process.cwd(), 'dist', 'cli.js');
+  const cliPath = join(process.cwd(), 'dist', 'cli.mjs');
 
   beforeEach(async (fn) => {
     testDir = await createTestDirectory('cli-config', fn.task.name);

@@ -517,7 +517,11 @@ const PackageList = forwardRef<PackageListRef, PackageListProps>(
                 }}
                 expanded={expandedPanels.has(pkg.id)}
                 onChange={handleAccordionChange(pkg.id)}
-                TransitionProps={{ unmountOnExit: true }}
+                slotProps={{
+                  transition: {
+                    unmountOnExit: true,
+                  },
+                }}
               >
                 <AccordionSummary
                   expandIcon={<ExpandMoreIcon />}

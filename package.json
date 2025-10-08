@@ -19,20 +19,21 @@
   "readme": "README_pack.md",
   "type": "module",
   "main": "./dist/index.cjs",
-  "module": "./dist/index.js",
+  "module": "./dist/index.mjs",
   "types": "./dist/index.d.ts",
   "bin": {
-    "nuget-server": "./dist/cli.js"
+    "nuget-server": "./dist/cli.mjs"
   },
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.js",
+      "import": "./dist/index.mjs",
       "require": "./dist/index.cjs"
     }
   },
   "files": [
     "dist",
+    "LICENSE",
     "images/nuget-server-120.png",
     "images/nuget-server-ss-1.png"
   ],
@@ -42,9 +43,9 @@
     "build:ui": "./gen-packageMetadata.sh && BUILD_TARGET=ui vite build",
     "dev": "./gen-packageMetadata.sh && vite dev",
     "test": "npm run build && vitest run",
-    "init": "npm run build && node dist/cli.js -c ./dev/config.json -d ./dev/packages --auth-init",
-    "import": "npm run build && node dist/cli.js -c ./dev/config.json -d ./dev/packages --import-packages",
-    "start": "npm run build && node dist/cli.js -c ./dev/config.json -d ./dev/packages",
+    "init": "npm run build && node dist/cli.mjs -c ./dev/config.json -d ./dev/packages --auth-init",
+    "import": "npm run build && node dist/cli.mjs -c ./dev/config.json -d ./dev/packages --import-packages",
+    "start": "npm run build && node dist/cli.mjs -c ./dev/config.json -d ./dev/packages",
     "dump": "npm run build && screw-up dump",
     "pack": "npm run build && screw-up pack --pack-destination artifacts/"
   },
@@ -57,7 +58,7 @@
     "@mui/icons-material": ">=7.3.1",
     "@mui/material": ">=7.3.1",
     "adm-zip": ">=0.5.10",
-    "async-primitives": ">=1.2.0",
+    "async-primitives": ">=1.4.0",
     "commander": ">=11.0.0",
     "dayjs": ">=1.11.0",
     "fastify": ">=4.28.1",
@@ -67,7 +68,7 @@
     "react": ">=19.1.1",
     "react-dom": ">=19.1.1",
     "react-infinite-scroll-component": ">=6.1.0",
-    "typed-message": ">=1.6.0",
+    "typed-message": ">=1.17.0",
     "xml2js": ">=0.6.2",
     "zxcvbn": ">=4.4.2"
   },
@@ -81,8 +82,8 @@
     "@types/xml2js": ">=0.4.14",
     "@types/zxcvbn": ">=4.4.5",
     "@vitejs/plugin-react": ">=5.0.1",
-    "prettier-max": ">=1.6.0",
-    "screw-up": ">=1.8.0",
+    "prettier-max": ">=1.10.0",
+    "screw-up": ">=1.13.0",
     "typescript": ">=5.0.0",
     "vite": ">=5.0.0",
     "vite-plugin-dts": ">=3.0.0",

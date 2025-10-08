@@ -319,9 +319,11 @@ const UploadDrawer = ({
               type="file"
               fullWidth
               variant="outlined"
-              inputProps={{
-                accept: '.nupkg',
-                multiple: true,
+              slotProps={{
+                htmlInput: {
+                  accept: '.nupkg',
+                  multiple: true,
+                },
               }}
               onChange={handleFileChange}
               sx={{ display: 'none' }}
