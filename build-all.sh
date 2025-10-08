@@ -2,12 +2,14 @@
 
 set -eu
 
-VERSION=`npx screw-up dump | jq -r '.version'`
-
 #------------------------------------------------------
 
 git clean -xfd
 npm install
+
+VERSION=`npx screw-up dump | jq -r '.version'`
+
+echo "Build totally deployments: $VERSION"
 
 #------------------------------------------------------
 

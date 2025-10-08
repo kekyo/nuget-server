@@ -1,12 +1,16 @@
 # Single stage build for nuget-server (pre-built on host)
-FROM node:20-alpine AS runtime
+FROM node:20-bullseye AS runtime
 
 # Create app directory
 WORKDIR /app
 
 # Create non-root user
-RUN addgroup -g 1001 -S nodejs && \
-    adduser -S nugetserver -u 1001
+RUN if ! getent group nodejs >/dev/null; then \
+      groupadd --system --gid 1001 nodejs; \
+    fi && \
+    if ! id -u nugetserver >/dev/null 2>&1; then \
+      useradd --system --uid 1001 --gid nodejs --home /app --no-create-home nugetserver; \
+    fi
 
 # Copy package files
 COPY package*.json ./
