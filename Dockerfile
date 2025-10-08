@@ -1,46 +1,54 @@
-# Single stage build for nuget-server (pre-built on host)
-FROM node:20-bullseye AS runtime
+# Stage 1: Build dependencies (including sodium-native) on Alpine
+FROM node:20-alpine AS builder
 
-# Create app directory
 WORKDIR /app
 
-# Create non-root user
-RUN if ! getent group nodejs >/dev/null; then \
-      groupadd --system --gid 1001 nodejs; \
-    fi && \
-    if ! id -u nugetserver >/dev/null 2>&1; then \
-      useradd --system --uid 1001 --gid nodejs --home /app --no-create-home nugetserver; \
-    fi
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S nugetserver -u 1001 -G nodejs
 
-# Copy package files
 COPY package*.json ./
 
-# Install only production dependencies
-RUN npm ci --only=production && \
+# Install toolchain and libsodium headers for sodium-native source build
+RUN apk add --no-cache \
+      build-base \
+      python3 \
+      cmake \
+      pkgconf \
+      libsodium-dev
+
+# Force sodium-native to compile from source on musl (Alpine)
+RUN npm_config_build_from_source=sodium-native npm ci --only=production && \
     npm cache clean --force && \
     rm -rf /tmp/*
 
-# Copy pre-built application from host
 COPY dist ./dist
 
-# Create packages and data directories and set permissions
+# Stage 2: Runtime image with only required runtime packages
+FROM node:20-alpine AS runtime
+
+WORKDIR /app
+
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S nugetserver -u 1001 -G nodejs
+
+# Runtime needs shared libs but not headers/toolchain
+RUN apk add --no-cache libsodium
+
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/dist ./dist
+
 RUN mkdir -p /packages /data && \
     chown -R nugetserver:nodejs /app && \
     chown -R nugetserver:nodejs /packages && \
     chown -R nugetserver:nodejs /data
 
-# Switch to non-root user
 USER nugetserver
 
-# Expose port
 EXPOSE 5963
 
-# Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
   CMD wget --no-verbose --tries=1 --spider http://localhost:5963/api || exit 1
 
-# Default volumes (can be mounted)
 VOLUME ["/packages", "/data"]
 
-# Default command with explicit arguments - can be overridden for custom options
 CMD ["node", "dist/cli.mjs", "--config-file", "/data/config.json", "--package-dir", "/packages"]
