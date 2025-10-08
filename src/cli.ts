@@ -4,7 +4,7 @@
 // Copyright (c) Kouji Matsui (@kekyo@mi.kekyo.net)
 // License under MIT.
 
-import { Command } from 'commander';
+import { Command, Option } from 'commander';
 import { startFastifyServer } from './server';
 import {
   name as packageName,
@@ -126,41 +126,65 @@ const program = new Command();
 
 program
   .name(packageName)
-  .description(description)
+  .summary(description)
+  .addHelpText('beforeAll', `${description}\n`)
   .version(`${version}-${git_commit_hash}`)
-  .option('-p, --port <port>', 'port number')
-  .option(
-    '-b, --base-url <url>',
-    'fixed base URL for API endpoints (overrides auto-detection)'
+  .addOption(new Option('-p, --port <port>', 'port number'))
+  .addOption(
+    new Option(
+      '-b, --base-url <url>',
+      'fixed base URL for API endpoints (overrides auto-detection)'
+    )
   )
-  .option('-d, --package-dir <dir>', 'package storage directory')
-  .option('-c, --config-file <path>', 'path to config.json file')
-  .option('-u, --users-file <path>', 'path to users.json file')
-  .option('-r, --realm <realm>', `authentication realm`)
-  .option(
-    '-l, --log-level <level>',
-    'log level (debug, info, warn, error, ignore)'
+  .addOption(new Option('-d, --package-dir <dir>', 'package storage directory'))
+  .addOption(new Option('-c, --config-file <path>', 'path to config.json file'))
+  .addOption(new Option('-u, --users-file <path>', 'path to users.json file'))
+  .addOption(new Option('-r, --realm <realm>', `authentication realm`))
+  .addOption(
+    new Option('-l, --log-level <level>', 'log level').choices([
+      'debug',
+      'info',
+      'warn',
+      'error',
+      'ignore',
+    ])
   )
-  .option(
-    '--trusted-proxies <ips>',
-    'comma-separated list of trusted proxy IPs'
+  .addOption(
+    new Option(
+      '--trusted-proxies <ips>',
+      'comma-separated list of trusted proxy IPs'
+    )
   )
-  .option('--auth-mode <mode>', 'authentication mode (none, publish, full)')
-  .option(
-    '--max-upload-size-mb <size>',
-    'maximum package upload size in MB (1-10000)'
+  .addOption(
+    new Option('--auth-mode <mode>', 'authentication mode').choices([
+      'none',
+      'publish',
+      'full',
+    ])
   )
-  .option(
-    '--missing-package-response <mode>',
-    'response mode for missing packages (empty-array, not-found)'
+  .addOption(
+    new Option(
+      '--max-upload-size-mb <size>',
+      'maximum package upload size in MB (1-10000)'
+    )
   )
-  .option(
-    '--auth-init',
-    'initialize authentication with interactive admin user creation'
+  .addOption(
+    new Option(
+      '--missing-package-response <mode>',
+      'response mode for missing packages'
+    ).choices(['empty-array', 'not-found'])
   )
-  .option(
-    '--import-packages',
-    'import packages from another NuGet server interactively'
+  .addOption(
+    new Option(
+      '--auth-init',
+      'initialize authentication with interactive admin user creation'
+    )
+  )
+  .addOption(
+    new Option(
+      '--import-packages',
+      'import packages from another NuGet server interactively'
+    )
   )
   .action(async (options) => {
     // Determine config file path
