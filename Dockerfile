@@ -14,10 +14,24 @@ RUN apk add --no-cache \
       python3 \
       cmake \
       pkgconf \
+      git \
       libsodium-dev
 
-# Force sodium-native to compile from source on musl (Alpine)
-RUN npm_config_build_from_source=sodium-native npm ci --only=production && \
+# Install dependencies, compile sodium-native against musl, and clean up build artefacts
+RUN npm ci --only=production && \
+    npm install --prefix node_modules/sodium-native --no-save \
+      cmake-bare@1.1.10 \
+      cmake-fetch@1.4.7 \
+      cmake-napi@1.2.1 && \
+    cd node_modules/sodium-native && \
+    cmake -S . -B build -DCMAKE_BUILD_TYPE=Release && \
+    cmake --build build && \
+    ARCH="$(node -p 'process.arch')" && \
+    PLATFORM_DIR="prebuilds/linux-${ARCH}" && \
+    install -m 0644 build/sodium-native.node "${PLATFORM_DIR}/sodium-native.node" && \
+    install -m 0644 build/sodium-native.bare "${PLATFORM_DIR}/sodium-native.bare" && \
+    rm -rf build sodium-native.node sodium-native.bare node_modules && \
+    cd /app && \
     npm cache clean --force && \
     rm -rf /tmp/*
 
