@@ -146,7 +146,7 @@ describe('NuGetClient', () => {
 
       const client = createNuGetClient({ baseUrl: 'https://api.nuget.org/v3' });
       const result = await client.searchPackages(
-        'https://api.nuget.org/v3/search',
+        'https://api.nuget.org/v3/query',
         0,
         100
       );

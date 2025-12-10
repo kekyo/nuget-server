@@ -331,7 +331,7 @@ describe('dotnet restore V3 API Integration Tests', () => {
 
       // Check search API response
       const searchResponse = await fetch(
-        `http://localhost:${serverPort}/v3/search?q=GitReader`
+        `http://localhost:${serverPort}/v3/query?q=GitReader`
       );
       const searchResult = await searchResponse.json();
       logger.info(

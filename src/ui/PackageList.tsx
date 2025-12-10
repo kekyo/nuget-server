@@ -226,7 +226,9 @@ const PackageList = forwardRef<PackageListRef, PackageListProps>(
         const skip = isInitialLoad ? 0 : page * pageSize;
 
         // Use Fastify search endpoint with pagination
-        const searchEndpoint = `v3/search?skip=${skip}&take=${pageSize}`;
+        // This is absolutely terrible, but... since `query` seems to be a fixed path in VS, We're sticking with it.
+        // https://github.com/kekyo/nuget-server/discussions/3
+        const searchEndpoint = `v3/query?skip=${skip}&take=${pageSize}`;
 
         const response = await apiFetch(searchEndpoint, {
           credentials: 'same-origin',

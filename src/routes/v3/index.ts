@@ -181,7 +181,9 @@ const createServiceIndex = (baseUrl: string): ServiceIndex => {
         comment: 'Base URL of NuGet package registration info',
       },
       {
-        '@id': `${baseUrl}/v3/search`,
+        // This is absolutely terrible, but... since `query` seems to be a fixed path in VS, We're sticking with it.
+        // https://github.com/kekyo/nuget-server/discussions/3
+        '@id': `${baseUrl}/v3/query`,
         '@type': 'SearchQueryService',
         comment: 'Query endpoint of NuGet Search service',
       },
@@ -355,9 +357,9 @@ export const registerV3Routes = async (
     }
   );
 
-  // V3 Package Search - GET /v3/search
+  // V3 Package Search - GET /v3/query
   fastify.get(
-    '/v3/search',
+    '/v3/query',
     {
       preHandler: authPreHandler,
     },

@@ -15,7 +15,7 @@ import {
  *
  * Tests Fastify server NuGet V3 API implementation including:
  * - V3 Service Index (/v3/index.json)
- * - V3 Package Search (/v3/search)
+ * - V3 Package Search (/v3/query)
  * - V3 Package Download (/v3/package/{id}/{version}/{filename})
  * - V3 Registrations (/v3/registrations/{id}/index.json)
  * - Authentication requirements based on authMode
@@ -172,7 +172,7 @@ describe('Fastify NuGet V3 API - Phase 3 Tests', () => {
     });
 
     test('should return empty search results without authentication', async () => {
-      const response = await fetch(`http://localhost:${serverPort}/v3/search`);
+      const response = await fetch(`http://localhost:${serverPort}/v3/query`);
       expect(response.status).toBe(200);
 
       const data = await response.json();
@@ -435,7 +435,7 @@ describe('Fastify NuGet V3 API - Phase 3 Tests', () => {
     });
 
     test('should require authentication for V3 search', async () => {
-      const response = await fetch(`http://localhost:${serverPort}/v3/search`);
+      const response = await fetch(`http://localhost:${serverPort}/v3/query`);
       expect(response.status).toBe(401);
     });
 
