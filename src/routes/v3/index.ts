@@ -23,7 +23,7 @@ import { streamFile } from '../../utils/fileStreaming';
  */
 export interface ServiceIndexResource {
   '@id': string;
-  '@type': string;
+  '@type': string | string[];
   comment: string;
 }
 
@@ -177,14 +177,20 @@ const createServiceIndex = (baseUrl: string): ServiceIndex => {
       },
       {
         '@id': `${baseUrl}/v3/registrations/`,
-        '@type': 'RegistrationsBaseUrl',
+        '@type': ['RegistrationsBaseUrl', 'RegistrationsBaseUrl/3.6.0'],
         comment: 'Base URL of NuGet package registration info',
       },
       {
         // This is absolutely terrible, but... since `query` seems to be a fixed path in VS, We're sticking with it.
         // https://github.com/kekyo/nuget-server/discussions/3
         '@id': `${baseUrl}/v3/query`,
-        '@type': 'SearchQueryService',
+        '@type': [
+          'SearchQueryService',
+          'SearchQueryService/3.0.0-rc',
+          'SearchQueryService/3.0.0-beta',
+          'SearchQueryService/3.0.0',
+          'SearchQueryService/3.5.0',
+        ],
         comment: 'Query endpoint of NuGet Search service',
       },
     ],
