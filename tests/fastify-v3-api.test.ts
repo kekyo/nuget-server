@@ -108,7 +108,9 @@ describe('Fastify NuGet V3 API - Phase 3 Tests', () => {
       expect(data.resources.length).toBeGreaterThan(0);
 
       // Check for required resource types
-      const resourceTypes = data.resources.map((r: any) => r['@type']);
+      const resourceTypes = data.resources.flatMap((r: any) =>
+        Array.isArray(r['@type']) ? r['@type'] : [r['@type']]
+      );
       expect(resourceTypes).toContain('RegistrationsBaseUrl');
       expect(resourceTypes).toContain('PackageBaseAddress/3.0.0');
       expect(resourceTypes).toContain('SearchQueryService');
