@@ -752,6 +752,12 @@ The server implements a subset of the NuGet V3 API protocol:
 - Package downloads: `/v3/package/{id}/{version}/{filename}`
 - Registration index: `/v3/registrations/{id}/index.json`
 
+Note: Visual Studio does not correctly reference the service index in the NuGet protocol specification when accessing NuGet servers.
+(Based on my testing, access via Rider and the dotnet CLI works without issues.)
+
+Therefore, the contents of the service index are merely formalities,
+and you can access NuGet servers directly via fixed paths without referencing the service index.
+
 ### Non-interactive mode (CI/CD)
 
 The `--auth-init` and `--import-packages` options require interactive responses from the operator.
