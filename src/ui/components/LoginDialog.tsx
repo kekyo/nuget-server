@@ -58,7 +58,9 @@ const LoginDialog = ({
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = async (event: React.FormEvent) => {
+  const handleSubmit = async (
+    event: React.SyntheticEvent<HTMLFormElement, SubmitEvent>
+  ) => {
     event.preventDefault();
 
     if (!username.trim() || !password.trim()) {
