@@ -36,6 +36,7 @@
   "SESSION_EXPIRED_LOGIN_REQUIRED": "Your session has expired. Please log in again.",
 
   "ADD_SERVER_AS_SOURCE": "Add this server as a NuGet source:",
+  "ADD_SERVER_AS_SOURCE_AND_PUBLISH": "Add this server as a NuGet source, and publish curl command:",
   "COPY_COMMAND": "copy command",
 
   "USERS": "Users",

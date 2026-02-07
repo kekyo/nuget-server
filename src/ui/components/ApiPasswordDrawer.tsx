@@ -30,7 +30,12 @@ import {
   VpnKey as VpnKeyIcon,
   Delete as DeleteIcon,
 } from '@mui/icons-material';
-import { buildAddSourceCommand } from '../utils/commandBuilder';
+import {
+  buildAddSourceCommand,
+  buildPublishCommand,
+  shouldShowAddSourceCommandInApiPasswordExamples,
+  shouldShowPublishCommandInApiPasswordExamples,
+} from '../utils/commandBuilder';
 import { apiFetch } from '../utils/apiClient';
 import { TypedMessage, useTypedMessage } from 'typed-message';
 import { useSnackbar } from 'notistack';
@@ -226,6 +231,30 @@ const ApiPasswordDrawer = ({
     return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
   };
 
+  const addSourceCommandWithApiPassword =
+    serverConfig?.serverUrl && currentUsername && newApiPassword
+      ? buildAddSourceCommand({
+          serverUrl: serverConfig.serverUrl,
+          username: currentUsername,
+          apiPassword: newApiPassword.apiPassword,
+        })
+      : '';
+  const publishCommandWithApiPassword =
+    serverConfig?.serverUrl && currentUsername && newApiPassword
+      ? buildPublishCommand({
+          serverUrl: serverConfig.serverUrl,
+          username: currentUsername,
+          apiPassword: newApiPassword.apiPassword,
+        })
+      : '';
+  const showPublishExampleCommands =
+    !!serverConfig &&
+    !!currentUsername &&
+    shouldShowPublishCommandInApiPasswordExamples(serverConfig.authMode);
+  const showAddSourceExampleCommand =
+    !!serverConfig &&
+    shouldShowAddSourceCommandInApiPasswordExamples(serverConfig.authMode);
+
   return (
     <>
       <Drawer
@@ -312,11 +341,37 @@ const ApiPasswordDrawer = ({
                 </Typography>
               </Paper>
 
-              {serverConfig.authMode === 'full' && currentUsername && (
+              {showPublishExampleCommands && (
                 <Box sx={{ mt: 2 }}>
                   <Typography variant="caption" color="text.secondary">
                     <TypedMessage message={messages.EXAMPLE_COMMANDS} />
                   </Typography>
+                  {showAddSourceExampleCommand && (
+                    <Paper
+                      sx={{
+                        p: 1,
+                        mt: 1,
+                        bgcolor: 'grey.900',
+                        color: 'grey.100',
+                        cursor: 'pointer',
+                        fontSize: '0.75rem',
+                      }}
+                      onClick={() =>
+                        copyToClipboard(addSourceCommandWithApiPassword)
+                      }
+                    >
+                      <Typography
+                        variant="caption"
+                        sx={{
+                          fontFamily: 'monospace',
+                          fontSize: '0.75rem',
+                          wordBreak: 'break-all',
+                        }}
+                      >
+                        {addSourceCommandWithApiPassword}
+                      </Typography>
+                    </Paper>
+                  )}
                   <Paper
                     sx={{
                       p: 1,
@@ -327,13 +382,7 @@ const ApiPasswordDrawer = ({
                       fontSize: '0.75rem',
                     }}
                     onClick={() =>
-                      copyToClipboard(
-                        buildAddSourceCommand({
-                          serverUrl: serverConfig.serverUrl,
-                          username: currentUsername,
-                          apiPassword: newApiPassword.apiPassword,
-                        })
-                      )
+                      copyToClipboard(publishCommandWithApiPassword)
                     }
                   >
                     <Typography
@@ -341,14 +390,11 @@ const ApiPasswordDrawer = ({
                       sx={{
                         fontFamily: 'monospace',
                         fontSize: '0.75rem',
+                        whiteSpace: 'pre-wrap',
                         wordBreak: 'break-all',
                       }}
                     >
-                      {buildAddSourceCommand({
-                        serverUrl: serverConfig.serverUrl,
-                        username: currentUsername,
-                        apiPassword: newApiPassword.apiPassword,
-                      })}
+                      {publishCommandWithApiPassword}
                     </Typography>
                   </Paper>
                 </Box>

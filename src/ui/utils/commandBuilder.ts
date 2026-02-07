@@ -15,6 +15,8 @@ export interface CommandOptions {
   apiPassword?: string;
 }
 
+export type RepositoryAuthMode = 'none' | 'publish' | 'full';
+
 /**
  * Build a dotnet nuget add source command with the given options
  */
@@ -61,10 +63,31 @@ export const buildPublishCommand = (options: CommandOptions): string => {
 
   // Add authentication if provided
   if (username && apiPassword) {
-    command += ` \\\n  -u ${username}:${apiPassword}`;
+    command += ` -u ${username}:${apiPassword}`;
   }
 
-  command += ` \\\n  --data-binary @MyPackage.1.0.0.nupkg \\\n  -H "Content-Type: application/octet-stream"`;
+  command += ` --data-binary @MyPackage.1.0.0.nupkg -H "Content-Type: application/octet-stream"`;
 
   return command;
 };
+
+/**
+ * Whether curl publish command should be shown in repository info section.
+ */
+export const shouldShowPublishCommandInRepositoryInfo = (
+  authMode: RepositoryAuthMode
+): boolean => authMode === 'none';
+
+/**
+ * Whether curl publish command should be shown in API password examples.
+ */
+export const shouldShowPublishCommandInApiPasswordExamples = (
+  authMode: RepositoryAuthMode
+): boolean => authMode === 'publish' || authMode === 'full';
+
+/**
+ * Whether add source command should be shown in API password examples.
+ */
+export const shouldShowAddSourceCommandInApiPasswordExamples = (
+  authMode: RepositoryAuthMode
+): boolean => authMode === 'full';

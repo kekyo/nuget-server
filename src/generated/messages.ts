@@ -250,6 +250,13 @@ export const messages = {
     fallback: "Add this server as a NuGet source:" 
   } as SimpleMessageItem,
   /**
+   * ADD_SERVER_AS_SOURCE_AND_PUBLISH ==> "Add this server as a NuGet source, and publish curl command:"
+   */
+  ADD_SERVER_AS_SOURCE_AND_PUBLISH: { 
+    key: "ADD_SERVER_AS_SOURCE_AND_PUBLISH", 
+    fallback: "Add this server as a NuGet source, and publish curl command:" 
+  } as SimpleMessageItem,
+  /**
    * COPY_COMMAND ==> "copy command"
    */
   COPY_COMMAND: { 
