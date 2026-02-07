@@ -17,8 +17,29 @@ RUN apk add --no-cache \
       git \
       libsodium-dev
 
-# Install dependencies and force sodium-native source build on musl (Alpine)
-RUN npm_config_build_from_source=sodium-native npm ci --only=production && \
+# Install dependencies and compile sodium-native for musl targets
+RUN npm ci --only=production && \
+    set -eux; \
+    ARCH="$(node -p 'process.arch')"; \
+    SODIUM_CMAKE_FILES="$(find node_modules -type f -path '*/sodium-native/CMakeLists.txt')"; \
+    [ -n "$SODIUM_CMAKE_FILES" ]; \
+    for sodium_cmake in $SODIUM_CMAKE_FILES; do \
+      sodium_dir="$(dirname "$sodium_cmake")"; \
+      npm install --prefix "$sodium_dir" --no-save \
+        cmake-bare@1.1.10 \
+        cmake-fetch@1.4.7 \
+        cmake-napi@1.2.1; \
+      cmake -S "$sodium_dir" -B "$sodium_dir/build" -DCMAKE_BUILD_TYPE=Release; \
+      cmake --build "$sodium_dir/build"; \
+      MUSL_PLATFORM_DIR="$sodium_dir/prebuilds/linux-${ARCH}-musl"; \
+      GNU_PLATFORM_DIR="$sodium_dir/prebuilds/linux-${ARCH}"; \
+      mkdir -p "$MUSL_PLATFORM_DIR" "$GNU_PLATFORM_DIR"; \
+      install -m 0644 "$sodium_dir/build/sodium-native.node" "$MUSL_PLATFORM_DIR/sodium-native.node"; \
+      install -m 0644 "$sodium_dir/build/sodium-native.bare" "$MUSL_PLATFORM_DIR/sodium-native.bare"; \
+      install -m 0644 "$sodium_dir/build/sodium-native.node" "$GNU_PLATFORM_DIR/sodium-native.node"; \
+      install -m 0644 "$sodium_dir/build/sodium-native.bare" "$GNU_PLATFORM_DIR/sodium-native.bare"; \
+      rm -rf "$sodium_dir/build" "$sodium_dir/sodium-native.node" "$sodium_dir/sodium-native.bare" "$sodium_dir/node_modules"; \
+    done && \
     npm cache clean --force && \
     rm -rf /tmp/*
 

@@ -17,6 +17,8 @@ IMAGE_NAME="nuget-server"
 OCI_SERVER_USER=${OCI_SERVER_USER:-"kekyo"}
 PLATFORMS="${PLATFORMS:-linux/amd64,linux/arm64}"
 PUSH_TO_REGISTRY="${PUSH_TO_REGISTRY:-false}"
+VERIFY_TARGET_PLATFORMS="${VERIFY_TARGET_PLATFORMS:-true}"
+VERIFY_HOST_IMAGE="${VERIFY_HOST_IMAGE:-true}"
 
 # Functions
 print_info() {
@@ -53,6 +55,11 @@ check_dependencies() {
 
     if ! command -v jq &> /dev/null; then
         print_error "jq is not installed (required for version extraction)"
+        exit 1
+    fi
+
+    if ! command -v curl &> /dev/null; then
+        print_error "curl is not installed (required for smoke tests)"
         exit 1
     fi
 
@@ -97,6 +104,126 @@ check_dependencies() {
     fi
 
     print_info "All dependencies are satisfied"
+}
+
+get_host_platform() {
+    local native_arch
+    native_arch=$(uname -m)
+    case "$native_arch" in
+        x86_64) echo "linux/amd64" ;;
+        aarch64) echo "linux/arm64" ;;
+        armv7l) echo "linux/arm/v7" ;;
+        *) echo "linux/$native_arch" ;;
+    esac
+}
+
+fail_smoke_check() {
+    local container_name="$1"
+    local reason="$2"
+
+    print_error "$reason"
+    print_info "Container logs ($container_name):"
+    podman logs "$container_name" || true
+    podman rm -f "$container_name" >/dev/null 2>&1 || true
+    exit 1
+}
+
+run_binary_load_check() {
+    local platform="$1"
+    local image="$2"
+
+    print_info "Binary load check on ${platform}..."
+    if ! podman run --rm --platform "$platform" --entrypoint node "$image" \
+        -e "require('@fastify/secure-session'); console.log('binary-load-ok');"; then
+        print_error "Binary load check failed on ${platform}"
+        exit 1
+    fi
+}
+
+run_http_smoke_check() {
+    local platform="$1"
+    local image="$2"
+    local label="$3"
+
+    local container_name
+    local status
+    local port_line
+    local host_port
+    local ready=false
+    local run_platform_args=()
+
+    if [ -n "$platform" ]; then
+        run_platform_args=(--platform "$platform")
+    fi
+
+    container_name="nuget-server-smoke-${label}-$(date +%s)-${RANDOM}"
+
+    print_info "HTTP smoke check (${label})..."
+    if ! podman run -d --name "$container_name" -p 127.0.0.1::5963 \
+        "${run_platform_args[@]}" "$image" >/dev/null; then
+        print_error "Failed to start container for smoke check (${label})"
+        exit 1
+    fi
+
+    port_line=$(podman port "$container_name" 5963/tcp | head -n 1 || true)
+    host_port="${port_line##*:}"
+
+    if ! [[ "$host_port" =~ ^[0-9]+$ ]]; then
+        fail_smoke_check "$container_name" "Failed to detect mapped host port for ${label}"
+    fi
+
+    for _ in $(seq 1 90); do
+        status=$(podman inspect -f '{{.State.Status}}' "$container_name" 2>/dev/null || echo "unknown")
+        if [ "$status" != "running" ]; then
+            fail_smoke_check "$container_name" "Container exited before ready (${label})"
+        fi
+
+        if curl -fsS --max-time 2 "http://127.0.0.1:${host_port}/health" >/dev/null 2>&1; then
+            ready=true
+            break
+        fi
+        sleep 1
+    done
+
+    if [ "$ready" != "true" ]; then
+        fail_smoke_check "$container_name" "Timed out waiting for server startup (${label})"
+    fi
+
+    if ! curl -fsS --max-time 5 "http://127.0.0.1:${host_port}/health" \
+        | jq -e '.status == "ok"' >/dev/null; then
+        fail_smoke_check "$container_name" "Health endpoint check failed (${label})"
+    fi
+
+    if ! curl -fsS --max-time 5 "http://127.0.0.1:${host_port}/v3/index.json" \
+        | jq -e '.version and (.resources | type == "array") and (.resources | length > 0)' >/dev/null; then
+        fail_smoke_check "$container_name" "NuGet V3 endpoint check failed (${label})"
+    fi
+
+    if ! curl -fsS --max-time 5 -H 'Accept: text/html' "http://127.0.0.1:${host_port}/" \
+        | grep -qi '<!doctype html>'; then
+        fail_smoke_check "$container_name" "UI endpoint check failed (${label})"
+    fi
+
+    podman rm -f "$container_name" >/dev/null 2>&1 || true
+}
+
+verify_target_platforms() {
+    print_info "Verifying all target platforms..."
+    while IFS= read -r platform; do
+        [ -z "$platform" ] && continue
+        run_binary_load_check "$platform" "$LOCAL_IMAGE"
+        run_http_smoke_check "$platform" "$LOCAL_IMAGE" "target-${platform//\//-}"
+    done < <(echo "$PLATFORMS" | tr ',' '\n' | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' | sed '/^$/d')
+    print_info "All target platform checks passed"
+}
+
+verify_host_image() {
+    local host_platform
+    host_platform=$(get_host_platform)
+
+    print_info "Verifying host image behavior on ${host_platform}..."
+    run_http_smoke_check "" "$LOCAL_IMAGE" "host-default"
+    print_info "Host image check passed"
 }
 
 build_application() {
@@ -207,8 +334,11 @@ Build multi-platform container images for nuget-server using Podman
 Options:
     -h, --help              Show this help message
     -p, --push              Push images to registry after build
-    --platforms PLATFORMS   Comma-separated list of platforms (default: linux/amd64,linux/arm64,linux/arm/v7)
+    --platforms PLATFORMS   Comma-separated list of platforms (default: linux/amd64,linux/arm64)
     --skip-app-build        Skip npm build step
+    --skip-target-verify    Skip target platform binary/smoke checks
+    --skip-host-smoke       Skip host-architecture smoke check
+    --skip-verify           Skip all post-build verification checks
     --inspect               Only inspect existing manifest
 
 Environment Variables:
@@ -216,6 +346,8 @@ Environment Variables:
     PLATFORMS               Target platforms
     PUSH_TO_REGISTRY        Set to 'true' to push images
     SKIP_APP_BUILD          Set to 'true' to skip npm build
+    VERIFY_TARGET_PLATFORMS Set to 'false' to skip target verification
+    VERIFY_HOST_IMAGE       Set to 'false' to skip host smoke check
 
 Examples:
     # Build for all platforms without pushing
@@ -226,6 +358,9 @@ Examples:
 
     # Build for specific platforms
     $0 --platforms linux/amd64,linux/arm64
+
+    # Build and skip all verification checks
+    $0 --skip-verify
 
     # Push with custom user
     OCI_SERVER_USER=myuser $0 --push
@@ -256,6 +391,19 @@ while [[ $# -gt 0 ]]; do
             ;;
         --skip-app-build)
             SKIP_APP_BUILD="true"
+            shift
+            ;;
+        --skip-target-verify)
+            VERIFY_TARGET_PLATFORMS="false"
+            shift
+            ;;
+        --skip-host-smoke)
+            VERIFY_HOST_IMAGE="false"
+            shift
+            ;;
+        --skip-verify)
+            VERIFY_TARGET_PLATFORMS="false"
+            VERIFY_HOST_IMAGE="false"
             shift
             ;;
         --inspect)
@@ -293,6 +441,19 @@ main() {
     fi
 
     build_multiplatform_images
+
+    if [ "$VERIFY_TARGET_PLATFORMS" = "true" ]; then
+        verify_target_platforms
+    else
+        print_warning "Skipping target platform verification (VERIFY_TARGET_PLATFORMS=false)"
+    fi
+
+    if [ "$VERIFY_HOST_IMAGE" = "true" ]; then
+        verify_host_image
+    else
+        print_warning "Skipping host image smoke check (VERIFY_HOST_IMAGE=false)"
+    fi
+
     tag_remote_images
     push_to_registry
     inspect_manifest
