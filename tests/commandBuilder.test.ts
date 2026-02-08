@@ -7,6 +7,9 @@ import {
   buildAddSourceCommand,
   buildPublishCommand,
   CommandOptions,
+  shouldShowAddSourceCommandInApiPasswordExamples,
+  shouldShowPublishCommandInApiPasswordExamples,
+  shouldShowPublishCommandInRepositoryInfo,
 } from '../src/ui/utils/commandBuilder';
 
 describe('commandBuilder', () => {
@@ -219,7 +222,7 @@ describe('commandBuilder', () => {
       );
     });
 
-    it('should format command with line breaks for readability', () => {
+    it('should format command in single line', () => {
       const options: CommandOptions = {
         serverUrl: {
           port: 5000,
@@ -234,10 +237,58 @@ describe('commandBuilder', () => {
       expect(command).toContain(
         'curl -X POST http://localhost:5000/api/publish'
       );
-      expect(command).toContain(' \\\n  -u testuser:test-api-password');
-      expect(command).toContain(' \\\n  --data-binary @MyPackage.1.0.0.nupkg');
-      expect(command).toContain(
-        ' \\\n  -H "Content-Type: application/octet-stream"'
+      expect(command).toContain(' -u testuser:test-api-password');
+      expect(command).toContain(' --data-binary @MyPackage.1.0.0.nupkg');
+      expect(command).toContain(' -H "Content-Type: application/octet-stream"');
+    });
+  });
+
+  describe('shouldShowPublishCommandInRepositoryInfo', () => {
+    it('should return true for none mode', () => {
+      expect(shouldShowPublishCommandInRepositoryInfo('none')).toBe(true);
+    });
+
+    it('should return false for publish mode', () => {
+      expect(shouldShowPublishCommandInRepositoryInfo('publish')).toBe(false);
+    });
+
+    it('should return false for full mode', () => {
+      expect(shouldShowPublishCommandInRepositoryInfo('full')).toBe(false);
+    });
+  });
+
+  describe('shouldShowPublishCommandInApiPasswordExamples', () => {
+    it('should return false for none mode', () => {
+      expect(shouldShowPublishCommandInApiPasswordExamples('none')).toBe(false);
+    });
+
+    it('should return true for publish mode', () => {
+      expect(shouldShowPublishCommandInApiPasswordExamples('publish')).toBe(
+        true
+      );
+    });
+
+    it('should return true for full mode', () => {
+      expect(shouldShowPublishCommandInApiPasswordExamples('full')).toBe(true);
+    });
+  });
+
+  describe('shouldShowAddSourceCommandInApiPasswordExamples', () => {
+    it('should return false for none mode', () => {
+      expect(shouldShowAddSourceCommandInApiPasswordExamples('none')).toBe(
+        false
+      );
+    });
+
+    it('should return false for publish mode', () => {
+      expect(shouldShowAddSourceCommandInApiPasswordExamples('publish')).toBe(
+        false
+      );
+    });
+
+    it('should return true for full mode', () => {
+      expect(shouldShowAddSourceCommandInApiPasswordExamples('full')).toBe(
+        true
       );
     });
   });

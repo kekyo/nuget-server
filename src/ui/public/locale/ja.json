@@ -36,6 +36,7 @@
   "SESSION_EXPIRED_LOGIN_REQUIRED": "セッションの有効期限が切れました。再度ログインしてください。",
 
   "ADD_SERVER_AS_SOURCE": "このサーバーをNuGetソースとして追加:",
+  "ADD_SERVER_AS_SOURCE_AND_PUBLISH": "このサーバーをNuGetソースとして追加・curlでパッケージを登録:",
   "COPY_COMMAND": "コマンドをコピー",
 
   "USERS": "ユーザー",

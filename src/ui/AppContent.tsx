@@ -33,7 +33,11 @@ import UserPasswordChangeDrawer from './components/UserPasswordChangeDrawer';
 import UserAvatarMenu from './components/UserAvatarMenu';
 import LoginDialog from './components/LoginDialog';
 import { name, repository_url, version } from '../generated/packageMetadata';
-import { buildAddSourceCommand } from './utils/commandBuilder';
+import {
+  buildAddSourceCommand,
+  buildPublishCommand,
+  shouldShowPublishCommandInRepositoryInfo as canShowPublishCommandInRepositoryInfo,
+} from './utils/commandBuilder';
 import { apiFetch } from './utils/apiClient';
 import { messages } from '../generated/messages';
 
@@ -366,31 +370,40 @@ const AppContent = ({
     }
   };
 
-  const handleCopyCommand = async () => {
-    if (serverConfig?.serverUrl) {
-      const command = buildAddSourceCommand({
-        serverUrl: serverConfig.serverUrl,
+  const handleCopyCommand = async (command: string) => {
+    try {
+      await navigator.clipboard.writeText(command);
+      enqueueSnackbar(getMessage(messages.COPIED_TO_CLIPBOARD), {
+        variant: 'success',
       });
-      try {
-        await navigator.clipboard.writeText(command);
-        enqueueSnackbar(getMessage(messages.COPIED_TO_CLIPBOARD), {
-          variant: 'success',
-        });
-      } catch (err) {
-        // Fallback for browsers without Clipboard API support
-        const textArea = document.createElement('textarea');
-        textArea.value = command;
-        document.body.appendChild(textArea);
-        textArea.select();
-        // @prettier-max-ignore-deprecated
-        document.execCommand('copy');
-        document.body.removeChild(textArea);
-        enqueueSnackbar(getMessage(messages.COPIED_TO_CLIPBOARD), {
-          variant: 'success',
-        });
-      }
+    } catch (err) {
+      // Fallback for browsers without Clipboard API support
+      const textArea = document.createElement('textarea');
+      textArea.value = command;
+      document.body.appendChild(textArea);
+      textArea.select();
+      // @prettier-max-ignore-deprecated
+      document.execCommand('copy');
+      document.body.removeChild(textArea);
+      enqueueSnackbar(getMessage(messages.COPIED_TO_CLIPBOARD), {
+        variant: 'success',
+      });
     }
   };
+
+  const addSourceCommand = serverConfig?.serverUrl
+    ? buildAddSourceCommand({
+        serverUrl: serverConfig.serverUrl,
+      })
+    : '';
+  const publishCommand = serverConfig?.serverUrl
+    ? buildPublishCommand({
+        serverUrl: serverConfig.serverUrl,
+      })
+    : '';
+  const showPublishCommand =
+    !!serverConfig &&
+    canShowPublishCommandInRepositoryInfo(serverConfig.authMode);
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
@@ -507,31 +520,68 @@ const AppContent = ({
                     gutterBottom
                   >
                     <EditNote fontSize="small" />
-                    <TypedMessage message={messages.ADD_SERVER_AS_SOURCE} />
+                    {showPublishCommand ? (
+                      <TypedMessage
+                        message={messages.ADD_SERVER_AS_SOURCE_AND_PUBLISH}
+                      />
+                    ) : (
+                      <TypedMessage message={messages.ADD_SERVER_AS_SOURCE} />
+                    )}
                   </Typography>
                 </Stack>
-                <Typography
-                  variant="body2"
-                  marginLeft="1rem"
-                  sx={{
-                    fontFamily: 'monospace',
-                    fontSize: '1rem',
-                    wordBreak: 'break-all',
-                  }}
+                <Box
+                  sx={{ display: 'flex', alignItems: 'anchor-center', mt: 0 }}
                 >
-                  {buildAddSourceCommand({
-                    serverUrl: serverConfig!.serverUrl,
-                  })}
-                </Typography>
+                  <Typography
+                    variant="body2"
+                    marginLeft="1rem"
+                    sx={{
+                      flexGrow: 1,
+                      fontFamily: 'monospace',
+                      fontSize: '0.95rem',
+                      wordBreak: 'break-all',
+                    }}
+                  >
+                    {addSourceCommand}
+                  </Typography>
+                  <IconButton
+                    size="large"
+                    onClick={() => handleCopyCommand(addSourceCommand)}
+                    aria-label="copy add-source command"
+                    sx={{ ml: 1, marginRight: '1rem' }}
+                  >
+                    <ContentCopyIcon fontSize="small" />
+                  </IconButton>
+                </Box>
+
+                {showPublishCommand && (
+                  <Box
+                    sx={{ display: 'flex', alignItems: 'anchor-center', mt: 0 }}
+                  >
+                    <Typography
+                      variant="body2"
+                      marginLeft="1rem"
+                      sx={{
+                        flexGrow: 1,
+                        fontFamily: 'monospace',
+                        fontSize: '0.95rem',
+                        whiteSpace: 'pre-wrap',
+                        wordBreak: 'break-all',
+                      }}
+                    >
+                      {publishCommand}
+                    </Typography>
+                    <IconButton
+                      size="large"
+                      onClick={() => handleCopyCommand(publishCommand)}
+                      aria-label="copy publish command"
+                      sx={{ ml: 1, marginRight: '1rem' }}
+                    >
+                      <ContentCopyIcon fontSize="small" />
+                    </IconButton>
+                  </Box>
+                )}
               </Box>
-              <IconButton
-                size="large"
-                onClick={handleCopyCommand}
-                aria-label="copy command"
-                sx={{ ml: 1, marginRight: '1rem' }}
-              >
-                <ContentCopyIcon fontSize="small" />
-              </IconButton>
             </Box>
           </Paper>
         </Container>
