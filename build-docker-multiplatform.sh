@@ -19,6 +19,7 @@ PLATFORMS="${PLATFORMS:-linux/amd64,linux/arm64}"
 PUSH_TO_REGISTRY="${PUSH_TO_REGISTRY:-false}"
 VERIFY_TARGET_PLATFORMS="${VERIFY_TARGET_PLATFORMS:-true}"
 VERIFY_HOST_IMAGE="${VERIFY_HOST_IMAGE:-true}"
+QEMU_CHECK_IMAGE="${QEMU_CHECK_IMAGE:-docker.io/library/debian:bookworm-slim}"
 
 # Functions
 print_info() {
@@ -64,7 +65,7 @@ check_dependencies() {
     fi
 
     # Check for QEMU support for cross-platform builds
-    if ! podman run --rm --platform linux/arm64 alpine:latest true &> /dev/null; then
+    if ! podman run --rm --platform linux/arm64 "${QEMU_CHECK_IMAGE}" true &> /dev/null; then
         print_warning "QEMU emulation is not properly configured for cross-platform builds"
         print_error "Cannot build for non-native architectures without QEMU"
         print_info ""
@@ -80,7 +81,7 @@ check_dependencies() {
         print_info "  sudo dnf install -y qemu-user-static"
         print_info ""
         print_info "After setup, verify with:"
-        print_info "  podman run --rm --platform linux/arm64 alpine:latest uname -m"
+        print_info "  podman run --rm --platform linux/arm64 ${QEMU_CHECK_IMAGE} uname -m"
         print_info ""
 
         # Check if we're trying to build for non-native platforms
@@ -134,7 +135,7 @@ run_binary_load_check() {
 
     print_info "Binary load check on ${platform}..."
     if ! podman run --rm --platform "$platform" --entrypoint node "$image" \
-        -e "require('@fastify/secure-session'); console.log('binary-load-ok');"; then
+        -e "require('sodium-native'); require('@fastify/secure-session'); console.log('binary-load-ok');"; then
         print_error "Binary load check failed on ${platform}"
         exit 1
     fi
@@ -246,8 +247,8 @@ build_application() {
 
 build_multiplatform_images() {
     # Image names (following build-docker.sh convention)
-    LOCAL_IMAGE="${IMAGE_NAME}:${VERSION}"
-    LOCAL_LATEST="${IMAGE_NAME}:latest"
+    LOCAL_IMAGE="localhost/${IMAGE_NAME}:${VERSION}"
+    LOCAL_LATEST="localhost/${IMAGE_NAME}:latest"
     REMOTE_IMAGE="${OCI_SERVER}/${OCI_SERVER_USER}/${IMAGE_NAME}:${VERSION}"
     REMOTE_LATEST="${OCI_SERVER}/${OCI_SERVER_USER}/${IMAGE_NAME}:latest"
 
@@ -348,6 +349,7 @@ Environment Variables:
     SKIP_APP_BUILD          Set to 'true' to skip npm build
     VERIFY_TARGET_PLATFORMS Set to 'false' to skip target verification
     VERIFY_HOST_IMAGE       Set to 'false' to skip host smoke check
+    QEMU_CHECK_IMAGE        Container image used to verify QEMU emulation
 
 Examples:
     # Build for all platforms without pushing

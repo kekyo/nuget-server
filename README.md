@@ -518,6 +518,8 @@ Docker images are available for multiple architectures:
 
 When pulling the image, Docker automatically selects the appropriate architecture for your platform.
 
+The container image uses a Debian/glibc-based Node.js runtime so `sodium-native` can use its prebuilt Linux binaries without the previous musl-specific manual build path.
+
 ### Quick start
 
 Suppose you have configured the following directory structure for persistence (recommended):
@@ -723,7 +725,7 @@ sudo apt-get update && sudo apt-get install -y qemu-user-static
 sudo dnf install -y qemu-user-static
 
 # Verify QEMU is working:
-podman run --rm --platform linux/arm64 alpine:latest uname -m
+podman run --rm --platform linux/arm64 docker.io/library/debian:bookworm-slim uname -m
 # Should output: aarch64
 ```
 

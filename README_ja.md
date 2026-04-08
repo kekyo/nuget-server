@@ -511,6 +511,8 @@ Dockerイメージは複数のアーキテクチャで利用可能です：
 
 イメージをプルする際、Dockerは自動的にプラットフォームに適したアーキテクチャを選択します。
 
+このコンテナイメージは Debian/glibc ベースの Node.js ランタイムを使用しており、`sodium-native` は従来の musl 向け手動ビルドではなく、Linux 向けの prebuilt バイナリを利用します。
+
 ### クイックスタート
 
 次のような永続化のためのディレクトリを構成したとします（推奨）:
@@ -716,7 +718,7 @@ sudo apt-get update && sudo apt-get install -y qemu-user-static
 sudo dnf install -y qemu-user-static
 
 # QEMUが動作していることを確認：
-podman run --rm --platform linux/arm64 alpine:latest uname -m
+podman run --rm --platform linux/arm64 docker.io/library/debian:bookworm-slim uname -m
 # 出力されるべき: aarch64
 ```
 
