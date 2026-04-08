@@ -52,6 +52,7 @@ interface SearchResult {
   projectUrl?: string;
   tags: string[];
   authors: string[];
+  targetFrameworks: string[];
   totalDownloads: number;
   verified: boolean;
   packageTypes: Array<{
@@ -592,6 +593,29 @@ const PackageList = forwardRef<PackageListRef, PackageListProps>(
                               <Chip
                                 key={tag}
                                 label={tag}
+                                size="small"
+                                variant="outlined"
+                              />
+                            ))}
+                          </Box>
+                        </Box>
+                      )}
+
+                      {/* Package Target Frameworks */}
+                      {pkg.targetFrameworks.length > 0 && (
+                        <Box sx={{ mb: 2 }}>
+                          <Typography variant="subtitle2" gutterBottom>
+                            <TypedMessage
+                              message={messages.TARGET_FRAMEWORKS_LABEL}
+                            />
+                          </Typography>
+                          <Box
+                            sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}
+                          >
+                            {pkg.targetFrameworks.map((framework) => (
+                              <Chip
+                                key={framework}
+                                label={framework}
                                 size="small"
                                 variant="outlined"
                               />

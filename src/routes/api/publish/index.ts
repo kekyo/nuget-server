@@ -18,7 +18,10 @@ import {
   AuthenticatedFastifyRequest,
 } from '../../../middleware/fastifyAuth';
 import { createUrlResolver } from '../../../utils/urlResolver';
-import { parseNuspecTags } from '../../../utils/nuspec';
+import {
+  extractNuspecTargetFrameworks,
+  parseNuspecTags,
+} from '../../../utils/nuspec';
 
 /**
  * Service interface for handling package uploads
@@ -318,6 +321,7 @@ const parseNuspec = async (nuspecContent: string): Promise<PackageMetadata> => {
       ? parseNuspecTags(metadata.tags)
       : []
     : [];
+  const targetFrameworks = extractNuspecTargetFrameworks(metadata);
 
   return {
     id: metadata.id,
@@ -333,6 +337,7 @@ const parseNuspec = async (nuspecContent: string): Promise<PackageMetadata> => {
     iconUrl: metadata.iconUrl,
     icon: metadata.icon,
     tags,
+    targetFrameworks,
     dependencies,
     published: new Date(),
     listed: true,

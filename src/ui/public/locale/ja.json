@@ -73,6 +73,7 @@
   "AUTHORS_LABEL": "作成者:",
   "TAGS": "タグ",
   "TAGS_LABEL": "タグ:",
+  "TARGET_FRAMEWORKS_LABEL": "対象フレームワーク:",
   "LICENSE": "ライセンス",
   "PROJECT_URL": "プロジェクトURL",
   "PROJECT_LINK": "プロジェクト",

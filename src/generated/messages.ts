@@ -488,6 +488,13 @@ export const messages = {
     fallback: "Tags:" 
   } as SimpleMessageItem,
   /**
+   * TARGET_FRAMEWORKS_LABEL ==> "Target Frameworks:"
+   */
+  TARGET_FRAMEWORKS_LABEL: { 
+    key: "TARGET_FRAMEWORKS_LABEL", 
+    fallback: "Target Frameworks:" 
+  } as SimpleMessageItem,
+  /**
    * LICENSE ==> "License"
    */
   LICENSE: { 

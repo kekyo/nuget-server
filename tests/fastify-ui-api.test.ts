@@ -221,6 +221,52 @@ describe('Fastify UI Backend API - Phase 4 Tests', () => {
     }
   }, 30000);
 
+  test('should expose normalized target frameworks from the latest nuspec in search results', async () => {
+    const config: ServerConfig = {
+      port: serverPort,
+      packageDir: testPackagesDir,
+      configDir: testConfigDir,
+      realm: 'Test Fastify UI Server - None',
+      logLevel: testGlobalLogLevel,
+      authMode: 'none',
+      passwordStrengthCheck: false,
+    };
+
+    const server = await startFastifyServer(config, logger);
+    try {
+      const response = await fetch(
+        `http://localhost:${serverPort}/v3/query?q=FlashCap`
+      );
+
+      expect(response.status).toBe(200);
+
+      const data = await response.json();
+      expect(data.totalHits).toBe(1);
+      expect(data.data[0]).toHaveProperty('id', 'FlashCap');
+      expect(data.data[0].targetFrameworks).toEqual([
+        'net35',
+        'net40',
+        'net45',
+        'net461',
+        'net48',
+        'netstandard1.3',
+        'netcoreapp2.0',
+        'netcoreapp2.1',
+        'netcoreapp2.2',
+        'netcoreapp3.0',
+        'netcoreapp3.1',
+        'net5.0',
+        'net6.0',
+        'net7.0',
+        'net8.0',
+        'netstandard2.0',
+        'netstandard2.1',
+      ]);
+    } finally {
+      await server.close();
+    }
+  }, 30000);
+
   test('POST /api/ui/config - should detect session authentication in config', async () => {
     const config: ServerConfig = {
       port: serverPort,
@@ -1361,6 +1407,30 @@ describe('Fastify UI API - POST /api/publish (hybrid auth based on mode)', () =>
     return zip.toBuffer();
   };
 
+  const createTargetFrameworkPackageBuffer = (
+    packageId: string,
+    version: string
+  ): Buffer => {
+    const zip = new AdmZip();
+    const nuspecContent = `<?xml version="1.0"?>
+<package>
+  <metadata>
+    <id>${packageId}</id>
+    <version>${version}</version>
+    <authors>Test Author</authors>
+    <description>Target framework test package</description>
+    <dependencies>
+      <group targetFramework=".NETFramework4.5" />
+      <group targetFramework=".NETStandard2.0" />
+      <group targetFramework="net8.0" />
+    </dependencies>
+  </metadata>
+</package>`;
+
+    zip.addFile(`${packageId}.nuspec`, Buffer.from(nuspecContent));
+    return zip.toBuffer();
+  };
+
   beforeEach(async (fn) => {
     // Create isolated test directory for each test
     testBaseDir = await createTestDirectory(
@@ -1555,6 +1625,55 @@ describe('Fastify UI API - POST /api/publish (hybrid auth based on mode)', () =>
         'beta',
         'gamma',
         'delta',
+      ]);
+    } finally {
+      await server.close();
+    }
+  }, 30000);
+
+  test('should expose normalized target frameworks for newly published packages', async () => {
+    const config: ServerConfig = {
+      port: serverPort,
+      packageDir: testPackagesDir,
+      configDir: testConfigDir,
+      realm: 'Test Fastify UI Server - None',
+      logLevel: testGlobalLogLevel,
+      authMode: 'none',
+      passwordStrengthCheck: false,
+    };
+
+    const server = await startFastifyServer(config, logger);
+    try {
+      const testPackageBuffer = createTargetFrameworkPackageBuffer(
+        'TargetFrameworkPackage',
+        '1.2.3'
+      );
+
+      const publishResponse = await fetch(
+        `http://localhost:${serverPort}/api/publish`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/octet-stream',
+          },
+          body: new Uint8Array(testPackageBuffer),
+        }
+      );
+
+      expect(publishResponse.status).toBe(201);
+
+      const searchResponse = await fetch(
+        `http://localhost:${serverPort}/v3/query?q=TargetFrameworkPackage`
+      );
+
+      expect(searchResponse.status).toBe(200);
+      const searchData = await searchResponse.json();
+      expect(searchData.totalHits).toBe(1);
+      expect(searchData.data[0]).toHaveProperty('id', 'TargetFrameworkPackage');
+      expect(searchData.data[0].targetFrameworks).toEqual([
+        'net45',
+        'netstandard2.0',
+        'net8.0',
       ]);
     } finally {
       await server.close();
