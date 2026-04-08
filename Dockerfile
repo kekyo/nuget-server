@@ -1,5 +1,7 @@
+ARG NODE_IMAGE=node:24-trixie-slim
+
 # Stage 1: Install production dependencies on Debian/glibc
-FROM node:20-bookworm-slim AS builder
+FROM ${NODE_IMAGE} AS builder
 
 WORKDIR /app
 
@@ -12,7 +14,7 @@ RUN npm ci --omit=dev && \
 COPY dist ./dist
 
 # Stage 2: Runtime image on Debian/glibc
-FROM node:20-bookworm-slim AS runtime
+FROM ${NODE_IMAGE} AS runtime
 
 WORKDIR /app
 

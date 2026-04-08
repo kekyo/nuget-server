@@ -19,8 +19,9 @@ PLATFORMS="${PLATFORMS:-linux/amd64,linux/arm64}"
 PUSH_TO_REGISTRY="${PUSH_TO_REGISTRY:-false}"
 VERIFY_TARGET_PLATFORMS="${VERIFY_TARGET_PLATFORMS:-true}"
 VERIFY_HOST_IMAGE="${VERIFY_HOST_IMAGE:-true}"
-QEMU_CHECK_IMAGE="${QEMU_CHECK_IMAGE:-docker.io/library/debian:bookworm-slim}"
+QEMU_CHECK_IMAGE="${QEMU_CHECK_IMAGE:-docker.io/library/debian:trixie-slim}"
 BUILD_JOBS="${BUILD_JOBS:-1}"
+NODE_IMAGE="${NODE_IMAGE:-node:24-trixie-slim}"
 
 # Functions
 print_info() {
@@ -150,6 +151,7 @@ build_platform_image() {
 
     print_info "Building ${platform} as ${image}..."
     podman build \
+        --build-arg "NODE_IMAGE=${NODE_IMAGE}" \
         --platform "$platform" \
         --tag "$image" \
         .
@@ -299,6 +301,7 @@ build_multiplatform_images() {
     print_info "Building multi-platform images..."
     print_info "Platforms: $PLATFORMS"
     print_info "Build jobs: $BUILD_JOBS"
+    print_info "Node image: $NODE_IMAGE"
     print_info "Local image: ${LOCAL_IMAGE}"
     print_info "Remote image: ${REMOTE_IMAGE}"
 
@@ -346,7 +349,7 @@ build_multiplatform_images() {
     done
 
     for platform_image in "${platform_images[@]}"; do
-        podman manifest add "${MANIFEST_NAME}" "$platform_image"
+        podman manifest add "${MANIFEST_NAME}" "containers-storage:${platform_image}"
     done
 
     # Create latest tag by copying the versioned manifest
@@ -413,6 +416,7 @@ Options:
     -p, --push              Push images to registry after build
     --platforms PLATFORMS   Comma-separated list of platforms (default: linux/amd64,linux/arm64)
     -j, --jobs JOBS         Number of platform builds to run in parallel (1-2, default: 1)
+    --node-image IMAGE      Base Node.js image to use for Docker builds (default: node:24-trixie-slim)
     --skip-app-build        Skip npm build step
     --skip-target-verify    Skip target platform binary/smoke checks
     --skip-host-smoke       Skip host-architecture smoke check
@@ -425,6 +429,7 @@ Environment Variables:
     PUSH_TO_REGISTRY        Set to 'true' to push images
     SKIP_APP_BUILD          Set to 'true' to skip npm build
     BUILD_JOBS             Number of platform builds to run in parallel (1-2)
+    NODE_IMAGE             Base Node.js image to use for Docker builds (default: node:24-trixie-slim)
     VERIFY_TARGET_PLATFORMS Set to 'false' to skip target verification
     VERIFY_HOST_IMAGE       Set to 'false' to skip host smoke check
     QEMU_CHECK_IMAGE        Container image used to verify QEMU emulation
@@ -441,6 +446,9 @@ Examples:
 
     # Build amd64 and arm64 in parallel
     $0 --platforms linux/amd64,linux/arm64 --jobs 2
+
+    # Override the default Node image (example: Node 22 on Bookworm)
+    $0 --platforms linux/amd64,linux/arm64 --jobs 2 --node-image node:22-bookworm-slim
 
     # Build and skip all verification checks
     $0 --skip-verify
@@ -474,6 +482,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         -j|--jobs)
             BUILD_JOBS="$2"
+            shift 2
+            ;;
+        --node-image)
+            NODE_IMAGE="$2"
             shift 2
             ;;
         --skip-app-build)
@@ -511,6 +523,7 @@ main() {
     print_info "Registry: ${OCI_SERVER}/${OCI_SERVER_USER}"
     print_info "Platforms: $PLATFORMS"
     print_info "Build jobs: $BUILD_JOBS"
+    print_info "Node image: $NODE_IMAGE"
 
     validate_build_jobs
 

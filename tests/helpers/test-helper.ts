@@ -1,4 +1,5 @@
 import path from 'path';
+import net from 'node:net';
 import dayjs from 'dayjs';
 import { exec } from 'child_process';
 import { promisify } from 'util';
@@ -47,24 +48,45 @@ export const createTestDirectory = async (
   return testDir;
 };
 
+const isPortAvailable = async (port: number): Promise<boolean> =>
+  await new Promise((resolve) => {
+    const server = net.createServer();
+
+    server.unref();
+
+    server.once('error', () => {
+      resolve(false);
+    });
+
+    server.listen({ port, host: '0.0.0.0', exclusive: true }, () => {
+      server.close(() => {
+        resolve(true);
+      });
+    });
+  });
+
 /**
- * Generates a test port number to avoid conflicts
- * Uses process.pid and random component for better uniqueness across parallel test runs
+ * Finds an available test port near the requested base port.
+ * Uses process.pid and a randomized starting offset, then scans for the first free port.
  * @remarks WARNING: Do NOT construct nested `describe()` tests, isolation environment will break.
  */
-export const getTestPort = (basePort: number = 6000): number => {
-  // Use process.pid for better uniqueness across parallel test runs
+export const getTestPort = async (basePort: number = 6000): Promise<number> => {
+  const rangeSize = 5000;
   const pidComponent = process.pid % 1000;
-  const randomComponent = Math.floor(Math.random() * 4000); // 0-3999
-  const port = basePort + pidComponent + randomComponent;
+  const randomComponent = Math.floor(Math.random() * 4000);
+  const initialOffset = (pidComponent + randomComponent) % rangeSize;
 
-  // Ensure port stays within valid range
-  if (port > 65535) {
-    // Fall back to basePort with smaller random offset
-    return basePort + Math.floor(Math.random() * 1000);
+  for (let attempt = 0; attempt < rangeSize; attempt++) {
+    const port = basePort + ((initialOffset + attempt) % rangeSize);
+
+    if (await isPortAvailable(port)) {
+      return port;
+    }
   }
 
-  return port;
+  throw new Error(
+    `Could not find an available test port in range ${basePort}-${basePort + rangeSize - 1}`
+  );
 };
 
 /**

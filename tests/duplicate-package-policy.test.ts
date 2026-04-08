@@ -71,7 +71,7 @@ describe('Duplicate Package Policy Tests', () => {
     const packagesDir = path.join(testDir, 'packages');
     await fs.mkdir(packagesDir, { recursive: true });
 
-    const port = getTestPort(9500);
+    const port = await getTestPort(9500);
 
     const config: ServerConfig = {
       port,
@@ -333,7 +333,7 @@ describe('Duplicate Package Policy Tests', () => {
       // Set environment variable to "error"
       process.env.NUGET_SERVER_DUPLICATE_PACKAGE_POLICY = 'error';
 
-      const port = getTestPort(9600);
+      const port = await getTestPort(9600);
       const config: ServerConfig = {
         port,
         packageDir: packagesDir,
@@ -374,7 +374,7 @@ describe('Duplicate Package Policy Tests', () => {
       const packagesDir = path.join(testDir, 'packages');
       await fs.mkdir(packagesDir, { recursive: true });
 
-      const port = getTestPort(9700);
+      const port = await getTestPort(9700);
       const config: ServerConfig = {
         port,
         packageDir: packagesDir,

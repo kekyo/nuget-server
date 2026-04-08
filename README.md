@@ -518,8 +518,6 @@ Docker images are available for multiple architectures:
 
 When pulling the image, Docker automatically selects the appropriate architecture for your platform.
 
-The container image uses a Debian/glibc-based Node.js runtime so `sodium-native` can use its prebuilt Linux binaries without the previous musl-specific manual build path.
-
 ### Quick start
 
 Suppose you have configured the following directory structure for persistence (recommended):
@@ -705,6 +703,9 @@ Use the provided multi-platform build script that uses Podman to build for all s
 # Build for specific platforms only
 ./build-docker-multiplatform.sh --platforms linux/amd64,linux/arm64
 
+# Override the default node:24-trixie-slim base image
+./build-docker-multiplatform.sh --platforms linux/amd64,linux/arm64 --node-image node:22-bookworm-slim
+
 # Push with custom Docker Hub username
 OCI_SERVER_USER=yourusername ./build-docker-multiplatform.sh --push
 
@@ -725,7 +726,7 @@ sudo apt-get update && sudo apt-get install -y qemu-user-static
 sudo dnf install -y qemu-user-static
 
 # Verify QEMU is working:
-podman run --rm --platform linux/arm64 docker.io/library/debian:bookworm-slim uname -m
+podman run --rm --platform linux/arm64 docker.io/library/debian:trixie-slim uname -m
 # Should output: aarch64
 ```
 

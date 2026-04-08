@@ -511,8 +511,6 @@ Dockerイメージは複数のアーキテクチャで利用可能です：
 
 イメージをプルする際、Dockerは自動的にプラットフォームに適したアーキテクチャを選択します。
 
-このコンテナイメージは Debian/glibc ベースの Node.js ランタイムを使用しており、`sodium-native` は従来の musl 向け手動ビルドではなく、Linux 向けの prebuilt バイナリを利用します。
-
 ### クイックスタート
 
 次のような永続化のためのディレクトリを構成したとします（推奨）:
@@ -698,6 +696,9 @@ nuget-serverのDocker imageのビルドは、Podmanを使用しています。
 # 特定のプラットフォームのみビルド
 ./build-docker-multiplatform.sh --platforms linux/amd64,linux/arm64
 
+# デフォルトの node:24-trixie-slim ベースイメージを上書き
+./build-docker-multiplatform.sh --platforms linux/amd64,linux/arm64 --node-image node:22-bookworm-slim
+
 # カスタムDocker Hubユーザー名でプッシュ
 OCI_SERVER_USER=yourusername ./build-docker-multiplatform.sh --push
 
@@ -718,7 +719,7 @@ sudo apt-get update && sudo apt-get install -y qemu-user-static
 sudo dnf install -y qemu-user-static
 
 # QEMUが動作していることを確認：
-podman run --rm --platform linux/arm64 docker.io/library/debian:bookworm-slim uname -m
+podman run --rm --platform linux/arm64 docker.io/library/debian:trixie-slim uname -m
 # 出力されるべき: aarch64
 ```
 

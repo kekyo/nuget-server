@@ -43,6 +43,7 @@
     "build:ui": "./gen-packageMetadata.sh && BUILD_TARGET=ui vite build",
     "dev": "./gen-packageMetadata.sh && vite dev",
     "test": "npm run build && vitest run",
+    "test:docker-node24-trixie": "npm run build && RUN_DOCKER_NODE24_TRIXIE_TEST=true vitest run",
     "init": "npm run build && node dist/cli.mjs -c ./dev/config.json -d ./dev/packages --auth-init",
     "import": "npm run build && node dist/cli.mjs -c ./dev/config.json -d ./dev/packages --import-packages",
     "start": "npm run build && node dist/cli.mjs -c ./dev/config.json -d ./dev/packages",

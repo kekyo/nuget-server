@@ -71,7 +71,7 @@ describe('Fastify NuGet V3 API - Phase 3 Tests', () => {
       await fs.mkdir(testPackagesDir, { recursive: true });
 
       // Generate unique port for each test
-      serverPort = getTestPort(9000);
+      serverPort = await getTestPort(9000);
 
       // Create test users
       await createTestUsers();
@@ -235,7 +235,7 @@ describe('Fastify NuGet V3 API - Phase 3 Tests', () => {
       await fs.mkdir(testPackagesDir, { recursive: true });
 
       // Generate unique port for each test
-      serverPort = getTestPort(9100);
+      serverPort = await getTestPort(9100);
 
       // Create test users
       await createTestUsers();
@@ -305,7 +305,7 @@ describe('Fastify NuGet V3 API - Phase 3 Tests', () => {
       await fs.mkdir(testPackagesDir, { recursive: true });
 
       // Generate unique port for each test
-      serverPort = getTestPort(9200);
+      serverPort = await getTestPort(9200);
 
       // Create test users
       await createTestUsers();

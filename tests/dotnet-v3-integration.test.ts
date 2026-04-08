@@ -54,7 +54,7 @@ describe('dotnet restore V3 API Integration Tests', () => {
     }
 
     // Generate unique port
-    const serverPort = getTestPort(
+    const serverPort = await getTestPort(
       authMode === 'none' ? 9000 : authMode === 'publish' ? 9100 : 9200
     );
 
