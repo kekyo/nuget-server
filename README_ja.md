@@ -831,6 +831,8 @@ https://github.com/NuGet/Home/issues/6373
 
 ## その他
 
+このサーバープロジェクトは、 [uplodah](https://github.com/kekyo/uplodah/) の姉妹プロジェクトです。
+
 NuGetは.NETのパッケージシステムで、NuGetサーバーはそれをホストするためのものです。
 これを.NETで作っていないことについて、賛否両論あるかと思います。
 
@@ -840,9 +842,7 @@ NuGetは.NETのパッケージシステムで、NuGetサーバーはそれをホ
 他にも色々理由はあるのですが、まあまずは触ってみて下さい。
 NuGetのプライベートサーバーが必要と考えている人に、かなりフィットすると思います。
 
-## ディスカッションとPR
-
-ディスカッションは、 [GitHubのディスカッションページ](https://github.com/kekyo/nuget-server/discussions) を参照して下さい。現在はissueベースのディスカッションを取りやめています。
+## プルリクエスト
 
 PRはWelcomeです。`develop`ブランチからの差分で送って下さい。送信する前に、あなたの変更をsquashしておいて下さい。
 

@@ -842,6 +842,8 @@ All configuration options can be set via CLI arguments, environment variables, o
 
 ## Other
 
+This server project is a sister project of [uplodah](https://github.com/kekyo/uplodah/).
+
 NuGet is the .NET package system, and NuGet servers host it.
 There are likely differing opinions about NOT building this with .NET.
 
@@ -851,9 +853,7 @@ In fact, I feel it ensured the shortest development time relative to scale while
 There are other reasons too, but first, just give it a try.
 I think it'll be a great fit for anyone who thinks they need a private NuGet server.
 
-## Discussions and Pull Requests
-
-For discussions, please refer to the [GitHub Discussions page](https://github.com/kekyo/nuget-server/discussions). We have currently stopped issue-based discussions.
+## Pull Requests
 
 Pull requests are welcome! Please submit them as diffs against the `develop` branch and squashed changes before send.
 
