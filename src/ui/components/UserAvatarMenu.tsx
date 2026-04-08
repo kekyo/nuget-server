@@ -22,7 +22,7 @@ import {
   PersonRemove as PersonRemoveIcon,
   VpnKey as VpnKeyIcon,
   Login as LoginIcon,
-  PersonOutline,
+  PersonOutlined,
   Language as LanguageIcon,
   Check as CheckIcon,
   Brightness4 as ThemeIcon,
@@ -127,7 +127,7 @@ const UserAvatarMenu = ({
           {isAuthenticated && username ? (
             getAvatarLetter()
           ) : (
-            <PersonOutline fontSize="small" />
+            <PersonOutlined fontSize="small" />
           )}
         </Avatar>
       </IconButton>
@@ -201,7 +201,9 @@ const UserAvatarMenu = ({
                 primary={username}
                 slotProps={{
                   primary: {
-                    fontWeight: 'medium',
+                    sx: {
+                      fontWeight: 'medium',
+                    },
                   },
                 }}
               />

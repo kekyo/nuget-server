@@ -107,8 +107,11 @@ const LoginDialog = ({
     }
   };
 
-  const handleClose = () => {
-    if (disableBackdropClick) {
+  const handleDialogClose = (
+    _event: object,
+    reason: 'backdropClick' | 'escapeKeyDown'
+  ) => {
+    if (disableBackdropClick && reason !== undefined) {
       return; // Prevent closing for authMode='full'
     }
     onClose();
@@ -117,8 +120,7 @@ const LoginDialog = ({
   return (
     <Dialog
       open={open}
-      onClose={handleClose}
-      disableEscapeKeyDown={disableBackdropClick}
+      onClose={handleDialogClose}
       maxWidth="sm"
       fullWidth
       slotProps={{

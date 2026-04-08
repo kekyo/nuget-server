@@ -176,7 +176,7 @@ describe('Fastify UI Backend API - Phase 4 Tests', () => {
     await setupTestPackage();
 
     // Start server with isolated directories
-    serverPort = getTestPort(7000);
+    serverPort = await getTestPort(7000);
   }, 30000);
 
   // POST /api/ui/config tests
@@ -591,7 +591,7 @@ describe('Fastify UI API - POST /api/ui/apipassword (session required)', () => {
     await setupTestPackage();
 
     // Generate unique port for this test group
-    serverPort = getTestPort(7200);
+    serverPort = await getTestPort(7200);
   }, 30000);
 
   const createServerAndEnvironment = async () => {
@@ -796,7 +796,7 @@ describe('Fastify UI API - POST /api/ui/password (session required)', () => {
     await setupTestPackage();
 
     // Generate unique port for this test group
-    serverPort = getTestPort(7300);
+    serverPort = await getTestPort(7300);
   }, 30000);
 
   const createServerAndEnvironment = async () => {
@@ -1097,7 +1097,7 @@ describe('Fastify UI API - GET /api/ui/icon/{id}/{version} (auth based on mode)'
     await setupTestPackage();
 
     // Generate unique port for this test group
-    serverPort = getTestPort(7400);
+    serverPort = await getTestPort(7400);
   }, 30000);
 
   // Helper functions (duplicated for independence)
@@ -1355,7 +1355,7 @@ describe('Fastify UI API - POST /api/publish (hybrid auth based on mode)', () =>
     await setupTestPackage();
 
     // Generate unique port for this test group
-    serverPort = getTestPort(7500);
+    serverPort = await getTestPort(7500);
   }, 30000);
 
   // Helper functions (duplicated for independence)

@@ -696,6 +696,9 @@ nuget-serverのDocker imageのビルドは、Podmanを使用しています。
 # 特定のプラットフォームのみビルド
 ./build-docker-multiplatform.sh --platforms linux/amd64,linux/arm64
 
+# デフォルトの node:24-trixie-slim ベースイメージを上書き
+./build-docker-multiplatform.sh --platforms linux/amd64,linux/arm64 --node-image node:22-bookworm-slim
+
 # カスタムDocker Hubユーザー名でプッシュ
 OCI_SERVER_USER=yourusername ./build-docker-multiplatform.sh --push
 
@@ -716,7 +719,7 @@ sudo apt-get update && sudo apt-get install -y qemu-user-static
 sudo dnf install -y qemu-user-static
 
 # QEMUが動作していることを確認：
-podman run --rm --platform linux/arm64 alpine:latest uname -m
+podman run --rm --platform linux/arm64 docker.io/library/debian:trixie-slim uname -m
 # 出力されるべき: aarch64
 ```
 

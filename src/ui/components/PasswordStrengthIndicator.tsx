@@ -82,12 +82,20 @@ export const PasswordStrengthIndicator = ({
         </Typography>
       </Box>
       {strength.feedback.warning && (
-        <Typography variant="caption" color="warning.main" display="block">
+        <Typography
+          variant="caption"
+          color="warning.main"
+          sx={{ display: 'block' }}
+        >
           {strength.feedback.warning}
         </Typography>
       )}
       {strength.feedback.suggestions.length > 0 && (
-        <Typography variant="caption" color="text.secondary" display="block">
+        <Typography
+          variant="caption"
+          color="text.secondary"
+          sx={{ display: 'block' }}
+        >
           Suggestion: {strength.feedback.suggestions[0]}
         </Typography>
       )}

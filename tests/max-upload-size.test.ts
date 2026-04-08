@@ -20,7 +20,7 @@ describe('Max Upload Size Configuration - Config file validation', () => {
 
   beforeEach(async (fn) => {
     testDir = await createTestDirectory('max-upload-size', fn.task.name);
-    testPort = getTestPort(6300);
+    testPort = await getTestPort(6300);
   });
 
   afterEach(() => {
@@ -163,7 +163,7 @@ describe('Max Upload Size Configuration - CLI argument parsing', () => {
 
   beforeEach(async (fn) => {
     testDir = await createTestDirectory('max-upload-size', fn.task.name);
-    testPort = getTestPort(6300);
+    testPort = await getTestPort(6300);
   });
 
   afterEach(() => {
@@ -232,7 +232,7 @@ describe('Max Upload Size Configuration - Environment variable parsing', () => {
 
   beforeEach(async (fn) => {
     testDir = await createTestDirectory('max-upload-size', fn.task.name);
-    testPort = getTestPort(6300);
+    testPort = await getTestPort(6300);
   });
 
   afterEach(() => {
@@ -295,7 +295,7 @@ describe('Max Upload Size Configuration - Configuration priority', () => {
 
   beforeEach(async (fn) => {
     testDir = await createTestDirectory('max-upload-size', fn.task.name);
-    testPort = getTestPort(6300);
+    testPort = await getTestPort(6300);
   });
 
   afterEach(() => {

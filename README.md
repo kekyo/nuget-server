@@ -11,7 +11,10 @@ Simple modernized NuGet server implementation.
 
 ---
 
-[(日本語はこちら)](./README_ja.md)
+[(For Japanese language/日本語はこちら)](./README_ja.md)
+
+> Please note that this English version of the document was machine-translated and then partially edited, so it may contain inaccuracies.
+> We welcome pull requests to correct any errors in the text.
 
 ## What is this?
 
@@ -703,6 +706,9 @@ Use the provided multi-platform build script that uses Podman to build for all s
 # Build for specific platforms only
 ./build-docker-multiplatform.sh --platforms linux/amd64,linux/arm64
 
+# Override the default node:24-trixie-slim base image
+./build-docker-multiplatform.sh --platforms linux/amd64,linux/arm64 --node-image node:22-bookworm-slim
+
 # Push with custom Docker Hub username
 OCI_SERVER_USER=yourusername ./build-docker-multiplatform.sh --push
 
@@ -723,7 +729,7 @@ sudo apt-get update && sudo apt-get install -y qemu-user-static
 sudo dnf install -y qemu-user-static
 
 # Verify QEMU is working:
-podman run --rm --platform linux/arm64 alpine:latest uname -m
+podman run --rm --platform linux/arm64 docker.io/library/debian:trixie-slim uname -m
 # Should output: aarch64
 ```
 

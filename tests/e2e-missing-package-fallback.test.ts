@@ -47,7 +47,7 @@ describe('E2E: Missing Package Fallback with empty-array mode', () => {
     await fs.mkdir(testPackagesDir, { recursive: true });
 
     // Generate unique port
-    serverPort = getTestPort(15000);
+    serverPort = await getTestPort(15000);
 
     logger = createConsoleLogger('e2e-missing-package', testGlobalLogLevel);
 

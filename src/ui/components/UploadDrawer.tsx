@@ -346,7 +346,12 @@ const UploadDrawer = ({
                   />
                   :
                 </Typography>
-                <Stack direction="row" spacing={1} flexWrap="wrap" useFlexGap>
+                <Stack
+                  direction="row"
+                  spacing={1}
+                  useFlexGap
+                  sx={{ flexWrap: 'wrap' }}
+                >
                   {selectedFiles.map((file, index) => (
                     <Chip
                       key={index}

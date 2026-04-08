@@ -515,8 +515,8 @@ const AppContent = ({
                 <Stack direction="row">
                   <Typography
                     variant="body2"
-                    fontSize="1.3rem"
                     color="text.secondary"
+                    sx={{ fontSize: '1.3rem' }}
                     gutterBottom
                   >
                     <EditNote fontSize="small" />
@@ -534,8 +534,8 @@ const AppContent = ({
                 >
                   <Typography
                     variant="body2"
-                    marginLeft="1rem"
                     sx={{
+                      ml: '1rem',
                       flexGrow: 1,
                       fontFamily: 'monospace',
                       fontSize: '0.95rem',
@@ -560,8 +560,8 @@ const AppContent = ({
                   >
                     <Typography
                       variant="body2"
-                      marginLeft="1rem"
                       sx={{
+                        ml: '1rem',
                         flexGrow: 1,
                         fontFamily: 'monospace',
                         fontSize: '0.95rem',

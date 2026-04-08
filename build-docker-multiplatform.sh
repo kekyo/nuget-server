@@ -19,6 +19,9 @@ PLATFORMS="${PLATFORMS:-linux/amd64,linux/arm64}"
 PUSH_TO_REGISTRY="${PUSH_TO_REGISTRY:-false}"
 VERIFY_TARGET_PLATFORMS="${VERIFY_TARGET_PLATFORMS:-true}"
 VERIFY_HOST_IMAGE="${VERIFY_HOST_IMAGE:-true}"
+QEMU_CHECK_IMAGE="${QEMU_CHECK_IMAGE:-docker.io/library/debian:trixie-slim}"
+BUILD_JOBS="${BUILD_JOBS:-2}"
+NODE_IMAGE="${NODE_IMAGE:-node:24-trixie-slim}"
 
 # Functions
 print_info() {
@@ -64,7 +67,7 @@ check_dependencies() {
     fi
 
     # Check for QEMU support for cross-platform builds
-    if ! podman run --rm --platform linux/arm64 alpine:latest true &> /dev/null; then
+    if ! podman run --rm --platform linux/arm64 "${QEMU_CHECK_IMAGE}" true &> /dev/null; then
         print_warning "QEMU emulation is not properly configured for cross-platform builds"
         print_error "Cannot build for non-native architectures without QEMU"
         print_info ""
@@ -80,7 +83,7 @@ check_dependencies() {
         print_info "  sudo dnf install -y qemu-user-static"
         print_info ""
         print_info "After setup, verify with:"
-        print_info "  podman run --rm --platform linux/arm64 alpine:latest uname -m"
+        print_info "  podman run --rm --platform linux/arm64 ${QEMU_CHECK_IMAGE} uname -m"
         print_info ""
 
         # Check if we're trying to build for non-native platforms
@@ -117,6 +120,43 @@ get_host_platform() {
     esac
 }
 
+collect_target_platforms() {
+    mapfile -t TARGET_PLATFORMS < <(
+        echo "$PLATFORMS" \
+            | tr ',' '\n' \
+            | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' \
+            | sed '/^$/d'
+    )
+}
+
+validate_build_jobs() {
+    if ! [[ "$BUILD_JOBS" =~ ^[0-9]+$ ]]; then
+        print_error "BUILD_JOBS must be an integer"
+        exit 1
+    fi
+
+    if [ "$BUILD_JOBS" -lt 1 ] || [ "$BUILD_JOBS" -gt 2 ]; then
+        print_error "BUILD_JOBS must be between 1 and 2"
+        exit 1
+    fi
+}
+
+platform_to_tag_suffix() {
+    echo "${1//\//-}"
+}
+
+build_platform_image() {
+    local platform="$1"
+    local image="$2"
+
+    print_info "Building ${platform} as ${image}..."
+    podman build \
+        --build-arg "NODE_IMAGE=${NODE_IMAGE}" \
+        --platform "$platform" \
+        --tag "$image" \
+        .
+}
+
 fail_smoke_check() {
     local container_name="$1"
     local reason="$2"
@@ -134,7 +174,7 @@ run_binary_load_check() {
 
     print_info "Binary load check on ${platform}..."
     if ! podman run --rm --platform "$platform" --entrypoint node "$image" \
-        -e "require('@fastify/secure-session'); console.log('binary-load-ok');"; then
+        -e "require('sodium-native'); require('@fastify/secure-session'); console.log('binary-load-ok');"; then
         print_error "Binary load check failed on ${platform}"
         exit 1
     fi
@@ -246,13 +286,22 @@ build_application() {
 
 build_multiplatform_images() {
     # Image names (following build-docker.sh convention)
-    LOCAL_IMAGE="${IMAGE_NAME}:${VERSION}"
-    LOCAL_LATEST="${IMAGE_NAME}:latest"
+    LOCAL_IMAGE="localhost/${IMAGE_NAME}:${VERSION}"
+    LOCAL_LATEST="localhost/${IMAGE_NAME}:latest"
     REMOTE_IMAGE="${OCI_SERVER}/${OCI_SERVER_USER}/${IMAGE_NAME}:${VERSION}"
     REMOTE_LATEST="${OCI_SERVER}/${OCI_SERVER_USER}/${IMAGE_NAME}:latest"
 
+    collect_target_platforms
+
+    if [ "${#TARGET_PLATFORMS[@]}" -eq 0 ]; then
+        print_error "No target platforms were specified"
+        exit 1
+    fi
+
     print_info "Building multi-platform images..."
     print_info "Platforms: $PLATFORMS"
+    print_info "Build jobs: $BUILD_JOBS"
+    print_info "Node image: $NODE_IMAGE"
     print_info "Local image: ${LOCAL_IMAGE}"
     print_info "Remote image: ${REMOTE_IMAGE}"
 
@@ -265,12 +314,43 @@ build_multiplatform_images() {
         podman manifest create "${MANIFEST_NAME}"
     }
 
-    # Build for all platforms and add to manifest
+    # Build each platform image, optionally in parallel, then compose the manifest.
     print_info "Building for platforms: ${PLATFORMS}"
-    podman build \
-        --platform "${PLATFORMS}" \
-        --manifest "${MANIFEST_NAME}" \
-        .
+    local platform
+    local platform_image
+    local -a platform_images=()
+    local -a running_pids=()
+    local pid
+    declare -A build_pid_to_platform=()
+
+    for platform in "${TARGET_PLATFORMS[@]}"; do
+        platform_image="${LOCAL_IMAGE}-$(platform_to_tag_suffix "$platform")"
+        platform_images+=("$platform_image")
+        build_platform_image "$platform" "$platform_image" &
+        pid=$!
+        running_pids+=("$pid")
+        build_pid_to_platform["$pid"]="$platform"
+
+        if [ "${#running_pids[@]}" -ge "$BUILD_JOBS" ]; then
+            pid="${running_pids[0]}"
+            if ! wait "$pid"; then
+                print_error "Build failed for platform: ${build_pid_to_platform[$pid]}"
+                exit 1
+            fi
+            running_pids=("${running_pids[@]:1}")
+        fi
+    done
+
+    for pid in "${running_pids[@]}"; do
+        if ! wait "$pid"; then
+            print_error "Build failed for platform: ${build_pid_to_platform[$pid]}"
+            exit 1
+        fi
+    done
+
+    for platform_image in "${platform_images[@]}"; do
+        podman manifest add "${MANIFEST_NAME}" "containers-storage:${platform_image}"
+    done
 
     # Create latest tag by copying the versioned manifest
     print_info "Creating latest tag: ${LOCAL_LATEST}"
@@ -335,6 +415,8 @@ Options:
     -h, --help              Show this help message
     -p, --push              Push images to registry after build
     --platforms PLATFORMS   Comma-separated list of platforms (default: linux/amd64,linux/arm64)
+    -j, --jobs JOBS         Number of platform builds to run in parallel (1-2, default: 1)
+    --node-image IMAGE      Base Node.js image to use for Docker builds (default: node:24-trixie-slim)
     --skip-app-build        Skip npm build step
     --skip-target-verify    Skip target platform binary/smoke checks
     --skip-host-smoke       Skip host-architecture smoke check
@@ -346,8 +428,11 @@ Environment Variables:
     PLATFORMS               Target platforms
     PUSH_TO_REGISTRY        Set to 'true' to push images
     SKIP_APP_BUILD          Set to 'true' to skip npm build
+    BUILD_JOBS             Number of platform builds to run in parallel (1-2)
+    NODE_IMAGE             Base Node.js image to use for Docker builds (default: node:24-trixie-slim)
     VERIFY_TARGET_PLATFORMS Set to 'false' to skip target verification
     VERIFY_HOST_IMAGE       Set to 'false' to skip host smoke check
+    QEMU_CHECK_IMAGE        Container image used to verify QEMU emulation
 
 Examples:
     # Build for all platforms without pushing
@@ -358,6 +443,12 @@ Examples:
 
     # Build for specific platforms
     $0 --platforms linux/amd64,linux/arm64
+
+    # Build amd64 and arm64 in parallel
+    $0 --platforms linux/amd64,linux/arm64 --jobs 2
+
+    # Override the default Node image (example: Node 22 on Bookworm)
+    $0 --platforms linux/amd64,linux/arm64 --jobs 2 --node-image node:22-bookworm-slim
 
     # Build and skip all verification checks
     $0 --skip-verify
@@ -387,6 +478,14 @@ while [[ $# -gt 0 ]]; do
             ;;
         --platforms)
             PLATFORMS="$2"
+            shift 2
+            ;;
+        -j|--jobs)
+            BUILD_JOBS="$2"
+            shift 2
+            ;;
+        --node-image)
+            NODE_IMAGE="$2"
             shift 2
             ;;
         --skip-app-build)
@@ -423,6 +522,10 @@ main() {
     print_info "Starting multi-platform Podman build process"
     print_info "Registry: ${OCI_SERVER}/${OCI_SERVER_USER}"
     print_info "Platforms: $PLATFORMS"
+    print_info "Build jobs: $BUILD_JOBS"
+    print_info "Node image: $NODE_IMAGE"
+
+    validate_build_jobs
 
     # Get version information
     get_version

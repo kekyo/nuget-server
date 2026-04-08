@@ -2,7 +2,7 @@ import { defineConfig } from 'vite';
 import { resolve } from 'path';
 import { fileURLToPath } from 'url';
 import react from '@vitejs/plugin-react';
-import dts from 'vite-plugin-dts';
+import dts from 'unplugin-dts/vite';
 import screwUp from 'screw-up';
 import prettierMax from 'prettier-max';
 import typedMessage from 'typed-message/vite';
@@ -15,8 +15,8 @@ const devConfig: ServerConfig = {
   configDir: './dev',
   packageDir: './dev/packages',
   realm: 'nuget-server dev',
-  authMode: 'publish',
   trustedProxies: [],
+  authMode: 'none',
 };
 
 ////////////////////////////////////////////////////////////////////
@@ -129,7 +129,7 @@ export default defineConfig(({ mode, command }) => {
           `${entryName}.${format === 'es' ? 'mjs' : 'cjs'}`,
         formats: ['es', 'cjs'],
       },
-      rollupOptions: {
+      rolldownOptions: {
         external: [
           'commander',
           'fs/promises',

@@ -394,10 +394,12 @@ const PackageList = forwardRef<PackageListRef, PackageListProps>(
     if (loading) {
       return (
         <Box
-          display="flex"
-          justifyContent="center"
-          alignItems="center"
-          minHeight="200px"
+          sx={{
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
+            minHeight: '200px',
+          }}
         >
           <CircularProgress />
         </Box>
@@ -477,10 +479,12 @@ const PackageList = forwardRef<PackageListRef, PackageListProps>(
             hasMore={hasMore && !filterText}
             loader={
               <Box
-                display="flex"
-                justifyContent="center"
-                alignItems="center"
-                p={2}
+                sx={{
+                  display: 'flex',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  p: 2,
+                }}
               >
                 <CircularProgress size={24} />
                 <Typography variant="body2" sx={{ ml: 2 }}>

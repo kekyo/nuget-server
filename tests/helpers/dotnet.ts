@@ -11,6 +11,48 @@ export interface DotNetRestoreResult {
   stderr: string;
 }
 
+const createDotNetEnvironment = (
+  projectDir: string | undefined
+): {
+  env: Record<string, string>;
+  nugetPackagesPath: string | undefined;
+  nugetHttpCachePath: string | undefined;
+} => {
+  const dotnetPath = process.env.HOME
+    ? `${process.env.HOME}/.dotnet`
+    : '/usr/local/share/dotnet';
+  const nugetBasePath =
+    projectDir !== undefined ? path.join(projectDir, '.nuget') : undefined;
+  const nugetPackagesPath =
+    nugetBasePath !== undefined
+      ? path.join(nugetBasePath, 'packages')
+      : undefined;
+  const nugetHttpCachePath =
+    nugetBasePath !== undefined
+      ? path.join(nugetBasePath, 'http-cache')
+      : undefined;
+
+  const env: Record<string, string> = {
+    PATH: `${dotnetPath}:${process.env.PATH || ''}`,
+    DOTNET_ROOT: dotnetPath,
+    DOTNET_CLI_TELEMETRY_OPTOUT: '1',
+    DOTNET_SKIP_FIRST_TIME_EXPERIENCE: '1',
+  };
+
+  if (nugetPackagesPath !== undefined) {
+    env.NUGET_PACKAGES = nugetPackagesPath;
+  }
+  if (nugetHttpCachePath !== undefined) {
+    env.NUGET_HTTP_CACHE_PATH = nugetHttpCachePath;
+  }
+
+  return {
+    env,
+    nugetPackagesPath,
+    nugetHttpCachePath,
+  };
+};
+
 /**
  * Clears all NuGet caches to ensure clean test environment
  * This includes global packages, http cache, temp cache, and plugin cache
@@ -60,14 +102,7 @@ const spawnAsync = (
 
 export const clearNuGetCache = async (logger: Logger): Promise<void> => {
   try {
-    // Check if dotnet command is available first
-    const dotnetPath = process.env.HOME
-      ? `${process.env.HOME}/.dotnet`
-      : '/usr/local/share/dotnet';
-    const env = {
-      PATH: `${dotnetPath}:${process.env.PATH || ''}`,
-      DOTNET_ROOT: dotnetPath,
-    };
+    const { env } = createDotNetEnvironment(undefined);
 
     await spawnAsync('dotnet', ['nuget', 'locals', 'all', '--clear'], {
       timeout: 30000,
@@ -152,21 +187,26 @@ export const runDotNetRestore = async (
   projectDir: string
 ): Promise<DotNetRestoreResult> => {
   try {
-    // Set up environment variables for dotnet CLI
-    const dotnetPath = process.env.HOME
-      ? `${process.env.HOME}/.dotnet`
-      : '/usr/local/share/dotnet';
-    const env = {
-      PATH: `${dotnetPath}:${process.env.PATH || ''}`,
-      DOTNET_ROOT: dotnetPath,
-      DOTNET_CLI_TELEMETRY_OPTOUT: '1', // Disable telemetry for cleaner output
-      DOTNET_SKIP_FIRST_TIME_EXPERIENCE: '1',
-    };
+    const { env, nugetPackagesPath, nugetHttpCachePath } =
+      createDotNetEnvironment(projectDir);
+
+    if (nugetPackagesPath !== undefined) {
+      await ensureDir(nugetPackagesPath);
+    }
+    if (nugetHttpCachePath !== undefined) {
+      await ensureDir(nugetHttpCachePath);
+    }
 
     // Log debug information
     logger.info(
-      `Running dotnet restore with environment: ${projectDir}, ${dotnetPath}, ${env.PATH?.substring(0, 200)}...`
+      `Running dotnet restore with environment: ${projectDir}, ${env.DOTNET_ROOT}, ${env.PATH?.substring(0, 200)}...`
     );
+    if (nugetPackagesPath !== undefined) {
+      logger.info(`Using isolated NuGet packages cache: ${nugetPackagesPath}`);
+    }
+    if (nugetHttpCachePath !== undefined) {
+      logger.info(`Using isolated NuGet HTTP cache: ${nugetHttpCachePath}`);
+    }
 
     // First check if dotnet is available
     try {
