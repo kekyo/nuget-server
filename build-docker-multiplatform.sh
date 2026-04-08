@@ -20,6 +20,7 @@ PUSH_TO_REGISTRY="${PUSH_TO_REGISTRY:-false}"
 VERIFY_TARGET_PLATFORMS="${VERIFY_TARGET_PLATFORMS:-true}"
 VERIFY_HOST_IMAGE="${VERIFY_HOST_IMAGE:-true}"
 QEMU_CHECK_IMAGE="${QEMU_CHECK_IMAGE:-docker.io/library/debian:bookworm-slim}"
+BUILD_JOBS="${BUILD_JOBS:-1}"
 
 # Functions
 print_info() {
@@ -116,6 +117,42 @@ get_host_platform() {
         armv7l) echo "linux/arm/v7" ;;
         *) echo "linux/$native_arch" ;;
     esac
+}
+
+collect_target_platforms() {
+    mapfile -t TARGET_PLATFORMS < <(
+        echo "$PLATFORMS" \
+            | tr ',' '\n' \
+            | sed 's/^[[:space:]]*//;s/[[:space:]]*$//' \
+            | sed '/^$/d'
+    )
+}
+
+validate_build_jobs() {
+    if ! [[ "$BUILD_JOBS" =~ ^[0-9]+$ ]]; then
+        print_error "BUILD_JOBS must be an integer"
+        exit 1
+    fi
+
+    if [ "$BUILD_JOBS" -lt 1 ] || [ "$BUILD_JOBS" -gt 2 ]; then
+        print_error "BUILD_JOBS must be between 1 and 2"
+        exit 1
+    fi
+}
+
+platform_to_tag_suffix() {
+    echo "${1//\//-}"
+}
+
+build_platform_image() {
+    local platform="$1"
+    local image="$2"
+
+    print_info "Building ${platform} as ${image}..."
+    podman build \
+        --platform "$platform" \
+        --tag "$image" \
+        .
 }
 
 fail_smoke_check() {
@@ -252,8 +289,16 @@ build_multiplatform_images() {
     REMOTE_IMAGE="${OCI_SERVER}/${OCI_SERVER_USER}/${IMAGE_NAME}:${VERSION}"
     REMOTE_LATEST="${OCI_SERVER}/${OCI_SERVER_USER}/${IMAGE_NAME}:latest"
 
+    collect_target_platforms
+
+    if [ "${#TARGET_PLATFORMS[@]}" -eq 0 ]; then
+        print_error "No target platforms were specified"
+        exit 1
+    fi
+
     print_info "Building multi-platform images..."
     print_info "Platforms: $PLATFORMS"
+    print_info "Build jobs: $BUILD_JOBS"
     print_info "Local image: ${LOCAL_IMAGE}"
     print_info "Remote image: ${REMOTE_IMAGE}"
 
@@ -266,12 +311,43 @@ build_multiplatform_images() {
         podman manifest create "${MANIFEST_NAME}"
     }
 
-    # Build for all platforms and add to manifest
+    # Build each platform image, optionally in parallel, then compose the manifest.
     print_info "Building for platforms: ${PLATFORMS}"
-    podman build \
-        --platform "${PLATFORMS}" \
-        --manifest "${MANIFEST_NAME}" \
-        .
+    local platform
+    local platform_image
+    local -a platform_images=()
+    local -a running_pids=()
+    local pid
+    declare -A build_pid_to_platform=()
+
+    for platform in "${TARGET_PLATFORMS[@]}"; do
+        platform_image="${LOCAL_IMAGE}-$(platform_to_tag_suffix "$platform")"
+        platform_images+=("$platform_image")
+        build_platform_image "$platform" "$platform_image" &
+        pid=$!
+        running_pids+=("$pid")
+        build_pid_to_platform["$pid"]="$platform"
+
+        if [ "${#running_pids[@]}" -ge "$BUILD_JOBS" ]; then
+            pid="${running_pids[0]}"
+            if ! wait "$pid"; then
+                print_error "Build failed for platform: ${build_pid_to_platform[$pid]}"
+                exit 1
+            fi
+            running_pids=("${running_pids[@]:1}")
+        fi
+    done
+
+    for pid in "${running_pids[@]}"; do
+        if ! wait "$pid"; then
+            print_error "Build failed for platform: ${build_pid_to_platform[$pid]}"
+            exit 1
+        fi
+    done
+
+    for platform_image in "${platform_images[@]}"; do
+        podman manifest add "${MANIFEST_NAME}" "$platform_image"
+    done
 
     # Create latest tag by copying the versioned manifest
     print_info "Creating latest tag: ${LOCAL_LATEST}"
@@ -336,6 +412,7 @@ Options:
     -h, --help              Show this help message
     -p, --push              Push images to registry after build
     --platforms PLATFORMS   Comma-separated list of platforms (default: linux/amd64,linux/arm64)
+    -j, --jobs JOBS         Number of platform builds to run in parallel (1-2, default: 1)
     --skip-app-build        Skip npm build step
     --skip-target-verify    Skip target platform binary/smoke checks
     --skip-host-smoke       Skip host-architecture smoke check
@@ -347,6 +424,7 @@ Environment Variables:
     PLATFORMS               Target platforms
     PUSH_TO_REGISTRY        Set to 'true' to push images
     SKIP_APP_BUILD          Set to 'true' to skip npm build
+    BUILD_JOBS             Number of platform builds to run in parallel (1-2)
     VERIFY_TARGET_PLATFORMS Set to 'false' to skip target verification
     VERIFY_HOST_IMAGE       Set to 'false' to skip host smoke check
     QEMU_CHECK_IMAGE        Container image used to verify QEMU emulation
@@ -360,6 +438,9 @@ Examples:
 
     # Build for specific platforms
     $0 --platforms linux/amd64,linux/arm64
+
+    # Build amd64 and arm64 in parallel
+    $0 --platforms linux/amd64,linux/arm64 --jobs 2
 
     # Build and skip all verification checks
     $0 --skip-verify
@@ -389,6 +470,10 @@ while [[ $# -gt 0 ]]; do
             ;;
         --platforms)
             PLATFORMS="$2"
+            shift 2
+            ;;
+        -j|--jobs)
+            BUILD_JOBS="$2"
             shift 2
             ;;
         --skip-app-build)
@@ -425,6 +510,9 @@ main() {
     print_info "Starting multi-platform Podman build process"
     print_info "Registry: ${OCI_SERVER}/${OCI_SERVER_USER}"
     print_info "Platforms: $PLATFORMS"
+    print_info "Build jobs: $BUILD_JOBS"
+
+    validate_build_jobs
 
     # Get version information
     get_version

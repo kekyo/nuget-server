@@ -16,9 +16,11 @@ describe('build-docker-multiplatform.sh', () => {
   it('should expose verification options in help', async () => {
     const { stdout } = await execFileAsync('bash', [scriptPath, '--help']);
 
+    expect(stdout).toContain('--jobs JOBS');
     expect(stdout).toContain('--skip-target-verify');
     expect(stdout).toContain('--skip-host-smoke');
     expect(stdout).toContain('--skip-verify');
+    expect(stdout).toContain('BUILD_JOBS');
     expect(stdout).toContain('VERIFY_TARGET_PLATFORMS');
     expect(stdout).toContain('VERIFY_HOST_IMAGE');
   });
@@ -47,6 +49,17 @@ describe('build-docker-multiplatform.sh', () => {
       'LOCAL_IMAGE="localhost/${IMAGE_NAME}:${VERSION}"'
     );
     expect(script).toContain('LOCAL_LATEST="localhost/${IMAGE_NAME}:latest"');
+  });
+
+  it('should support configuring up to two parallel platform builds', async () => {
+    const script = await readFile(scriptPath, 'utf8');
+
+    expect(script).toContain('BUILD_JOBS="${BUILD_JOBS:-1}"');
+    expect(script).toContain('BUILD_JOBS must be between 1 and 2');
+    expect(script).toContain('-j|--jobs');
+    expect(script).toContain(
+      'build_platform_image "$platform" "$platform_image" &'
+    );
   });
 });
 
