@@ -5,7 +5,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { spawn, type ChildProcess } from 'child_process';
 import path from 'path';
-import fs from 'fs-extra';
+import { promises as fs } from 'fs';
 import { fileURLToPath } from 'url';
 
 const __filename = fileURLToPath(import.meta.url);
@@ -35,8 +35,8 @@ describe('Missing Package Response Configuration', () => {
     // Create a test directory with timestamp
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
     testDir = path.join(__dirname, 'test-data', `missing-pkg-${timestamp}`);
-    await fs.ensureDir(testDir);
-    await fs.ensureDir(path.join(testDir, 'packages'));
+    await fs.mkdir(testDir, { recursive: true });
+    await fs.mkdir(path.join(testDir, 'packages'), { recursive: true });
   });
 
   afterEach(async () => {
@@ -49,7 +49,7 @@ describe('Missing Package Response Configuration', () => {
 
     // Clean up test directory
     if (testDir) {
-      await fs.remove(testDir);
+      await fs.rm(testDir, { recursive: true, force: true });
     }
   });
 
