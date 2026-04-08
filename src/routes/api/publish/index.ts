@@ -18,6 +18,7 @@ import {
   AuthenticatedFastifyRequest,
 } from '../../../middleware/fastifyAuth';
 import { createUrlResolver } from '../../../utils/urlResolver';
+import { parseNuspecTags } from '../../../utils/nuspec';
 
 /**
  * Service interface for handling package uploads
@@ -314,7 +315,7 @@ const parseNuspec = async (nuspecContent: string): Promise<PackageMetadata> => {
   // Extract tags
   const tags = metadata.tags
     ? typeof metadata.tags === 'string'
-      ? metadata.tags.split(/[\s,]+/).filter((t: string) => t)
+      ? parseNuspecTags(metadata.tags)
       : []
     : [];
 

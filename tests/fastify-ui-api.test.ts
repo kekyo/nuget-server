@@ -1340,6 +1340,27 @@ describe('Fastify UI API - POST /api/publish (hybrid auth based on mode)', () =>
     testGlobalLogLevel
   );
 
+  const createTestPackageBuffer = (
+    packageId: string,
+    version: string,
+    tags: string
+  ): Buffer => {
+    const zip = new AdmZip();
+    const nuspecContent = `<?xml version="1.0"?>
+<package>
+  <metadata>
+    <id>${packageId}</id>
+    <version>${version}</version>
+    <authors>Test Author</authors>
+    <description>Test package description</description>
+    <tags>${tags}</tags>
+  </metadata>
+</package>`;
+
+    zip.addFile(`${packageId}.nuspec`, Buffer.from(nuspecContent));
+    return zip.toBuffer();
+  };
+
   beforeEach(async (fn) => {
     // Create isolated test directory for each test
     testBaseDir = await createTestDirectory(
@@ -1484,6 +1505,57 @@ describe('Fastify UI API - POST /api/publish (hybrid auth based on mode)', () =>
       expect(data).toHaveProperty('message', 'Package uploaded successfully');
       expect(data).toHaveProperty('id', 'GitReader');
       expect(data).toHaveProperty('version', '1.15.0');
+    } finally {
+      await server.close();
+    }
+  }, 30000);
+
+  test('should parse nuspec tags separated by spaces, commas, and semicolons', async () => {
+    const config: ServerConfig = {
+      port: serverPort,
+      packageDir: testPackagesDir,
+      configDir: testConfigDir,
+      realm: 'Test Fastify UI Server - None',
+      logLevel: testGlobalLogLevel,
+      authMode: 'none',
+      passwordStrengthCheck: false,
+    };
+
+    const server = await startFastifyServer(config, logger);
+    try {
+      const testPackageBuffer = createTestPackageBuffer(
+        'TagDelimitedPackage',
+        '1.2.3',
+        'alpha beta,gamma;delta'
+      );
+
+      const publishResponse = await fetch(
+        `http://localhost:${serverPort}/api/publish`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/octet-stream',
+          },
+          body: new Uint8Array(testPackageBuffer),
+        }
+      );
+
+      expect(publishResponse.status).toBe(201);
+
+      const searchResponse = await fetch(
+        `http://localhost:${serverPort}/v3/query?q=TagDelimitedPackage`
+      );
+
+      expect(searchResponse.status).toBe(200);
+      const searchData = await searchResponse.json();
+      expect(searchData.totalHits).toBe(1);
+      expect(searchData.data[0]).toHaveProperty('id', 'TagDelimitedPackage');
+      expect(searchData.data[0].tags).toEqual([
+        'alpha',
+        'beta',
+        'gamma',
+        'delta',
+      ]);
     } finally {
       await server.close();
     }
