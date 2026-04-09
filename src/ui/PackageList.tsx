@@ -29,6 +29,7 @@ import DownloadIcon from '@mui/icons-material/Download';
 import InfiniteScroll from 'react-infinite-scroll-component';
 import { sortVersions } from '../utils/semver';
 import { apiFetch } from './utils/apiClient';
+import { filterPackages } from './packageFilter';
 import { TypedMessage, useTypedMessage } from 'typed-message';
 import { messages } from '../generated/messages';
 
@@ -52,6 +53,7 @@ interface SearchResult {
   projectUrl?: string;
   tags: string[];
   authors: string[];
+  targetFrameworks: string[];
   totalDownloads: number;
   verified: boolean;
   packageTypes: Array<{
@@ -299,57 +301,7 @@ const PackageList = forwardRef<PackageListRef, PackageListProps>(
 
     // Filter packages based on filter text
     const filteredPackages = useMemo(() => {
-      if (!filterText.trim()) {
-        return packages;
-      }
-
-      // Split filter text by space or comma and normalize
-      const searchTerms = filterText
-        .split(/[,\s]+/)
-        .map((term) => term.trim().toLowerCase())
-        .filter((term) => term.length > 0);
-
-      if (searchTerms.length === 0) {
-        return packages;
-      }
-
-      return packages.filter((pkg) => {
-        // Check if all search terms match at least one field
-        return searchTerms.every((term) => {
-          // Check package ID
-          if (pkg.id.toLowerCase().includes(term)) {
-            return true;
-          }
-
-          // Check description
-          if (pkg.description && pkg.description.toLowerCase().includes(term)) {
-            return true;
-          }
-
-          // Check tags
-          if (pkg.tags.some((tag) => tag.toLowerCase().includes(term))) {
-            return true;
-          }
-
-          // Check authors
-          if (
-            pkg.authors.some((author) => author.toLowerCase().includes(term))
-          ) {
-            return true;
-          }
-
-          // Check versions
-          if (
-            pkg.versions.some((version) =>
-              version.version.toLowerCase().includes(term)
-            )
-          ) {
-            return true;
-          }
-
-          return false;
-        });
-      });
+      return filterPackages(packages, filterText);
     }, [packages, filterText]);
 
     const handleAccordionChange = useCallback(
@@ -592,6 +544,29 @@ const PackageList = forwardRef<PackageListRef, PackageListProps>(
                               <Chip
                                 key={tag}
                                 label={tag}
+                                size="small"
+                                variant="outlined"
+                              />
+                            ))}
+                          </Box>
+                        </Box>
+                      )}
+
+                      {/* Package Target Frameworks */}
+                      {pkg.targetFrameworks.length > 0 && (
+                        <Box sx={{ mb: 2 }}>
+                          <Typography variant="subtitle2" gutterBottom>
+                            <TypedMessage
+                              message={messages.TARGET_FRAMEWORKS_LABEL}
+                            />
+                          </Typography>
+                          <Box
+                            sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}
+                          >
+                            {pkg.targetFrameworks.map((framework) => (
+                              <Chip
+                                key={framework}
+                                label={framework}
                                 size="small"
                                 variant="outlined"
                               />

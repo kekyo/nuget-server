@@ -3,7 +3,7 @@
 // License under MIT.
 
 import { useRef, useState, useEffect, useCallback } from 'react';
-import { Tooltip, Paper } from '@mui/material';
+import { Tooltip } from '@mui/material';
 import { TypedMessage, useTypedMessage } from 'typed-message';
 import { useSnackbar } from 'notistack';
 import {
@@ -14,14 +14,10 @@ import {
   Box,
   Button,
   Divider,
-  IconButton,
-  Stack,
 } from '@mui/material';
 import {
   CloudUpload as UploadIcon,
   GitHub as GitHubIcon,
-  ContentCopy as ContentCopyIcon,
-  EditNote,
 } from '@mui/icons-material';
 import PackageList, { PackageListRef } from './PackageList';
 import UploadDrawer from './components/UploadDrawer';
@@ -32,6 +28,7 @@ import ApiPasswordDrawer from './components/ApiPasswordDrawer';
 import UserPasswordChangeDrawer from './components/UserPasswordChangeDrawer';
 import UserAvatarMenu from './components/UserAvatarMenu';
 import LoginDialog from './components/LoginDialog';
+import RepositoryCommandAccordion from './components/RepositoryCommandAccordion';
 import { name, repository_url, version } from '../generated/packageMetadata';
 import {
   buildAddSourceCommand,
@@ -404,6 +401,24 @@ const AppContent = ({
   const showPublishCommand =
     !!serverConfig &&
     canShowPublishCommandInRepositoryInfo(serverConfig.authMode);
+  const repositoryCommandItems = showPublishCommand
+    ? [
+        {
+          command: addSourceCommand,
+          copyAriaLabel: 'copy add-source command',
+        },
+        {
+          command: publishCommand,
+          copyAriaLabel: 'copy publish command',
+          preserveWhitespace: true,
+        },
+      ]
+    : [
+        {
+          command: addSourceCommand,
+          copyAriaLabel: 'copy add-source command',
+        },
+      ];
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
@@ -492,98 +507,19 @@ const AppContent = ({
 
       {showRepositoryInfo() && (
         <Container maxWidth="lg" sx={{ mt: 12, mb: 4 }}>
-          <Paper
-            elevation={1}
-            sx={{
-              p: 2,
-              bgcolor: (theme) =>
-                theme.palette.mode === 'light' ? 'primary.50' : 'grey.900',
-              borderColor: (theme) =>
-                theme.palette.mode === 'light' ? 'primary.100' : 'grey.800',
-              borderWidth: 1,
-              borderStyle: 'solid',
-            }}
-          >
-            <Box
-              sx={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-              }}
-            >
-              <Box sx={{ flexGrow: 1 }}>
-                <Stack direction="row">
-                  <Typography
-                    variant="body2"
-                    color="text.secondary"
-                    sx={{ fontSize: '1.3rem' }}
-                    gutterBottom
-                  >
-                    <EditNote fontSize="small" />
-                    {showPublishCommand ? (
-                      <TypedMessage
-                        message={messages.ADD_SERVER_AS_SOURCE_AND_PUBLISH}
-                      />
-                    ) : (
-                      <TypedMessage message={messages.ADD_SERVER_AS_SOURCE} />
-                    )}
-                  </Typography>
-                </Stack>
-                <Box
-                  sx={{ display: 'flex', alignItems: 'anchor-center', mt: 0 }}
-                >
-                  <Typography
-                    variant="body2"
-                    sx={{
-                      ml: '1rem',
-                      flexGrow: 1,
-                      fontFamily: 'monospace',
-                      fontSize: '0.95rem',
-                      wordBreak: 'break-all',
-                    }}
-                  >
-                    {addSourceCommand}
-                  </Typography>
-                  <IconButton
-                    size="large"
-                    onClick={() => handleCopyCommand(addSourceCommand)}
-                    aria-label="copy add-source command"
-                    sx={{ ml: 1, marginRight: '1rem' }}
-                  >
-                    <ContentCopyIcon fontSize="small" />
-                  </IconButton>
-                </Box>
-
-                {showPublishCommand && (
-                  <Box
-                    sx={{ display: 'flex', alignItems: 'anchor-center', mt: 0 }}
-                  >
-                    <Typography
-                      variant="body2"
-                      sx={{
-                        ml: '1rem',
-                        flexGrow: 1,
-                        fontFamily: 'monospace',
-                        fontSize: '0.95rem',
-                        whiteSpace: 'pre-wrap',
-                        wordBreak: 'break-all',
-                      }}
-                    >
-                      {publishCommand}
-                    </Typography>
-                    <IconButton
-                      size="large"
-                      onClick={() => handleCopyCommand(publishCommand)}
-                      aria-label="copy publish command"
-                      sx={{ ml: 1, marginRight: '1rem' }}
-                    >
-                      <ContentCopyIcon fontSize="small" />
-                    </IconButton>
-                  </Box>
-                )}
-              </Box>
-            </Box>
-          </Paper>
+          <RepositoryCommandAccordion
+            title={
+              showPublishCommand ? (
+                <TypedMessage
+                  message={messages.ADD_SERVER_AS_SOURCE_AND_PUBLISH}
+                />
+              ) : (
+                <TypedMessage message={messages.ADD_SERVER_AS_SOURCE} />
+              )
+            }
+            commands={repositoryCommandItems}
+            onCopyCommand={handleCopyCommand}
+          />
         </Container>
       )}
 

@@ -62,6 +62,7 @@ export interface SearchResult {
   projectUrl?: string;
   tags: string[];
   authors: string[];
+  targetFrameworks: string[];
   totalDownloads: number;
   verified: boolean;
   packageTypes: Array<{
@@ -235,6 +236,7 @@ const createSearchResult = (
     authors: latestVersion.authors
       ? latestVersion.authors.split(',').map((a) => a.trim())
       : [],
+    targetFrameworks: latestVersion.targetFrameworks || [],
     totalDownloads: 0, // Not tracked in this implementation
     verified: false, // Not implemented
     packageTypes: [

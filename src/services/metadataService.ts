@@ -8,6 +8,10 @@ import xml2js from 'xml2js';
 import { createReaderWriterLock } from 'async-primitives';
 import { Logger, DuplicatePackagePolicy } from '../types';
 import { compareVersions } from '../utils/semver';
+import {
+  extractNuspecTargetFrameworks,
+  parseNuspecTags,
+} from '../utils/nuspec';
 
 /**
  * Group of package dependencies for a specific target framework
@@ -40,6 +44,7 @@ export interface PackageMetadata {
   iconUrl?: string;
   icon?: string;
   tags?: string[];
+  targetFrameworks?: string[];
   dependencies?: DependencyGroup[];
   published: Date;
   listed: boolean;
@@ -202,9 +207,10 @@ export const createMetadataService = (
       // Extract tags
       const tags = metadata.tags
         ? typeof metadata.tags === 'string'
-          ? metadata.tags.split(/[\s,;]+/).filter((t: string) => t)
+          ? parseNuspecTags(metadata.tags)
           : []
         : [];
+      const targetFrameworks = extractNuspecTargetFrameworks(metadata);
 
       const actualPackageId = metadata.id || packageId;
 
@@ -222,6 +228,7 @@ export const createMetadataService = (
         iconUrl: metadata.iconUrl,
         icon: metadata.icon,
         tags,
+        targetFrameworks,
         dependencies,
         published: new Date(), // Use current date as we don't have publish info
         listed: true,
