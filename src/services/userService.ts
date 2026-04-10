@@ -205,6 +205,40 @@ export const createUserService = (config: UserServiceConfig): UserService => {
     }
   };
 
+  const cloneUser = (user: User): User => ({
+    ...user,
+    apiPasswords: user.apiPasswords?.map((apiPassword) => ({
+      ...apiPassword,
+    })),
+  });
+
+  const cloneUsers = (sourceUsers: Map<string, User>): Map<string, User> =>
+    new Map<string, User>(
+      Array.from(sourceUsers.entries(), ([username, user]): [string, User] => [
+        username,
+        cloneUser(user),
+      ])
+    );
+
+  /**
+   * Keeps the in-memory user state consistent with users.json by rolling back
+   * changes when persisting the updated content fails.
+   */
+  const persistUsersMutation = async <T>(
+    mutation: () => Promise<T> | T
+  ): Promise<T> => {
+    const previousUsers = cloneUsers(users);
+
+    try {
+      const result = await mutation();
+      await saveUsersInternal();
+      return result;
+    } catch (error) {
+      users = previousUsers;
+      throw error;
+    }
+  };
+
   /**
    * Validates username format and uniqueness
    */
@@ -310,28 +344,31 @@ export const createUserService = (config: UserServiceConfig): UserService => {
     createUser: async (request: CreateUserRequest): Promise<User> => {
       const handle = await fileLock.writeLock();
       try {
-        validateUsername(request.username);
-        validatePassword(request.password, request.username);
-        validateRole(request.role);
+        const user = await persistUsersMutation(() => {
+          validateUsername(request.username);
+          validatePassword(request.password, request.username);
+          validateRole(request.role);
 
-        // Generate salts and hashes
-        const passwordSalt = generateSalt();
-        const passwordHash = hashPassword(request.password, passwordSalt);
+          // Generate salts and hashes
+          const passwordSalt = generateSalt();
+          const passwordHash = hashPassword(request.password, passwordSalt);
 
-        const now = new Date().toISOString();
-        const user: User = {
-          id: generateUserId(),
-          username: request.username,
-          passwordHash,
-          salt: passwordSalt,
-          apiPasswords: [], // Start with empty API passwords array
-          role: request.role,
-          createdAt: now,
-          updatedAt: now,
-        };
+          const now = new Date().toISOString();
+          const createdUser: User = {
+            id: generateUserId(),
+            username: request.username,
+            passwordHash,
+            salt: passwordSalt,
+            apiPasswords: [], // Start with empty API passwords array
+            role: request.role,
+            createdAt: now,
+            updatedAt: now,
+          };
 
-        users.set(request.username, user);
-        await saveUsersInternal();
+          users.set(request.username, createdUser);
+
+          return createdUser;
+        });
 
         logger.info(
           `Created user: ${request.username} with role: ${request.role}`
@@ -377,27 +414,29 @@ export const createUserService = (config: UserServiceConfig): UserService => {
           return undefined;
         }
 
-        if ('role' in updates && updates.role) {
-          validateRole(updates.role);
-          user.role = updates.role;
-        }
+        const updatedUser = await persistUsersMutation(() => {
+          if ('role' in updates && updates.role) {
+            validateRole(updates.role);
+            user.role = updates.role;
+          }
 
-        if ('password' in updates && updates.password) {
-          validatePassword(updates.password, username);
-          const newPasswordSalt = generateSalt();
-          const newPasswordHash = hashPassword(
-            updates.password,
-            newPasswordSalt
-          );
-          user.passwordHash = newPasswordHash;
-          user.salt = newPasswordSalt;
-        }
+          if ('password' in updates && updates.password) {
+            validatePassword(updates.password, username);
+            const newPasswordSalt = generateSalt();
+            const newPasswordHash = hashPassword(
+              updates.password,
+              newPasswordSalt
+            );
+            user.passwordHash = newPasswordHash;
+            user.salt = newPasswordSalt;
+          }
 
-        user.updatedAt = new Date().toISOString();
-        await saveUsersInternal();
+          user.updatedAt = new Date().toISOString();
+          return user;
+        });
 
         logger.info(`Updated user: ${username}`);
-        return user;
+        return updatedUser;
       } finally {
         handle.release();
       }
@@ -411,12 +450,17 @@ export const createUserService = (config: UserServiceConfig): UserService => {
     deleteUser: async (username: string): Promise<boolean> => {
       const handle = await fileLock.writeLock();
       try {
-        const deleted = users.delete(username);
-        if (deleted) {
-          await saveUsersInternal();
-          logger.info(`Deleted user: ${username}`);
+        if (!users.has(username)) {
+          return false;
         }
-        return deleted;
+
+        await persistUsersMutation(() => {
+          users.delete(username);
+          return true;
+        });
+        logger.info(`Deleted user: ${username}`);
+
+        return true;
       } finally {
         handle.release();
       }
@@ -437,23 +481,25 @@ export const createUserService = (config: UserServiceConfig): UserService => {
           return undefined;
         }
 
-        const newApiPassword = generateApiPassword();
-        const newApiPasswordSalt = generateSalt();
-        const newApiPasswordHash = hashPassword(
-          newApiPassword,
-          newApiPasswordSalt
-        );
+        const result = await persistUsersMutation(() => {
+          const newApiPassword = generateApiPassword();
+          const newApiPasswordSalt = generateSalt();
+          const newApiPasswordHash = hashPassword(
+            newApiPassword,
+            newApiPasswordSalt
+          );
 
-        user.apiPasswordHash = newApiPasswordHash;
-        user.apiPasswordSalt = newApiPasswordSalt;
-        user.updatedAt = new Date().toISOString();
+          user.apiPasswordHash = newApiPasswordHash;
+          user.apiPasswordSalt = newApiPasswordSalt;
+          user.updatedAt = new Date().toISOString();
 
-        await saveUsersInternal();
+          return {
+            apiPassword: newApiPassword,
+          };
+        });
         logger.info(`Regenerated API password for user: ${username}`);
 
-        return {
-          apiPassword: newApiPassword,
-        };
+        return result;
       } finally {
         handle.release();
       }
@@ -603,56 +649,61 @@ export const createUserService = (config: UserServiceConfig): UserService => {
           throw new Error('Label cannot exceed 50 characters');
         }
 
-        // Initialize apiPasswords array if it doesn't exist
-        if (!user.apiPasswords) {
-          user.apiPasswords = [];
-          // Migrate old single API password if it exists
-          if (user.apiPasswordHash && user.apiPasswordSalt) {
-            user.apiPasswords.push({
-              label: 'default',
-              passwordHash: user.apiPasswordHash,
-              salt: user.apiPasswordSalt,
-              createdAt: user.createdAt,
-            });
+        const result = await persistUsersMutation(() => {
+          // Initialize apiPasswords array if it doesn't exist
+          if (!user.apiPasswords) {
+            user.apiPasswords = [];
+            // Migrate old single API password if it exists
+            if (user.apiPasswordHash && user.apiPasswordSalt) {
+              user.apiPasswords.push({
+                label: 'default',
+                passwordHash: user.apiPasswordHash,
+                salt: user.apiPasswordSalt,
+                createdAt: user.createdAt,
+              });
+            }
           }
-        }
 
-        // Check for duplicate label
-        if (user.apiPasswords.some((p) => p.label === label)) {
-          throw new Error(`API password with label "${label}" already exists`);
-        }
+          // Check for duplicate label
+          if (user.apiPasswords.some((p) => p.label === label)) {
+            throw new Error(
+              `API password with label "${label}" already exists`
+            );
+          }
 
-        // Check maximum limit (10 API passwords)
-        if (user.apiPasswords.length >= 10) {
-          throw new Error('Maximum of 10 API passwords allowed per user');
-        }
+          // Check maximum limit (10 API passwords)
+          if (user.apiPasswords.length >= 10) {
+            throw new Error('Maximum of 10 API passwords allowed per user');
+          }
 
-        // Generate new API password
-        const apiPassword = generateApiPassword();
-        const salt = generateSalt();
-        const passwordHash = hashPassword(apiPassword, salt);
-        const now = new Date().toISOString();
+          // Generate new API password
+          const apiPassword = generateApiPassword();
+          const salt = generateSalt();
+          const passwordHash = hashPassword(apiPassword, salt);
+          const now = new Date().toISOString();
 
-        // Add new API password
-        user.apiPasswords.push({
-          label,
-          passwordHash,
-          salt,
-          createdAt: now,
+          // Add new API password
+          user.apiPasswords.push({
+            label,
+            passwordHash,
+            salt,
+            createdAt: now,
+          });
+
+          user.updatedAt = now;
+
+          return {
+            label,
+            apiPassword,
+            createdAt: now,
+          };
         });
-
-        user.updatedAt = now;
-        await saveUsersInternal();
 
         logger.info(
           `Added API password with label "${label}" for user: ${username}`
         );
 
-        return {
-          label,
-          apiPassword,
-          createdAt: now,
-        };
+        return result;
       } finally {
         handle.release();
       }
@@ -678,33 +729,36 @@ export const createUserService = (config: UserServiceConfig): UserService => {
           };
         }
 
-        // Initialize apiPasswords array if it doesn't exist
-        if (!user.apiPasswords) {
-          user.apiPasswords = [];
-        }
-
-        // Find and remove the API password with the specified label
-        const initialLength = user.apiPasswords.length;
-        user.apiPasswords = user.apiPasswords.filter((p) => p.label !== label);
-
-        if (user.apiPasswords.length === initialLength) {
+        const currentApiPasswords = user.apiPasswords ?? [];
+        if (!currentApiPasswords.some((p) => p.label === label)) {
           return {
             success: false,
             message: `API password with label "${label}" not found`,
           };
         }
 
-        user.updatedAt = new Date().toISOString();
-        await saveUsersInternal();
+        const result = await persistUsersMutation(() => {
+          // Initialize apiPasswords array if it doesn't exist
+          if (!user.apiPasswords) {
+            user.apiPasswords = [];
+          }
+
+          user.apiPasswords = user.apiPasswords.filter(
+            (p) => p.label !== label
+          );
+          user.updatedAt = new Date().toISOString();
+
+          return {
+            success: true,
+            message: `API password "${label}" deleted successfully`,
+          };
+        });
 
         logger.info(
           `Deleted API password with label "${label}" for user: ${username}`
         );
 
-        return {
-          success: true,
-          message: `API password "${label}" deleted successfully`,
-        };
+        return result;
       } finally {
         handle.release();
       }
