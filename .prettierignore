@@ -11,6 +11,8 @@ temp/
 .claude/
 .cursor/
 
+*.md
+
 test-results/
 playwright-report/
 artifacts/
