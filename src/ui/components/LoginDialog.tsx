@@ -22,7 +22,7 @@ import {
   IconButton,
 } from '@mui/material';
 import { Login as LoginIcon, Close as CloseIcon } from '@mui/icons-material';
-import { apiFetch } from '../utils/apiClient';
+import { apiFetch, resetSessionExpiryHandling } from '../utils/apiClient';
 
 interface LoginResponse {
   success: boolean;
@@ -88,6 +88,7 @@ const LoginDialog = ({
       const data: LoginResponse = await response.json();
 
       if (data.success) {
+        resetSessionExpiryHandling();
         // Login successful, call success callback with username
         const loggedInUsername = data.user?.username || username;
         onLoginSuccess(loggedInUsername);
