@@ -37,6 +37,10 @@ import {
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import { TypedMessage, useTypedMessage } from 'typed-message';
 import { messages } from '../../generated/messages';
+import {
+  createUploadFileSelection,
+  type UploadFileSelectionMode,
+} from '../uploadFileSelection';
 
 interface UploadDrawerProps {
   open: boolean;
@@ -66,18 +70,26 @@ const UploadDrawer = ({
   const [isDragging, setIsDragging] = useState(false);
   const dragCounter = useRef(0);
 
-  const handleFileSelection = (files: File[]) => {
-    const validFiles = files.filter((file) => file.name.endsWith('.nupkg'));
-    const invalidCount = files.length - validFiles.length;
+  const handleFileSelection = (
+    files: File[],
+    mode: UploadFileSelectionMode
+  ) => {
+    const selection = createUploadFileSelection({
+      currentFiles: selectedFiles,
+      incomingFiles: files,
+      mode,
+    });
 
-    if (invalidCount > 0) {
+    if (selection.invalidCount > 0) {
       alert(
-        getMessage(messages.INVALID_FILES_EXCLUDED, { count: invalidCount })
+        getMessage(messages.INVALID_FILES_EXCLUDED, {
+          count: selection.invalidCount,
+        })
       );
     }
 
-    if (validFiles.length > 0) {
-      setSelectedFiles(validFiles);
+    if (selection.acceptedFiles.length > 0) {
+      setSelectedFiles(selection.selectedFiles);
       setUploadResults([]);
       setCurrentUploadIndex(-1);
     }
@@ -86,7 +98,7 @@ const UploadDrawer = ({
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files;
     if (files && files.length > 0) {
-      handleFileSelection(Array.from(files));
+      handleFileSelection(Array.from(files), 'replace');
     }
   };
 
@@ -189,7 +201,7 @@ const UploadDrawer = ({
 
     const files = e.dataTransfer.files;
     if (files && files.length > 0) {
-      handleFileSelection(Array.from(files));
+      handleFileSelection(Array.from(files), 'append');
     }
   };
 
