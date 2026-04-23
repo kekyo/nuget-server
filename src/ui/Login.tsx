@@ -18,7 +18,7 @@ import {
   useMediaQuery,
 } from '@mui/material';
 import { Login as LoginIcon } from '@mui/icons-material';
-import { apiFetch } from './utils/apiClient';
+import { apiFetch, resetSessionExpiryHandling } from './utils/apiClient';
 import { TypedMessage, useTypedMessage } from 'typed-message';
 import { messages } from '../generated/messages';
 
@@ -72,6 +72,7 @@ const Login = () => {
       const data: LoginResponse = await response.json();
 
       if (data.success) {
+        resetSessionExpiryHandling();
         // Login successful, redirect to main page
         window.location.href = '.';
       } else {
