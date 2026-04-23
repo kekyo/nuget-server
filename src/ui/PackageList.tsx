@@ -30,6 +30,7 @@ import InfiniteScroll from 'react-infinite-scroll-component';
 import { sortVersions } from '../utils/semver';
 import { apiFetch } from './utils/apiClient';
 import { filterPackages } from './packageFilter';
+import { createPackageListViewState } from './packageListViewState';
 import { TypedMessage, useTypedMessage } from 'typed-message';
 import { messages } from '../generated/messages';
 
@@ -303,6 +304,15 @@ const PackageList = forwardRef<PackageListRef, PackageListProps>(
     const filteredPackages = useMemo(() => {
       return filterPackages(packages, filterText);
     }, [packages, filterText]);
+    const packageListViewState = useMemo(
+      () =>
+        createPackageListViewState({
+          filterText,
+          filteredPackageCount: filteredPackages.length,
+          hasMorePackages: hasMore,
+        }),
+      [filterText, filteredPackages.length, hasMore]
+    );
 
     const handleAccordionChange = useCallback(
       (packageId: string) =>
@@ -330,14 +340,20 @@ const PackageList = forwardRef<PackageListRef, PackageListProps>(
     // Auto-load more packages when filtered results are below visible threshold
     useEffect(() => {
       // Skip if no filter is active or still loading
-      if (!filterText || loading) return;
+      if (!packageListViewState.hasActiveFilter || loading) return;
 
       // Check if we need to load more packages
       // Load more if filtered results are less than half the page size and we have more to load
       if (filteredPackages.length < pageSize / 2 && hasMore) {
         loadMorePackages();
       }
-    }, [filteredPackages.length, filterText, loading, hasMore, pageSize]);
+    }, [
+      filteredPackages.length,
+      packageListViewState.hasActiveFilter,
+      loading,
+      hasMore,
+      pageSize,
+    ]);
 
     useImperativeHandle(ref, () => ({
       refresh: () => fetchPackages(true),
@@ -377,7 +393,7 @@ const PackageList = forwardRef<PackageListRef, PackageListProps>(
       );
     }
 
-    if (packages.length === 0 && !filterText) {
+    if (packages.length === 0 && !packageListViewState.hasActiveFilter) {
       return (
         <Alert severity="info">
           <TypedMessage message={messages.NO_PACKAGES_FOUND} />
@@ -402,7 +418,7 @@ const PackageList = forwardRef<PackageListRef, PackageListProps>(
           >
             <PackageIcon />
             <TypedMessage message={messages.PACKAGES_HEADER} />{' '}
-            {filterText.trim() ? (
+            {packageListViewState.hasActiveFilter ? (
               <>
                 ({filteredPackages.length}/
                 {totalHits > 0 ? totalHits : packages.length})
@@ -420,15 +436,11 @@ const PackageList = forwardRef<PackageListRef, PackageListProps>(
           />
         </Box>
 
-        {filteredPackages.length === 0 && filterText ? (
-          <Alert severity="info">
-            <TypedMessage message={messages.NO_PACKAGES_MATCH_FILTER} />
-          </Alert>
-        ) : (
+        {packageListViewState.shouldRenderPackageAccordions ? (
           <InfiniteScroll
             dataLength={filteredPackages.length}
             next={loadMorePackages}
-            hasMore={hasMore && !filterText}
+            hasMore={packageListViewState.infiniteScrollHasMore}
             loader={
               <Box
                 sx={{
@@ -449,7 +461,7 @@ const PackageList = forwardRef<PackageListRef, PackageListProps>(
                 <Typography
                   sx={{ textAlign: 'center', p: 2, color: 'text.secondary' }}
                 >
-                  {filterText
+                  {packageListViewState.hasActiveFilter
                     ? getMessage(messages.SHOWING_PACKAGES, {
                         current: filteredPackages.length,
                         total: packages.length,
@@ -648,6 +660,10 @@ const PackageList = forwardRef<PackageListRef, PackageListProps>(
               </Accordion>
             ))}
           </InfiniteScroll>
+        ) : (
+          <Alert severity="info">
+            <TypedMessage message={messages.NO_PACKAGES_MATCH_FILTER} />
+          </Alert>
         )}
       </Box>
     );
