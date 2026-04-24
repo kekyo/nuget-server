@@ -11,12 +11,18 @@ export interface DotNetRestoreResult {
   stderr: string;
 }
 
-const createDotNetEnvironment = (
+/**
+ * Creates the environment used by dotnet helper commands.
+ * @remarks When projectDir is provided, all NuGet local resource folders are isolated under that project directory.
+ */
+export const createDotNetEnvironment = (
   projectDir: string | undefined
 ): {
   env: Record<string, string>;
   nugetPackagesPath: string | undefined;
   nugetHttpCachePath: string | undefined;
+  nugetScratchPath: string | undefined;
+  nugetPluginsCachePath: string | undefined;
 } => {
   const dotnetPath = process.env.HOME
     ? `${process.env.HOME}/.dotnet`
@@ -30,6 +36,14 @@ const createDotNetEnvironment = (
   const nugetHttpCachePath =
     nugetBasePath !== undefined
       ? path.join(nugetBasePath, 'http-cache')
+      : undefined;
+  const nugetScratchPath =
+    nugetBasePath !== undefined
+      ? path.join(nugetBasePath, 'scratch')
+      : undefined;
+  const nugetPluginsCachePath =
+    nugetBasePath !== undefined
+      ? path.join(nugetBasePath, 'plugins-cache')
       : undefined;
 
   const env: Record<string, string> = {
@@ -45,11 +59,19 @@ const createDotNetEnvironment = (
   if (nugetHttpCachePath !== undefined) {
     env.NUGET_HTTP_CACHE_PATH = nugetHttpCachePath;
   }
+  if (nugetScratchPath !== undefined) {
+    env.NUGET_SCRATCH = nugetScratchPath;
+  }
+  if (nugetPluginsCachePath !== undefined) {
+    env.NUGET_PLUGINS_CACHE_PATH = nugetPluginsCachePath;
+  }
 
   return {
     env,
     nugetPackagesPath,
     nugetHttpCachePath,
+    nugetScratchPath,
+    nugetPluginsCachePath,
   };
 };
 
@@ -187,14 +209,25 @@ export const runDotNetRestore = async (
   projectDir: string
 ): Promise<DotNetRestoreResult> => {
   try {
-    const { env, nugetPackagesPath, nugetHttpCachePath } =
-      createDotNetEnvironment(projectDir);
+    const {
+      env,
+      nugetPackagesPath,
+      nugetHttpCachePath,
+      nugetScratchPath,
+      nugetPluginsCachePath,
+    } = createDotNetEnvironment(projectDir);
 
     if (nugetPackagesPath !== undefined) {
       await ensureDir(nugetPackagesPath);
     }
     if (nugetHttpCachePath !== undefined) {
       await ensureDir(nugetHttpCachePath);
+    }
+    if (nugetScratchPath !== undefined) {
+      await ensureDir(nugetScratchPath);
+    }
+    if (nugetPluginsCachePath !== undefined) {
+      await ensureDir(nugetPluginsCachePath);
     }
 
     // Log debug information
@@ -206,6 +239,16 @@ export const runDotNetRestore = async (
     }
     if (nugetHttpCachePath !== undefined) {
       logger.info(`Using isolated NuGet HTTP cache: ${nugetHttpCachePath}`);
+    }
+    if (nugetScratchPath !== undefined) {
+      logger.info(
+        `Using isolated NuGet scratch directory: ${nugetScratchPath}`
+      );
+    }
+    if (nugetPluginsCachePath !== undefined) {
+      logger.info(
+        `Using isolated NuGet plugins cache: ${nugetPluginsCachePath}`
+      );
     }
 
     // First check if dotnet is available
