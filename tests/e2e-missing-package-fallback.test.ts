@@ -43,8 +43,7 @@ describe('E2E: Missing Package Fallback with empty-array mode', () => {
     const pathsToRemove = [
       path.join(targetProjectDir, 'obj'),
       path.join(targetProjectDir, 'bin'),
-      path.join(targetProjectDir, '.nuget', 'packages'),
-      path.join(targetProjectDir, '.nuget', 'http-cache'),
+      path.join(targetProjectDir, '.nuget'),
     ];
 
     for (const targetPath of pathsToRemove) {
