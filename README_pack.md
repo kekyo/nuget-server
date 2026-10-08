@@ -37,6 +37,7 @@ A modern browser-based UI is also provided:
   - User account management: Add/delete users, reset passwords (admin only)
   - API password regeneration: Self-service API password updates
   - Password change: Users can change their own passwords
+  - Optional two-step authentication: QR registration, authenticator codes, and recovery codes
 - Package importer: Included package importer from existing NuGet server
 - Docker image available
 
