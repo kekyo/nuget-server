@@ -91,8 +91,7 @@ const getUsersFileFromEnv = (): string | undefined => {
 };
 
 const getDuplicatePackagePolicyFromEnv = ():
-  | DuplicatePackagePolicy
-  | undefined => {
+  DuplicatePackagePolicy | undefined => {
   const policy = process.env.NUGET_SERVER_DUPLICATE_PACKAGE_POLICY;
   if (policy === 'overwrite' || policy === 'ignore' || policy === 'error') {
     return policy;
@@ -112,8 +111,7 @@ const getMaxUploadSizeMbFromEnv = (): number | undefined => {
 };
 
 const getMissingPackageResponseFromEnv = ():
-  | MissingPackageResponseMode
-  | undefined => {
+  MissingPackageResponseMode | undefined => {
   const mode = process.env.NUGET_SERVER_MISSING_PACKAGE_RESPONSE;
   if (mode === 'empty-array' || mode === 'not-found') {
     return mode;

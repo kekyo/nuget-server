@@ -100,8 +100,7 @@ export const extractNuspecTargetFrameworks = (
   const frameworkAssemblies = toArray(
     (
       metadata.frameworkAssemblies as
-        | { frameworkAssembly?: unknown }
-        | undefined
+        { frameworkAssembly?: unknown } | undefined
     )?.frameworkAssembly
   );
 
