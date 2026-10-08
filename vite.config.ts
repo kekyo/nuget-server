@@ -15,7 +15,7 @@ const devConfig: ServerConfig = {
   packageDir: './dev/packages',
   realm: 'nuget-server dev',
   trustedProxies: [],
-  authMode: 'none',
+  authMode: 'publish',
 };
 
 ////////////////////////////////////////////////////////////////////

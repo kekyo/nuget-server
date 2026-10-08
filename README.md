@@ -321,21 +321,39 @@ With authentication mode `publish` or `full`, each user can enable two-step auth
 4. Enter the app's six-digit code to enable two-step authentication.
 5. Save the ten recovery codes somewhere safe. They cannot be displayed again after closing this screen.
 
-QR codes are generated in the browser without sending the setup key to an external QR service. Use an authenticator app supporting [RFC 6238](https://www.rfc-editor.org/rfc/rfc6238.html) TOTP with SHA-1, six digits, and a 30-second period.
+QR codes are generated in the browser without sending the setup key to an external QR service.
+Use an authenticator app supporting [RFC 6238](https://www.rfc-editor.org/rfc/rfc6238.html) TOTP with SHA-1, six digits, and a 30-second period.
 
-Subsequent sign-ins require your password and an authenticator code. A code can only be used once; wait for the next code before authenticating again. Verification expires after five minutes and allows five attempts. Repeated failures trigger limits per user and per client IP for up to ten minutes. Keep the server and authenticator clocks synchronized and use HTTPS in public deployments.
+Subsequent sign-ins require your password and an authenticator code.
+A code can only be used once; wait for the next code before authenticating again.
+Verification expires after five minutes and allows five attempts.
+Repeated failures trigger limits per user and per client IP for up to ten minutes.
+Keep the server and authenticator clocks synchronized and use HTTPS in public deployments.
 
-If you lose your authenticator, select "Use a recovery code" during verification. Each recovery code works once. Replacing the authenticator after signing in requires another unused authenticator or recovery code.
+If you lose your authenticator, select "Use a recovery code" during verification.
+Each recovery code works once. Replacing the authenticator after signing in requires another unused authenticator or recovery code.
 
-The settings screen lets you replace the authenticator, regenerate recovery codes, or disable two-step authentication. Each action requires your current password and an unused authenticator or recovery code. The existing authenticator remains active until its replacement is confirmed. Completing registration or regenerating recovery codes invalidates previous recovery codes. Confirming a settings change invalidates sessions in other browsers.
+The settings screen lets you replace the authenticator, regenerate recovery codes, or disable two-step authentication.
+Each action requires your current password and an unused authenticator or recovery code.
+The existing authenticator remains active until its replacement is confirmed.
+Completing registration or regenerating recovery codes invalidates previous recovery codes.
+Confirming a settings change invalidates sessions in other browsers.
 
-NuGet clients and CI continue to use API passwords without changes. Resetting a user's UI password as an administrator also preserves their TOTP settings.
+NuGet clients and CI continue to use API passwords without changes.
+Resetting a user's UI password as an administrator also preserves their TOTP settings.
 
 #### Key storage and recovery
 
-The first registration creates an encryption key named `totp.key` alongside `config.json`. Set `totpKeyFile` in the configuration file or the `NUGET_SERVER_TOTP_KEY_FILE` environment variable to choose another location. Relative paths in the configuration file are resolved against its directory. Create the destination directory in advance.
+The first registration creates an encryption key named `totp.key` alongside `config.json`.
+Set `totpKeyFile` in the configuration file or the `NUGET_SERVER_TOTP_KEY_FILE` environment variable to choose another location.
+Relative paths in the configuration file are resolved against its directory.
+Create the destination directory in advance.
 
-TOTP setup keys are encrypted in `users.json`, and only hashes of recovery codes are stored. Back up both `users.json` and `totp.key`, and restrict access to the key. In Docker, store the key on a persistent volume too. The session's `sessionSecret` cannot replace this encryption key. Sharing a writable user file between multiple server processes is unsupported.
+TOTP setup keys are encrypted in `users.json`, and only hashes of recovery codes are stored.
+Back up both `users.json` and `totp.key`, and restrict access to the key.
+In Docker, store the key on a persistent volume too.
+The session's `sessionSecret` cannot replace this encryption key.
+Sharing a writable user file between multiple server processes is unsupported.
 
 If both the authenticator and recovery codes are unavailable, the server administrator can stop the server and reset the affected account:
 
@@ -343,9 +361,14 @@ If both the authenticator and recovery codes are unavailable, the server adminis
 nuget-server --config-file ./config.json --totp-reset alice
 ```
 
-Verify that the server is stopped before running this command; it does not detect running servers automatically. It removes the selected user's TOTP and recovery codes while preserving passwords, API passwords, and other accounts. Restart the server, sign in with the password, and register a new authenticator.
+Verify that the server is stopped before running this command; it does not detect running servers automatically.
+It removes the selected user's TOTP and recovery codes while preserving passwords, API passwords, and other accounts.
+Restart the server, sign in with the password, and register a new authenticator.
 
-The server refuses to start if an enrolled account's encryption key is missing or has changed. Restore the original key from backup. If restoration is impossible, reset every enrolled user using the command above; the reset does not require the key. If a corrupt key file remains, remove it after resetting all enrolled accounts and before restarting.
+The server refuses to start if an enrolled account's encryption key is missing or has changed.
+Restore the original key from backup.
+If restoration is impossible, reset every enrolled user using the command above; the reset does not require the key.
+If a corrupt key file remains, remove it after resetting all enrolled accounts and before restarting.
 
 ### Using the API password
 
