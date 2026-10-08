@@ -115,7 +115,8 @@ export const fastifyHost = (config: ServerConfig): Plugin => {
               if (typeof headers === 'object') {
                 Object.entries(headers).forEach(([key, value]) => {
                   if (value !== undefined) {
-                    res.setHeader(key, String(value));
+                    // Preserve separate Set-Cookie fields when multiple cookies are returned.
+                    res.setHeader(key, value);
                   }
                 });
               }
