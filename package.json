@@ -28,7 +28,7 @@
     "images/nuget-server-ss-1.png"
   ],
   "scripts": {
-    "dependencies": "reskill",
+    "dependencies": "node -e \"if (process.env.NODE_ENV !== 'production') require('node:child_process').execSync('reskill', { stdio: 'inherit' })\"",
     "metadata": "screw-up metadata",
     "build": "npm run metadata && vite build && BUILD_TARGET=ui vite build",
     "build:server": "npm run metadata && vite build",
