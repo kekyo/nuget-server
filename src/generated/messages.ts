@@ -12,6 +12,55 @@ export const locales = ['ja', 'en'];
  */
 export const messages = {
   /**
+   * TOTP_USE_RECOVERY ==> "Use a recovery code"
+   */
+  TOTP_USE_RECOVERY: { 
+    key: "TOTP_USE_RECOVERY", 
+    fallback: "Use a recovery code" 
+  } as SimpleMessageItem,
+  /**
+   * TOTP_RECOVERY_CODE ==> "Recovery code"
+   */
+  TOTP_RECOVERY_CODE: { 
+    key: "TOTP_RECOVERY_CODE", 
+    fallback: "Recovery code" 
+  } as SimpleMessageItem,
+  /**
+   * TOTP_REMAINING ==> "{count:number} unused recovery codes remaining."
+   */
+  TOTP_REMAINING: { 
+    key: "TOTP_REMAINING", 
+    fallback: "{count:number} unused recovery codes remaining." 
+  } as MessageItem<{ count: number }>,
+  /**
+   * TOTP_MANAGE_DESCRIPTION ==> "Enter your current password and an authenticator or recovery code to make changes. Disabling two-factor authentication allows login with your password alone. Regenerating recovery codes invalidates all previous recovery codes."
+   */
+  TOTP_MANAGE_DESCRIPTION: { 
+    key: "TOTP_MANAGE_DESCRIPTION", 
+    fallback: "Enter your current password and an authenticator or recovery code to make changes. Disabling two-factor authentication allows login with your password alone. Regenerating recovery codes invalidates all previous recovery codes." 
+  } as SimpleMessageItem,
+  /**
+   * TOTP_REPLACE ==> "Replace authenticator"
+   */
+  TOTP_REPLACE: { 
+    key: "TOTP_REPLACE", 
+    fallback: "Replace authenticator" 
+  } as SimpleMessageItem,
+  /**
+   * TOTP_REGENERATE ==> "Regenerate recovery codes"
+   */
+  TOTP_REGENERATE: { 
+    key: "TOTP_REGENERATE", 
+    fallback: "Regenerate recovery codes" 
+  } as SimpleMessageItem,
+  /**
+   * TOTP_DISABLE ==> "Disable two-factor authentication"
+   */
+  TOTP_DISABLE: { 
+    key: "TOTP_DISABLE", 
+    fallback: "Disable two-factor authentication" 
+  } as SimpleMessageItem,
+  /**
    * TOTP_TITLE ==> "Two-step authentication"
    */
   TOTP_TITLE: { 

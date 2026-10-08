@@ -25,6 +25,7 @@ import {
   getTrustedProxiesFromEnv,
 } from './utils/urlResolver';
 import { runAuthInit } from './authInit';
+import { runTotpReset } from './totpReset';
 import { runImportPackages } from './importPackages';
 import { loadConfigFromPath } from './utils/configLoader';
 import { dirname } from 'path';
@@ -179,6 +180,12 @@ program
       '--auth-init',
       'initialize authentication with interactive admin user creation'
     )
+  )
+  .addOption(
+    new Option(
+      '--totp-reset <username>',
+      "reset a user's two-factor authentication (stop the server first)"
+    ).conflicts(['authInit', 'importPackages'])
   )
   .addOption(
     new Option(
@@ -357,6 +364,17 @@ program
       missingPackageResponse:
         missingPackageResponse as MissingPackageResponseMode,
     };
+
+    // Handle offline second-factor recovery
+    if (options.totpReset) {
+      try {
+        await runTotpReset(config, logger, options.totpReset);
+      } catch (error) {
+        logger.error(`Failed to reset two-factor authentication: ${error}`);
+        process.exitCode = 1;
+      }
+      return;
+    }
 
     // Handle auth-init mode
     if (options.authInit) {

@@ -61,12 +61,14 @@ const LoginDialog = ({
   const [isLoading, setIsLoading] = useState(false);
   const [totpRequired, setTotpRequired] = useState(false);
   const [code, setCode] = useState('');
+  const [recovery, setRecovery] = useState(false);
 
   useEffect(() => {
     if (!open) {
       setPassword('');
       setCode('');
       setTotpRequired(false);
+      setRecovery(false);
       setError(null);
     }
   }, [open]);
@@ -94,7 +96,7 @@ const LoginDialog = ({
           },
           body: JSON.stringify(
             totpRequired
-              ? { code: code.trim() }
+              ? { code: code.trim(), recovery }
               : {
                   username: username.trim(),
                   password,
@@ -111,6 +113,7 @@ const LoginDialog = ({
         setTotpRequired(true);
         setPassword('');
         setCode('');
+        setRecovery(false);
       } else if (data.success) {
         resetSessionExpiryHandling();
         // Login successful, call success callback with username
@@ -154,6 +157,7 @@ const LoginDialog = ({
         credentials: 'same-origin',
       });
       setTotpRequired(false);
+      setRecovery(false);
       setCode('');
       setPassword('');
       setError(null);
@@ -246,24 +250,41 @@ const LoginDialog = ({
           )}
 
           {totpRequired ? (
-            <TextField
-              required
-              fullWidth
-              autoFocus
-              key="totp-code"
-              label={getMessage(messages.TOTP_CODE)}
-              autoComplete="one-time-code"
-              value={code}
-              onChange={(e) => setCode(e.target.value)}
-              disabled={isLoading}
-              slotProps={{
-                htmlInput: {
-                  inputMode: 'numeric',
-                  maxLength: 6,
-                  pattern: '[0-9]{6}',
-                },
-              }}
-            />
+            <>
+              <TextField
+                required
+                fullWidth
+                autoFocus
+                key="totp-code"
+                label={getMessage(
+                  recovery ? messages.TOTP_RECOVERY_CODE : messages.TOTP_CODE
+                )}
+                autoComplete="one-time-code"
+                value={code}
+                onChange={(e) => setCode(e.target.value)}
+                disabled={isLoading}
+                slotProps={{
+                  htmlInput: {
+                    inputMode: recovery ? 'text' : 'numeric',
+                    maxLength: recovery ? 64 : 6,
+                    pattern: recovery ? undefined : '[0-9]{6}',
+                  },
+                }}
+              />
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={recovery}
+                    disabled={isLoading}
+                    onChange={(event) => {
+                      setRecovery(event.target.checked);
+                      setCode('');
+                    }}
+                  />
+                }
+                label={getMessage(messages.TOTP_USE_RECOVERY)}
+              />
+            </>
           ) : (
             <>
               <TextField

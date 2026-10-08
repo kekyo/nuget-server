@@ -51,7 +51,7 @@ export const registerTotpRoutes = async (
         code: status < 500 ? failure.code : 'TOTP_STORAGE_ERROR',
       });
     });
-    scope.post<{ Body: { code: string } }>(
+    scope.post<{ Body: { code: string; recovery?: boolean } }>(
       '/api/auth/login/totp',
       {
         schema: {
@@ -61,6 +61,7 @@ export const registerTotpRoutes = async (
             additionalProperties: false,
             properties: {
               code: { type: 'string', minLength: 1, maxLength: 100 },
+              recovery: { type: 'boolean' },
             },
           },
         },
@@ -69,7 +70,8 @@ export const registerTotpRoutes = async (
         const result = await totp.verifyLogin(
           request.cookies.totpChallenge ?? '',
           request.body.code,
-          request.ip
+          request.ip,
+          request.body.recovery === true
         );
         reply.clearCookie('totpChallenge', { path: '/' });
         await issueSession(result.user, result.rememberMe, request, reply);
@@ -79,7 +81,14 @@ export const registerTotpRoutes = async (
         };
       }
     );
-    scope.post<{ Body: { action: string; password?: string; code?: string } }>(
+    scope.post<{
+      Body: {
+        action: string;
+        password?: string;
+        code?: string;
+        recovery?: boolean;
+      };
+    }>(
       '/api/ui/totp',
       {
         schema: {
@@ -90,10 +99,18 @@ export const registerTotpRoutes = async (
             properties: {
               action: {
                 type: 'string',
-                enum: ['status', 'setup', 'confirm', 'cancel'],
+                enum: [
+                  'status',
+                  'setup',
+                  'confirm',
+                  'cancel',
+                  'disable',
+                  'recovery',
+                ],
               },
               password: { type: 'string', maxLength: 1024 },
               code: { type: 'string', maxLength: 100 },
+              recovery: { type: 'boolean' },
             },
           },
         },
@@ -116,7 +133,9 @@ export const registerTotpRoutes = async (
               user,
               sessionToken,
               request.body.password ?? '',
-              request.ip
+              request.ip,
+              request.body.code ?? '',
+              request.body.recovery === true
             );
           case 'confirm': {
             const result = await totp.confirm(
@@ -131,6 +150,20 @@ export const registerTotpRoutes = async (
           case 'cancel':
             totp.cancel(sessionToken, '');
             return { success: true };
+          case 'disable':
+          case 'recovery': {
+            const result = await totp.manage(
+              user,
+              request.body.password ?? '',
+              request.body.code ?? '',
+              request.body.recovery === true,
+              request.body.action,
+              request.ip
+            );
+            await sessions.deleteAllUserSessions(user.id);
+            await issueSession(result.user, false, request, reply);
+            return { success: true, recoveryCodes: result.recoveryCodes };
+          }
           default:
             return reply.code(400).send({ code: 'TOTP_INVALID' });
         }

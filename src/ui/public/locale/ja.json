@@ -1,4 +1,11 @@
 {
+  "TOTP_USE_RECOVERY": "復旧コードを使う",
+  "TOTP_RECOVERY_CODE": "復旧コード",
+  "TOTP_REMAINING": "未使用の復旧コードは{count:number}個です。",
+  "TOTP_MANAGE_DESCRIPTION": "変更するには現在のパスワードと確認コード、または復旧コードを入力してください。解除すると、ログインに必要なのはパスワードのみになります。復旧コードを再発行すると、以前の復旧コードは使えなくなります。",
+  "TOTP_REPLACE": "認証アプリを再登録",
+  "TOTP_REGENERATE": "復旧コードを再発行",
+  "TOTP_DISABLE": "二段階認証を解除",
   "TOTP_TITLE": "二段階認証",
   "TOTP_DESCRIPTION": "認証アプリを登録すると、ログイン時にパスワードと確認コードを入力します。現在のパスワードを入力して登録を始めてください。",
   "TOTP_SETUP": "認証アプリを登録",

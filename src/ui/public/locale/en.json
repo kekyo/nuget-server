@@ -1,4 +1,11 @@
 {
+  "TOTP_USE_RECOVERY": "Use a recovery code",
+  "TOTP_RECOVERY_CODE": "Recovery code",
+  "TOTP_REMAINING": "{count:number} unused recovery codes remaining.",
+  "TOTP_MANAGE_DESCRIPTION": "Enter your current password and an authenticator or recovery code to make changes. Disabling two-factor authentication allows login with your password alone. Regenerating recovery codes invalidates all previous recovery codes.",
+  "TOTP_REPLACE": "Replace authenticator",
+  "TOTP_REGENERATE": "Regenerate recovery codes",
+  "TOTP_DISABLE": "Disable two-factor authentication",
   "TOTP_TITLE": "Two-step authentication",
   "TOTP_DESCRIPTION": "Register an authenticator app to require a code in addition to your password when signing in. Enter your current password to begin.",
   "TOTP_SETUP": "Register authenticator",

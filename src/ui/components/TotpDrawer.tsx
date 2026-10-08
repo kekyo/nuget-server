@@ -8,7 +8,9 @@ import {
   Box,
   Button,
   CircularProgress,
+  Checkbox,
   Drawer,
+  FormControlLabel,
   TextField,
   Typography,
 } from '@mui/material';
@@ -27,6 +29,8 @@ const TotpDrawer = ({ onClose }: TotpDrawerProps) => {
   const [loading, setLoading] = useState(true);
   const [password, setPassword] = useState('');
   const [code, setCode] = useState('');
+  const [recovery, setRecovery] = useState(false);
+  const [remaining, setRemaining] = useState(0);
   const [setup, setSetup] = useState<{ uri: string; secret: string } | null>(
     null
   );
@@ -46,7 +50,10 @@ const TotpDrawer = ({ onClose }: TotpDrawerProps) => {
         });
         if (!response.ok) throw new Error('Status request failed');
         const result = await response.json();
-        if (!controller.signal.aborted) setEnabled(result.enabled);
+        if (!controller.signal.aborted) {
+          setEnabled(result.enabled);
+          setRemaining(result.recoveryCodesRemaining);
+        }
       } catch {
         if (!controller.signal.aborted)
           setError(getMessage(messages.TOTP_REQUEST_FAILED));
@@ -58,7 +65,9 @@ const TotpDrawer = ({ onClose }: TotpDrawerProps) => {
     return () => controller.abort();
   }, [getMessage]);
 
-  const submit = async (action: 'setup' | 'confirm' | 'cancel') => {
+  const submit = async (
+    action: 'setup' | 'confirm' | 'cancel' | 'disable' | 'recovery'
+  ) => {
     setLoading(true);
     setError('');
     try {
@@ -68,8 +77,12 @@ const TotpDrawer = ({ onClose }: TotpDrawerProps) => {
         credentials: 'same-origin',
         body: JSON.stringify({
           action,
-          ...(action === 'setup' ? { password } : {}),
-          ...(action === 'confirm' ? { code } : {}),
+          ...(action === 'setup' ||
+          action === 'disable' ||
+          action === 'recovery'
+            ? { password, code: code.trim(), recovery }
+            : {}),
+          ...(action === 'confirm' ? { code: code.trim() } : {}),
         }),
       });
       const result = await response.json();
@@ -94,12 +107,23 @@ const TotpDrawer = ({ onClose }: TotpDrawerProps) => {
       if (action === 'setup') {
         setSetup(result);
         setPassword('');
+        setCode('');
+        setRecovery(false);
       }
-      if (action === 'confirm') {
+      if (action === 'confirm' || action === 'recovery') {
         setSetup(null);
         setCode('');
         setEnabled(true);
         setRecoveryCodes(result.recoveryCodes);
+        setRemaining(result.recoveryCodes.length);
+        setPassword('');
+        setRecovery(false);
+      }
+      if (action === 'disable') {
+        setEnabled(false);
+        setPassword('');
+        setCode('');
+        setRecovery(false);
       }
       if (action === 'cancel') {
         setSetup(null);
@@ -198,7 +222,93 @@ const TotpDrawer = ({ onClose }: TotpDrawerProps) => {
             </Button>
           </Box>
         ) : enabled ? (
-          <Alert severity="success">{getMessage(messages.TOTP_ENABLED)}</Alert>
+          <Box
+            component="form"
+            onSubmit={async (event) => {
+              event.preventDefault();
+              const action = (
+                (event.nativeEvent as SubmitEvent)
+                  .submitter as HTMLButtonElement | null
+              )?.value;
+              if (
+                action === 'setup' ||
+                action === 'recovery' ||
+                action === 'disable'
+              )
+                await submit(action);
+            }}
+            sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}
+          >
+            <Alert severity="success">
+              {getMessage(messages.TOTP_ENABLED)}
+            </Alert>
+            <Typography>
+              {getMessage(messages.TOTP_REMAINING, { count: remaining })}
+            </Typography>
+            <Typography>
+              {getMessage(messages.TOTP_MANAGE_DESCRIPTION)}
+            </Typography>
+            <TextField
+              required
+              type="password"
+              label={getMessage(messages.PASSWORD)}
+              autoComplete="current-password"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+            />
+            <TextField
+              required
+              label={getMessage(
+                recovery ? messages.TOTP_RECOVERY_CODE : messages.TOTP_CODE
+              )}
+              autoComplete="one-time-code"
+              value={code}
+              onChange={(event) => setCode(event.target.value)}
+              slotProps={{
+                htmlInput: {
+                  inputMode: recovery ? 'text' : 'numeric',
+                  maxLength: recovery ? 64 : 6,
+                  pattern: recovery ? undefined : '[0-9]{6}',
+                },
+              }}
+            />
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={recovery}
+                  onChange={(event) => {
+                    setRecovery(event.target.checked);
+                    setCode('');
+                  }}
+                />
+              }
+              label={getMessage(messages.TOTP_USE_RECOVERY)}
+            />
+            <Button
+              type="submit"
+              value="setup"
+              variant="outlined"
+              disabled={loading}
+            >
+              {getMessage(messages.TOTP_REPLACE)}
+            </Button>
+            <Button
+              type="submit"
+              value="recovery"
+              variant="outlined"
+              disabled={loading}
+            >
+              {getMessage(messages.TOTP_REGENERATE)}
+            </Button>
+            <Button
+              type="submit"
+              value="disable"
+              color="error"
+              disabled={loading}
+            >
+              {getMessage(messages.TOTP_DISABLE)}
+            </Button>
+          </Box>
         ) : (
           <Box
             component="form"
