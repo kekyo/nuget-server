@@ -226,6 +226,8 @@ program
     const authMode =
       options.authMode || getAuthModeFromEnv() || configFile.authMode || 'none';
     const sessionSecret = getSessionSecretFromEnv() || configFile.sessionSecret;
+    const totpKeyFile =
+      process.env.NUGET_SERVER_TOTP_KEY_FILE || configFile.totpKeyFile;
     const passwordMinScore =
       getPasswordMinScoreFromEnv() ?? configFile.passwordMinScore ?? 2;
     const passwordStrengthCheck =
@@ -347,6 +349,7 @@ program
       trustedProxies,
       logLevel: logLevel as LogLevel,
       sessionSecret,
+      totpKeyFile,
       passwordMinScore,
       passwordStrengthCheck,
       duplicatePackagePolicy: duplicatePackagePolicy as DuplicatePackagePolicy,

@@ -46,6 +46,7 @@ interface UserAvatarMenuProps {
   onDeleteUser: () => void;
   onChangePassword: () => void;
   onApiPassword: () => void;
+  onTotp: () => void;
   onLogout: () => void;
   onLanguageChange: (code: string) => void;
   onThemeChange: (mode: 'auto' | 'light' | 'dark') => void;
@@ -69,6 +70,7 @@ const UserAvatarMenu = ({
   onDeleteUser,
   onChangePassword,
   onApiPassword,
+  onTotp,
   onLogout,
   onLanguageChange,
   onThemeChange,
@@ -278,6 +280,14 @@ const UserAvatarMenu = ({
               </ListItemIcon>
               <ListItemText>
                 <TypedMessage message={messages.API_PASSWORD} />
+              </ListItemText>
+            </MenuItem>,
+            <MenuItem key="totp" onClick={() => handleAction(onTotp)}>
+              <ListItemIcon>
+                <VpnKeyIcon fontSize="small" />
+              </ListItemIcon>
+              <ListItemText>
+                <TypedMessage message={messages.TOTP_TITLE} />
               </ListItemText>
             </MenuItem>,
             <Divider key="password-divider" />,

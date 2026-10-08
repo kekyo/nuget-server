@@ -2,7 +2,7 @@
 // Copyright (c) Kouji Matsui (@kekyo@mi.kekyo.net)
 // License under MIT.
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { TypedMessage, useTypedMessage } from 'typed-message';
 import { messages } from '../../generated/messages';
 import {
@@ -27,6 +27,8 @@ import { apiFetch, resetSessionExpiryHandling } from '../utils/apiClient';
 interface LoginResponse {
   success: boolean;
   message: string;
+  totpRequired?: boolean;
+  code?: string;
   user?: {
     username: string;
     role: string;
@@ -57,13 +59,24 @@ const LoginDialog = ({
   const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [totpRequired, setTotpRequired] = useState(false);
+  const [code, setCode] = useState('');
+
+  useEffect(() => {
+    if (!open) {
+      setPassword('');
+      setCode('');
+      setTotpRequired(false);
+      setError(null);
+    }
+  }, [open]);
 
   const handleSubmit = async (
     event: React.SyntheticEvent<HTMLFormElement, SubmitEvent>
   ) => {
     event.preventDefault();
 
-    if (!username.trim() || !password.trim()) {
+    if (!totpRequired && (!username.trim() || !password.trim())) {
       setError(getMessage(messages.USERNAME_PASSWORD_REQUIRED));
       return;
     }
@@ -72,22 +85,33 @@ const LoginDialog = ({
     setError(null);
 
     try {
-      const response = await apiFetch('api/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          username: username.trim(),
-          password,
-          rememberMe,
-        }),
-        credentials: 'same-origin',
-      });
+      const response = await apiFetch(
+        totpRequired ? 'api/auth/login/totp' : 'api/auth/login',
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(
+            totpRequired
+              ? { code: code.trim() }
+              : {
+                  username: username.trim(),
+                  password,
+                  rememberMe,
+                }
+          ),
+          credentials: 'same-origin',
+        }
+      );
 
       const data: LoginResponse = await response.json();
 
-      if (data.success) {
+      if (data.totpRequired) {
+        setTotpRequired(true);
+        setPassword('');
+        setCode('');
+      } else if (data.success) {
         resetSessionExpiryHandling();
         // Login successful, call success callback with username
         const loggedInUsername = data.user?.username || username;
@@ -97,12 +121,42 @@ const LoginDialog = ({
         setPassword('');
         setRememberMe(false);
         setError(null);
+        setCode('');
+        setTotpRequired(false);
       } else {
-        setError(data.message || getMessage(messages.LOGIN_FAILED));
+        setError(
+          data.code === 'TOTP_RATE_LIMITED'
+            ? getMessage(messages.TOTP_RATE_LIMITED)
+            : data.code === 'TOTP_EXPIRED'
+              ? getMessage(messages.TOTP_EXPIRED)
+              : totpRequired
+                ? getMessage(messages.TOTP_INVALID)
+                : data.message || getMessage(messages.LOGIN_FAILED)
+        );
+        if (data.code === 'TOTP_EXPIRED') {
+          setTotpRequired(false);
+          setCode('');
+        }
       }
     } catch (err) {
       setError(getMessage(messages.NETWORK_ERROR_TRY_AGAIN));
       console.error('Login error:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const restartLogin = async () => {
+    setIsLoading(true);
+    try {
+      await apiFetch('api/auth/logout', {
+        method: 'POST',
+        credentials: 'same-origin',
+      });
+      setTotpRequired(false);
+      setCode('');
+      setPassword('');
+      setError(null);
     } finally {
       setIsLoading(false);
     }
@@ -167,7 +221,13 @@ const LoginDialog = ({
 
       <DialogContent>
         <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-          <TypedMessage message={messages.PLEASE_SIGN_IN} />
+          <TypedMessage
+            message={
+              totpRequired
+                ? messages.TOTP_LOGIN_PROMPT
+                : messages.PLEASE_SIGN_IN
+            }
+          />
         </Typography>
 
         <Box
@@ -185,46 +245,69 @@ const LoginDialog = ({
             </Alert>
           )}
 
-          <TextField
-            required
-            fullWidth
-            id="username"
-            label={getMessage(messages.USERNAME)}
-            name="username"
-            autoComplete="username"
-            autoFocus
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            disabled={isLoading}
-            variant="outlined"
-          />
-
-          <TextField
-            required
-            fullWidth
-            name="password"
-            label={getMessage(messages.PASSWORD)}
-            type="password"
-            id="password"
-            autoComplete="current-password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            disabled={isLoading}
-            variant="outlined"
-          />
-
-          <FormControlLabel
-            control={
-              <Checkbox
-                value={rememberMe}
-                checked={rememberMe}
-                onChange={(e) => setRememberMe(e.target.checked)}
-                color="primary"
+          {totpRequired ? (
+            <TextField
+              required
+              fullWidth
+              autoFocus
+              key="totp-code"
+              label={getMessage(messages.TOTP_CODE)}
+              autoComplete="one-time-code"
+              value={code}
+              onChange={(e) => setCode(e.target.value)}
+              disabled={isLoading}
+              slotProps={{
+                htmlInput: {
+                  inputMode: 'numeric',
+                  maxLength: 6,
+                  pattern: '[0-9]{6}',
+                },
+              }}
+            />
+          ) : (
+            <>
+              <TextField
+                required
+                fullWidth
+                id="username"
+                label={getMessage(messages.USERNAME)}
+                name="username"
+                autoComplete="username"
+                autoFocus
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
                 disabled={isLoading}
+                variant="outlined"
               />
-            }
-            label={getMessage(messages.REMEMBER_ME_DAYS)}
-          />
+
+              <TextField
+                required
+                fullWidth
+                name="password"
+                label={getMessage(messages.PASSWORD)}
+                type="password"
+                id="password"
+                autoComplete="current-password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                disabled={isLoading}
+                variant="outlined"
+              />
+
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    value={rememberMe}
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
+                    color="primary"
+                    disabled={isLoading}
+                  />
+                }
+                label={getMessage(messages.REMEMBER_ME_DAYS)}
+              />
+            </>
+          )}
 
           <Button
             type="submit"
@@ -246,6 +329,11 @@ const LoginDialog = ({
               ? getMessage(messages.SIGNING_IN)
               : getMessage(messages.SIGN_IN)}
           </Button>
+          {totpRequired && (
+            <Button disabled={isLoading} onClick={restartLogin}>
+              {getMessage(messages.TOTP_BACK)}
+            </Button>
+          )}
         </Box>
 
         <Typography

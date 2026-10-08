@@ -28,6 +28,7 @@
     "images/nuget-server-ss-1.png"
   ],
   "scripts": {
+    "dependencies": "reskill",
     "metadata": "screw-up metadata",
     "build": "npm run metadata && vite build && BUILD_TARGET=ui vite build",
     "build:server": "npm run metadata && vite build",
@@ -53,8 +54,10 @@
     "dayjs": ">=1.11.0",
     "fastify": ">=4.28.1",
     "notistack": ">=3.0.0",
+    "otpauth": "^9.5.2",
     "passport-http": ">=0.3.0",
     "passport-local": ">=1.0.0",
+    "qrcode.react": "^4.2.0",
     "react": ">=18.1.0",
     "react-dom": ">=18.1.0",
     "react-infinite-scroll-component": "^6.1.0",
@@ -73,6 +76,7 @@
     "@types/zxcvbn": ">=4.4.0",
     "@vitejs/plugin-react": ">=5.0.0",
     "prettier-max": ">=1.16.0",
+    "resolved-killer": "^1.1.0",
     "screw-up": ">=1.33.0",
     "typescript": ">=5.0.0",
     "vite": ">=5.0.0",
