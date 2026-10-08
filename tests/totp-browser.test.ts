@@ -108,7 +108,10 @@ describe('TOTP browser enrollment through Playwright MCP', () => {
       const transport = new StdioClientTransport({
         command: process.execPath,
         args: [
-          resolve('node_modules/@playwright/mcp/cli.js'),
+          resolve(
+            process.env.PLAYWRIGHT_MCP_CLI_PATH ??
+              'node_modules/@playwright/mcp/cli.js'
+          ),
           '--headless',
           '--isolated',
           '--browser',
