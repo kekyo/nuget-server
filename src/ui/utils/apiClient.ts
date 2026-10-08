@@ -4,8 +4,7 @@
 
 // Session handler type for managing 401 responses
 let sessionExpiredHandler:
-  | ((authMode: 'none' | 'publish' | 'full') => void)
-  | null = null;
+  ((authMode: 'none' | 'publish' | 'full') => void) | null = null;
 let currentAuthMode: 'none' | 'publish' | 'full' | null = null;
 let sessionExpiryHandled = false;
 
