@@ -249,6 +249,8 @@ describe('TOTP browser enrollment through Playwright MCP', () => {
             target: 'role=menuitem[name="Login"]',
           });
         }
+        // Production logout reloads the page before the login form is ready.
+        await call('browser_wait_for', { text: 'Username' });
         await call('browser_type', { target: '#username', text: 'alice' });
         await call('browser_type', { target: '#password', text: password });
         await call('browser_click', { target: 'button[type="submit"]' });
