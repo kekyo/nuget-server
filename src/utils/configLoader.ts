@@ -74,7 +74,7 @@ const validateConfig = (
     validated.usersFile = resolve(configDir, config.usersFile);
   }
 
-  // Validate realm
+  // Resolve the persistent TOTP encryption key location
   if (typeof config.totpKeyFile === 'string') {
     validated.totpKeyFile = resolve(configDir, config.totpKeyFile);
   }

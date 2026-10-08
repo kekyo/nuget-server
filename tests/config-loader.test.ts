@@ -26,6 +26,7 @@ describe('config-loader', () => {
       trustedProxies: ['192.168.1.1', '10.0.0.1'],
       authMode: 'publish',
       sessionSecret: 'test-secret',
+      totpKeyFile: './keys/totp.key',
       duplicatePackagePolicy: 'overwrite',
     };
 
@@ -39,6 +40,7 @@ describe('config-loader', () => {
     expect(config).toEqual({
       ...configData,
       packageDir: resolve(testDir, './my-packages'),
+      totpKeyFile: resolve(testDir, './keys/totp.key'),
     });
   });
 

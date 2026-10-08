@@ -120,7 +120,11 @@ export const registerTotpRoutes = async (
         const session = await sessions.validateSession(sessionToken);
         if (!session) return reply.code(401).send({ code: 'SESSION_REQUIRED' });
         const user = await users.getUser(session.username);
-        if (!user || user.id !== session.userId)
+        if (
+          !user ||
+          user.id !== session.userId ||
+          (user.authVersion ?? 0) !== session.authVersion
+        )
           return reply.code(401).send({ code: 'SESSION_REQUIRED' });
         switch (request.body.action) {
           case 'status':

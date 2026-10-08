@@ -6,6 +6,7 @@ import { createReaderWriterLock } from 'async-primitives';
 import { FastifyInstance } from 'fastify';
 import { createFastifyInstance } from '../src/server';
 import { createUserService } from '../src/services/userService';
+import { SessionService } from '../src/services/sessionService';
 import { createTestDirectory } from './helpers/test-helper';
 
 const logger = { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() };
@@ -72,6 +73,167 @@ describe('Optional TOTP authentication', () => {
     if (app) await app.close();
     vi.useRealTimers();
     vi.unstubAllEnvs();
+  });
+
+  it('rejects a session whose credentials change during validation', async () => {
+    const { userService: users, sessionService: sessions } =
+      app as FastifyInstance & {
+        userService: ReturnType<typeof createUserService>;
+        sessionService: SessionService;
+      };
+    const validate = sessions.validateSession;
+    vi.spyOn(sessions, 'validateSession').mockImplementationOnce(
+      async (token) => {
+        const session = await validate(token);
+        await users.updateUser('alice', { password });
+        return session;
+      }
+    );
+    const setup = await app.inject({
+      method: 'POST',
+      url: '/api/ui/totp',
+      cookies: { sessionToken: cookie },
+      payload: { action: 'setup', password },
+    });
+    expect(setup.statusCode).toBe(401);
+  });
+
+  it.each(['publish', 'full'] as const)(
+    'keeps NuGet API passwords separate from TOTP in %s mode',
+    async (authMode) => {
+      await app.close();
+      app = await createFastifyInstance(
+        {
+          port: 5963,
+          configDir: directory,
+          packageDir: join(directory, 'packages'),
+          authMode,
+          passwordStrengthCheck: false,
+        },
+        logger,
+        createReaderWriterLock()
+      );
+      const { userService: users } = app as FastifyInstance & {
+        userService: ReturnType<typeof createUserService>;
+      };
+      const api = (await users.addApiPassword('alice', 'NuGet client'))!;
+      const headers = {
+        authorization: `Basic ${Buffer.from(`alice:${api.apiPassword}`).toString('base64')}`,
+      };
+      expect(
+        (await app.inject({ url: '/v3/index.json', headers })).statusCode
+      ).toBe(200);
+      expect(
+        (
+          await app.inject({
+            method: 'POST',
+            url: '/api/ui/totp',
+            headers,
+            payload: { action: 'setup', password },
+          })
+        ).statusCode
+      ).toBe(401);
+      const login = await app.inject({
+        method: 'POST',
+        url: '/api/auth/login',
+        payload: { username: 'alice', password },
+      });
+      cookie = login.cookies.find((c) => c.name === 'sessionToken')!.value;
+      const setup = await app.inject({
+        method: 'POST',
+        url: '/api/ui/totp',
+        cookies: { sessionToken: cookie },
+        payload: { action: 'setup', password },
+      });
+      const confirm = await app.inject({
+        method: 'POST',
+        url: '/api/ui/totp',
+        cookies: { sessionToken: cookie },
+        payload: {
+          action: 'confirm',
+          code: codeAt(setup.json().secret, timestamp),
+        },
+      });
+      expect(confirm.statusCode).toBe(200);
+      expect(
+        (await app.inject({ url: '/v3/index.json', headers })).statusCode
+      ).toBe(200);
+      const passwordLogin = await app.inject({
+        method: 'POST',
+        url: '/api/auth/login',
+        payload: { username: 'alice', password },
+      });
+      expect(passwordLogin.json().totpRequired).toBe(true);
+      const apiLogin = await app.inject({
+        method: 'POST',
+        url: '/api/auth/login',
+        payload: { username: 'alice', password: api.apiPassword },
+      });
+      expect(apiLogin.statusCode).toBe(401);
+      expect(
+        (
+          await app.inject({
+            method: 'POST',
+            url: '/api/ui/totp',
+            headers,
+            payload: { action: 'status' },
+          })
+        ).statusCode
+      ).toBe(401);
+    }
+  );
+
+  it('does not expose TOTP setup in unauthenticated mode', async () => {
+    await app.close();
+    app = await createFastifyInstance(
+      {
+        port: 5963,
+        configDir: directory,
+        packageDir: join(directory, 'packages'),
+        authMode: 'none',
+      },
+      logger,
+      createReaderWriterLock()
+    );
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/ui/totp',
+      payload: { action: 'setup', password },
+    });
+    expect(response.statusCode).toBe(404);
+  });
+
+  it('rejects cross-site setup and protects cookies behind a trusted HTTPS proxy', async () => {
+    const crossSite = await app.inject({
+      method: 'POST',
+      url: '/api/ui/totp',
+      headers: { origin: 'https://other.example' },
+      cookies: { sessionToken: cookie },
+      payload: { action: 'setup', password },
+    });
+    expect(crossSite.statusCode).toBe(403);
+    await app.close();
+    app = await createFastifyInstance(
+      {
+        port: 5963,
+        configDir: directory,
+        packageDir: join(directory, 'packages'),
+        authMode: 'full',
+        trustedProxies: ['127.0.0.1'],
+      },
+      logger,
+      createReaderWriterLock()
+    );
+    const login = await app.inject({
+      method: 'POST',
+      url: '/api/auth/login',
+      headers: { 'x-forwarded-proto': 'https' },
+      payload: { username: 'alice', password },
+    });
+    const sessionCookie = login.cookies.find((c) => c.name === 'sessionToken')!;
+    expect(sessionCookie.secure).toBe(true);
+    expect(sessionCookie.httpOnly).toBe(true);
+    expect(sessionCookie.sameSite).toBe('Strict');
   });
 
   it('enrolls only after code confirmation, then requires a second factor', async () => {
