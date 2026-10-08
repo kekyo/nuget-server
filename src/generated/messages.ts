@@ -12,6 +12,174 @@ export const locales = ['ja', 'en'];
  */
 export const messages = {
   /**
+   * TOTP_USE_RECOVERY ==> "Use a recovery code"
+   */
+  TOTP_USE_RECOVERY: { 
+    key: "TOTP_USE_RECOVERY", 
+    fallback: "Use a recovery code" 
+  } as SimpleMessageItem,
+  /**
+   * TOTP_RECOVERY_CODE ==> "Recovery code"
+   */
+  TOTP_RECOVERY_CODE: { 
+    key: "TOTP_RECOVERY_CODE", 
+    fallback: "Recovery code" 
+  } as SimpleMessageItem,
+  /**
+   * TOTP_REMAINING ==> "{count:number} unused recovery codes remaining."
+   */
+  TOTP_REMAINING: { 
+    key: "TOTP_REMAINING", 
+    fallback: "{count:number} unused recovery codes remaining." 
+  } as MessageItem<{ count: number }>,
+  /**
+   * TOTP_MANAGE_DESCRIPTION ==> "Enter your current password and an authenticator or recovery code to make changes. Disabling two-factor authentication allows login with your password alone. Regenerating recovery codes invalidates all previous recovery codes."
+   */
+  TOTP_MANAGE_DESCRIPTION: { 
+    key: "TOTP_MANAGE_DESCRIPTION", 
+    fallback: "Enter your current password and an authenticator or recovery code to make changes. Disabling two-factor authentication allows login with your password alone. Regenerating recovery codes invalidates all previous recovery codes." 
+  } as SimpleMessageItem,
+  /**
+   * TOTP_REPLACE ==> "Replace authenticator"
+   */
+  TOTP_REPLACE: { 
+    key: "TOTP_REPLACE", 
+    fallback: "Replace authenticator" 
+  } as SimpleMessageItem,
+  /**
+   * TOTP_REGENERATE ==> "Regenerate recovery codes"
+   */
+  TOTP_REGENERATE: { 
+    key: "TOTP_REGENERATE", 
+    fallback: "Regenerate recovery codes" 
+  } as SimpleMessageItem,
+  /**
+   * TOTP_DISABLE ==> "Disable two-factor authentication"
+   */
+  TOTP_DISABLE: { 
+    key: "TOTP_DISABLE", 
+    fallback: "Disable two-factor authentication" 
+  } as SimpleMessageItem,
+  /**
+   * TOTP_TITLE ==> "Two-step authentication"
+   */
+  TOTP_TITLE: { 
+    key: "TOTP_TITLE", 
+    fallback: "Two-step authentication" 
+  } as SimpleMessageItem,
+  /**
+   * TOTP_DESCRIPTION ==> "Register an authenticator app to require a code in addition to your password when signing in. Enter your current password to begin."
+   */
+  TOTP_DESCRIPTION: { 
+    key: "TOTP_DESCRIPTION", 
+    fallback: "Register an authenticator app to require a code in addition to your password when signing in. Enter your current password to begin." 
+  } as SimpleMessageItem,
+  /**
+   * TOTP_SETUP ==> "Register authenticator"
+   */
+  TOTP_SETUP: { 
+    key: "TOTP_SETUP", 
+    fallback: "Register authenticator" 
+  } as SimpleMessageItem,
+  /**
+   * TOTP_SCAN ==> "Scan this QR code with your authenticator app, then enter its six-digit code."
+   */
+  TOTP_SCAN: { 
+    key: "TOTP_SCAN", 
+    fallback: "Scan this QR code with your authenticator app, then enter its six-digit code." 
+  } as SimpleMessageItem,
+  /**
+   * TOTP_QR ==> "Authenticator registration QR code"
+   */
+  TOTP_QR: { 
+    key: "TOTP_QR", 
+    fallback: "Authenticator registration QR code" 
+  } as SimpleMessageItem,
+  /**
+   * TOTP_MANUAL_KEY ==> "Manual setup key"
+   */
+  TOTP_MANUAL_KEY: { 
+    key: "TOTP_MANUAL_KEY", 
+    fallback: "Manual setup key" 
+  } as SimpleMessageItem,
+  /**
+   * TOTP_CODE ==> "Authenticator code"
+   */
+  TOTP_CODE: { 
+    key: "TOTP_CODE", 
+    fallback: "Authenticator code" 
+  } as SimpleMessageItem,
+  /**
+   * TOTP_CONFIRM ==> "Confirm and enable"
+   */
+  TOTP_CONFIRM: { 
+    key: "TOTP_CONFIRM", 
+    fallback: "Confirm and enable" 
+  } as SimpleMessageItem,
+  /**
+   * TOTP_ENABLED ==> "Two-step authentication is enabled."
+   */
+  TOTP_ENABLED: { 
+    key: "TOTP_ENABLED", 
+    fallback: "Two-step authentication is enabled." 
+  } as SimpleMessageItem,
+  /**
+   * TOTP_SAVE_RECOVERY ==> "Save these recovery codes somewhere safe. They will not be shown again after closing this screen. Each code can be used once if you lose your authenticator."
+   */
+  TOTP_SAVE_RECOVERY: { 
+    key: "TOTP_SAVE_RECOVERY", 
+    fallback: "Save these recovery codes somewhere safe. They will not be shown again after closing this screen. Each code can be used once if you lose your authenticator." 
+  } as SimpleMessageItem,
+  /**
+   * TOTP_LOGIN_PROMPT ==> "Enter the code shown in your authenticator app."
+   */
+  TOTP_LOGIN_PROMPT: { 
+    key: "TOTP_LOGIN_PROMPT", 
+    fallback: "Enter the code shown in your authenticator app." 
+  } as SimpleMessageItem,
+  /**
+   * TOTP_BACK ==> "Back to password"
+   */
+  TOTP_BACK: { 
+    key: "TOTP_BACK", 
+    fallback: "Back to password" 
+  } as SimpleMessageItem,
+  /**
+   * TOTP_INVALID ==> "The code is incorrect or has already been used. Try a new code."
+   */
+  TOTP_INVALID: { 
+    key: "TOTP_INVALID", 
+    fallback: "The code is incorrect or has already been used. Try a new code." 
+  } as SimpleMessageItem,
+  /**
+   * TOTP_EXPIRED ==> "Verification has expired. Please start again."
+   */
+  TOTP_EXPIRED: { 
+    key: "TOTP_EXPIRED", 
+    fallback: "Verification has expired. Please start again." 
+  } as SimpleMessageItem,
+  /**
+   * TOTP_RATE_LIMITED ==> "Too many attempts. Try again in ten minutes."
+   */
+  TOTP_RATE_LIMITED: { 
+    key: "TOTP_RATE_LIMITED", 
+    fallback: "Too many attempts. Try again in ten minutes." 
+  } as SimpleMessageItem,
+  /**
+   * TOTP_PASSWORD_INVALID ==> "The current password is incorrect."
+   */
+  TOTP_PASSWORD_INVALID: { 
+    key: "TOTP_PASSWORD_INVALID", 
+    fallback: "The current password is incorrect." 
+  } as SimpleMessageItem,
+  /**
+   * TOTP_REQUEST_FAILED ==> "Unable to complete the two-step authentication request. Please try again."
+   */
+  TOTP_REQUEST_FAILED: { 
+    key: "TOTP_REQUEST_FAILED", 
+    fallback: "Unable to complete the two-step authentication request. Please try again." 
+  } as SimpleMessageItem,
+  /**
    * APP_TITLE ==> "nuget-server"
    */
   APP_TITLE: { 

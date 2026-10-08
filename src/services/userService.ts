@@ -3,10 +3,11 @@
 // License under MIT.
 
 import { constants } from 'fs';
-import { readFile, writeFile, access } from 'fs/promises';
+import { readFile, access } from 'fs/promises';
 import { join } from 'path';
 import { createReaderWriterLock } from 'async-primitives';
 import { Logger, ServerConfig } from '../types';
+import { writePrivateFile } from '../utils/atomicFile';
 import {
   generateSalt,
   hashPassword,
@@ -43,6 +44,22 @@ export interface User {
   role: 'read' | 'publish' | 'admin';
   createdAt: string;
   updatedAt: string;
+  /** Revision used to invalidate sessions and pending authentication. */
+  authVersion?: number;
+  /** Confirmed second factor; omitted until registration is complete. */
+  totp?: TotpCredentials;
+}
+
+/** Persisted credentials for an enrolled TOTP authenticator. */
+export interface TotpCredentials {
+  /** AES-256-GCM envelope containing the authenticator secret. */
+  encryptedSecret: string;
+  /** Most recently accepted time step, including enrollment confirmation. */
+  lastUsedStep: number;
+  /** SHA-256 hashes of unused, high-entropy recovery codes. */
+  recoveryCodeHashes: string[];
+  /** ISO timestamp of the latest enrollment. */
+  enabledAt: string;
 }
 
 /**
@@ -102,6 +119,22 @@ export interface UserServiceConfig {
  * User service interface for managing JSON-based user data
  */
 export interface UserService {
+  /**
+   * Updates second-factor state under the account writer lock.
+   * @param username Account to update.
+   * @param authVersion Expected credential revision.
+   * @param mutation Pure synchronous update; throwing leaves storage unchanged.
+   * @param invalidateSessions Whether to advance the credential revision.
+   * @returns Updated account, or undefined if the account/revision changed.
+   */
+  readonly mutateTotp: (
+    username: string,
+    authVersion: number,
+    mutation: (
+      credentials: TotpCredentials | undefined
+    ) => TotpCredentials | undefined,
+    invalidateSessions: boolean
+  ) => Promise<User | undefined>;
   readonly initialize: () => Promise<void>;
   readonly destroy: () => void;
   readonly createUser: (request: CreateUserRequest) => Promise<User>;
@@ -197,7 +230,7 @@ export const createUserService = (config: UserServiceConfig): UserService => {
     try {
       const usersArray = Array.from(users.values());
       const content = JSON.stringify(usersArray, null, 2);
-      await writeFile(usersFilePath, content, 'utf-8');
+      await writePrivateFile(usersFilePath, content);
       logger.debug(`Saved ${usersArray.length} users to ${usersFilePath}`);
     } catch (error: any) {
       logger.error(`Failed to save ${usersFilePath}: ${error.message}`);
@@ -207,6 +240,9 @@ export const createUserService = (config: UserServiceConfig): UserService => {
 
   const cloneUser = (user: User): User => ({
     ...user,
+    totp: user.totp
+      ? { ...user.totp, recoveryCodeHashes: [...user.totp.recoveryCodeHashes] }
+      : undefined,
     apiPasswords: user.apiPasswords?.map((apiPassword) => ({
       ...apiPassword,
     })),
@@ -308,6 +344,21 @@ export const createUserService = (config: UserServiceConfig): UserService => {
   };
 
   const service: UserService = {
+    mutateTotp: async (username, authVersion, mutation, invalidateSessions) => {
+      const handle = await fileLock.writeLock();
+      try {
+        const user = users.get(username);
+        if (!user || (user.authVersion ?? 0) !== authVersion) return undefined;
+        await persistUsersMutation(() => {
+          user.totp = mutation(cloneUser(user).totp);
+          if (invalidateSessions) user.authVersion = authVersion + 1;
+          user.updatedAt = new Date().toISOString();
+        });
+        return cloneUser(user);
+      } finally {
+        handle.release();
+      }
+    },
     /**
      * Initializes the user service and loads user data
      */
@@ -386,7 +437,13 @@ export const createUserService = (config: UserServiceConfig): UserService => {
      * @returns User data or undefined if not found
      */
     getUser: async (username: string): Promise<User | undefined> => {
-      return users.get(username);
+      const handle = await fileLock.readLock();
+      try {
+        const user = users.get(username);
+        return user ? cloneUser(user) : undefined;
+      } finally {
+        handle.release();
+      }
     },
 
     /**
@@ -394,7 +451,12 @@ export const createUserService = (config: UserServiceConfig): UserService => {
      * @returns Array of all users
      */
     getAllUsers: async (): Promise<User[]> => {
-      return Array.from(users.values());
+      const handle = await fileLock.readLock();
+      try {
+        return Array.from(users.values(), cloneUser);
+      } finally {
+        handle.release();
+      }
     },
 
     /**
@@ -432,6 +494,7 @@ export const createUserService = (config: UserServiceConfig): UserService => {
           }
 
           user.updatedAt = new Date().toISOString();
+          user.authVersion = (user.authVersion ?? 0) + 1;
           return user;
         });
 
@@ -515,7 +578,7 @@ export const createUserService = (config: UserServiceConfig): UserService => {
       username: string,
       password: string
     ): Promise<User | undefined> => {
-      const user = users.get(username);
+      const user = await service.getUser(username);
       if (!user) {
         return undefined;
       }
@@ -534,7 +597,7 @@ export const createUserService = (config: UserServiceConfig): UserService => {
       username: string,
       apiPassword: string
     ): Promise<User | undefined> => {
-      const user = users.get(username);
+      const user = await service.getUser(username);
       if (!user) {
         return undefined;
       }
