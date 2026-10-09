@@ -3,6 +3,7 @@
 // License under MIT.
 
 import Fastify, {
+  LogController,
   type FastifyInstance,
   type FastifyReply,
   type FastifyRequest,
@@ -208,7 +209,9 @@ export const createFastifyInstance = async (
     trustProxy: config.trustedProxies?.length ? config.trustedProxies : false,
     logger: createPinoLoggerConfig(logger, config.logLevel),
     bodyLimit: 1024 * 1024 * maxUploadSizeMb, // Configurable limit for package uploads
-    disableRequestLogging: true, // Use our custom request logging
+    logController: new LogController({
+      disableRequestLogging: true, // Use our custom request logging
+    }),
     rewriteUrl: createRewriteUrl(urlResolver, logger),
   });
 
