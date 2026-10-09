@@ -5,8 +5,8 @@ import react from '@vitejs/plugin-react';
 import screwUp from 'screw-up';
 import prettierMax from 'prettier-max';
 import typedMessage from 'typed-message/vite';
-import { fastifyHost } from './src/plugins/vite-plugin-fastify';
-import { ServerConfig } from './src/types';
+import { fastifyHost } from './src/plugins/vite-plugin-fastify.ts';
+import type { ServerConfig } from './src/types.ts';
 
 // Development server configuration
 const devConfig: ServerConfig = {
@@ -15,7 +15,7 @@ const devConfig: ServerConfig = {
   packageDir: './dev/packages',
   realm: 'nuget-server dev',
   trustedProxies: [],
-  authMode: 'none',
+  authMode: 'publish',
 };
 
 ////////////////////////////////////////////////////////////////////

@@ -148,10 +148,12 @@ platform_to_tag_suffix() {
 build_platform_image() {
     local platform="$1"
     local image="$2"
+    local base_image="$3"
 
     print_info "Building ${platform} as ${image}..."
     podman build \
-        --build-arg "NODE_IMAGE=${NODE_IMAGE}" \
+        --pull=never \
+        --build-arg "NODE_IMAGE=${base_image}" \
         --platform "$platform" \
         --tag "$image" \
         .
@@ -305,6 +307,18 @@ build_multiplatform_images() {
     print_info "Local image: ${LOCAL_IMAGE}"
     print_info "Remote image: ${REMOTE_IMAGE}"
 
+    # Podman stores one architecture per tag. Pull sequentially, then pin each
+    # build to its image ID so parallel FROM instructions cannot race on the tag.
+    local platform
+    declare -A platform_base_images=()
+    for platform in "${TARGET_PLATFORMS[@]}"; do
+        print_info "Preparing Node image for ${platform}..."
+        if ! platform_base_images["$platform"]=$(podman pull --quiet --platform "$platform" "$NODE_IMAGE"); then
+            print_error "Failed to prepare Node image for platform: ${platform}"
+            return 1
+        fi
+    done
+
     # Create manifest for versioned tag
     MANIFEST_NAME="${LOCAL_IMAGE}"
     print_info "Creating manifest: ${MANIFEST_NAME}"
@@ -316,7 +330,6 @@ build_multiplatform_images() {
 
     # Build each platform image, optionally in parallel, then compose the manifest.
     print_info "Building for platforms: ${PLATFORMS}"
-    local platform
     local platform_image
     local -a platform_images=()
     local -a running_pids=()
@@ -326,7 +339,7 @@ build_multiplatform_images() {
     for platform in "${TARGET_PLATFORMS[@]}"; do
         platform_image="${LOCAL_IMAGE}-$(platform_to_tag_suffix "$platform")"
         platform_images+=("$platform_image")
-        build_platform_image "$platform" "$platform_image" &
+        build_platform_image "$platform" "$platform_image" "${platform_base_images[$platform]}" &
         pid=$!
         running_pids+=("$pid")
         build_pid_to_platform["$pid"]="$platform"

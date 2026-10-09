@@ -2,21 +2,21 @@
 // Copyright (c) Kouji Matsui (@kekyo@mi.kekyo.net)
 // License under MIT.
 
-import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
-import { ReaderWriterLock } from 'async-primitives';
-import { Logger, MissingPackageResponseMode } from '../../types';
-import {
+import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
+import type { ReaderWriterLock } from 'async-primitives';
+import type { Logger, MissingPackageResponseMode } from '../../types.ts';
+import type {
   MetadataService,
   PackageMetadata,
-} from '../../services/metadataService';
-import { AuthService } from '../../services/authService';
+} from '../../services/metadataService.ts';
+import type { AuthService } from '../../services/authService.ts';
 import {
   createConditionalHybridAuthMiddleware,
-  FastifyAuthConfig,
-} from '../../middleware/fastifyAuth';
-import { createPackageService } from '../../services/packageService';
-import { createUrlResolver } from '../../utils/urlResolver';
-import { streamFile } from '../../utils/fileStreaming';
+  type FastifyAuthConfig,
+} from '../../middleware/fastifyAuth.ts';
+import { createPackageService } from '../../services/packageService.ts';
+import { createUrlResolver } from '../../utils/urlResolver.ts';
+import { streamFile } from '../../utils/fileStreaming.ts';
 
 /**
  * Service Index Resource interface for NuGet V3 API

@@ -2,26 +2,26 @@
 // Copyright (c) Kouji Matsui (@kekyo@mi.kekyo.net)
 // License under MIT.
 
-import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
+import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { join } from 'path';
 import { mkdir, unlink, writeFile, copyFile } from 'fs/promises';
 import { tmpdir } from 'os';
 import { randomUUID } from 'crypto';
 import xml2js from 'xml2js';
 import AdmZip from 'adm-zip';
-import { PackageMetadata } from '../../../services/metadataService';
-import { Logger, DuplicatePackagePolicy } from '../../../types';
-import { AuthService } from '../../../services/authService';
+import type { PackageMetadata } from '../../../services/metadataService.ts';
+import type { Logger, DuplicatePackagePolicy } from '../../../types.ts';
+import type { AuthService } from '../../../services/authService.ts';
 import {
   createConditionalHybridAuthMiddleware,
-  FastifyAuthConfig,
-  AuthenticatedFastifyRequest,
-} from '../../../middleware/fastifyAuth';
-import { createUrlResolver } from '../../../utils/urlResolver';
+  type FastifyAuthConfig,
+  type AuthenticatedFastifyRequest,
+} from '../../../middleware/fastifyAuth.ts';
+import type { createUrlResolver } from '../../../utils/urlResolver.ts';
 import {
   extractNuspecTargetFrameworks,
   parseNuspecTags,
-} from '../../../utils/nuspec';
+} from '../../../utils/nuspec.ts';
 
 /**
  * Service interface for handling package uploads

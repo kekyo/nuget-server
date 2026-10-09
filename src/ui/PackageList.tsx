@@ -193,8 +193,8 @@ const PackageList = forwardRef<PackageListRef, PackageListProps>(
       const sortedVersions = sortVersions(versionStrings, 'desc'); // Descending order (newest first)
 
       // Re-map sorted versions back to SearchResultVersion objects
-      return sortedVersions.map(
-        (versionString) => versions.find((v) => v.version === versionString)!
+      return sortedVersions.map((versionString) =>
+        versions.find((v) => v.version === versionString)!
       );
     };
 

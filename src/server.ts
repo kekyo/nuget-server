@@ -3,9 +3,10 @@
 // License under MIT.
 
 import Fastify, {
-  FastifyInstance,
-  FastifyReply,
-  FastifyRequest,
+  LogController,
+  type FastifyInstance,
+  type FastifyReply,
+  type FastifyRequest,
 } from 'fastify';
 import fastifyPassport from '@fastify/passport';
 import fastifySecureSession from '@fastify/secure-session';
@@ -17,27 +18,32 @@ import {
   name as packageName,
   version,
   git_commit_hash,
-} from './generated/packageMetadata';
-import { streamFile } from './utils/fileStreaming';
-import { createMetadataService } from './services/metadataService';
-import { createAuthService } from './services/authService';
-import { createUserService } from './services/userService';
-import { createSessionService } from './services/sessionService';
-import { createAuthFailureTrackerFromEnv } from './services/authFailureTracker';
-import { Logger, LogLevel, ServerConfig } from './types';
-import { createUrlResolver } from './utils/urlResolver';
+} from './generated/packageMetadata.ts';
+import { streamFile } from './utils/fileStreaming.ts';
+import { createMetadataService } from './services/metadataService.ts';
+import { createAuthService } from './services/authService.ts';
+import { createUserService, type User } from './services/userService.ts';
+import { createTotpService } from './services/totpService.ts';
+import { registerTotpRoutes } from './routes/api/totp.ts';
+import { createSessionService } from './services/sessionService.ts';
+import { createAuthFailureTrackerFromEnv } from './services/authFailureTracker.ts';
+import type { Logger, LogLevel, ServerConfig } from './types.ts';
+import { createUrlResolver } from './utils/urlResolver.ts';
 import {
   createLocalStrategy,
   createBasicStrategy,
-  FastifyAuthConfig,
-} from './middleware/fastifyAuth';
-import { registerV3Routes } from './routes/v3/index';
-import { registerUiRoutes } from './routes/api/ui/index';
+  type FastifyAuthConfig,
+} from './middleware/fastifyAuth.ts';
+import { registerV3Routes } from './routes/v3/index.ts';
+import { registerUiRoutes } from './routes/api/ui/index.ts';
 import {
   registerPublishRoutes,
   type PublishRoutesConfig,
-} from './routes/api/publish/index';
-import { createReaderWriterLock, ReaderWriterLock } from 'async-primitives';
+} from './routes/api/publish/index.ts';
+import {
+  createReaderWriterLock,
+  type ReaderWriterLock,
+} from 'async-primitives';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -200,9 +206,12 @@ export const createFastifyInstance = async (
   // Create Fastify instance with configured logger and URL rewriting
   const maxUploadSizeMb = config.maxUploadSizeMb || 100; // Default to 100MB if not configured
   const fastify: FastifyInstance = Fastify({
+    trustProxy: config.trustedProxies?.length ? config.trustedProxies : false,
     logger: createPinoLoggerConfig(logger, config.logLevel),
     bodyLimit: 1024 * 1024 * maxUploadSizeMb, // Configurable limit for package uploads
-    disableRequestLogging: true, // Use our custom request logging
+    logController: new LogController({
+      disableRequestLogging: true, // Use our custom request logging
+    }),
     rewriteUrl: createRewriteUrl(urlResolver, logger),
   });
 
@@ -256,6 +265,14 @@ export const createFastifyInstance = async (
   // Initialize session service
   const sessionService = createSessionService({
     logger,
+    validateUser: async (session) => {
+      const user = await userService.getUser(session.username);
+      return (
+        !!user &&
+        user.id === session.userId &&
+        (user.authVersion ?? 0) === session.authVersion
+      );
+    },
   });
 
   try {
@@ -267,6 +284,26 @@ export const createFastifyInstance = async (
 
   // Initialize auth failure tracker
   const authFailureTracker = createAuthFailureTrackerFromEnv(logger);
+  const totpService = createTotpService({
+    users: userService,
+    keyFile:
+      config.totpKeyFile || path.join(config.configDir || './', 'totp.key'),
+    issuer: config.realm || 'nuget-server',
+  });
+  try {
+    await totpService.initialize();
+  } catch (error) {
+    authFailureTracker.destroy();
+    await sessionService.destroy();
+    userService.destroy();
+    throw error;
+  }
+  fastify.addHook('onClose', async () => {
+    totpService.destroy();
+    authFailureTracker.destroy();
+    await sessionService.destroy();
+    userService.destroy();
+  });
 
   // Generate or use provided session secret
   let sessionKey: Buffer;
@@ -373,62 +410,121 @@ export const createFastifyInstance = async (
     isHttps: config.baseUrl ? config.baseUrl.startsWith('https:') : false,
   };
 
+  const issueSession = async (
+    user: User,
+    rememberMe: boolean,
+    request: FastifyRequest,
+    reply: FastifyReply
+  ): Promise<void> => {
+    // Create session only after every configured factor has been verified.
+    const expirationHours = rememberMe ? 7 * 24 : 24; // 7 days or 24 hours
+    const session = await sessionService.createSession({
+      userId: user.id,
+      username: user.username,
+      role: user.role,
+      authVersion: user.authVersion ?? 0,
+      expirationHours,
+    });
+    // Set session cookie; @fastify/cookie expresses maxAge in seconds.
+    reply.setCookie('sessionToken', session.token, {
+      httpOnly: true,
+      secure: isHttps || request.protocol === 'https',
+      sameSite: 'strict',
+      maxAge: expirationHours * 60 * 60,
+      path: '/',
+    });
+  };
+
+  await registerTotpRoutes(
+    fastify,
+    userService,
+    sessionService,
+    totpService,
+    issueSession,
+    authService.getAuthMode() !== 'none'
+  );
+
   // Authentication endpoints (must be accessible without authentication for login)
-  fastify.post('/api/auth/login', async (request, reply) => {
-    const { username, password, rememberMe } = request.body as any;
+  fastify.post(
+    '/api/auth/login',
+    {
+      schema: {
+        body: {
+          type: 'object',
+          required: ['username', 'password'],
+          properties: {
+            username: { type: 'string', minLength: 1, maxLength: 256 },
+            password: { type: 'string', minLength: 1, maxLength: 1024 },
+            rememberMe: { type: 'boolean' },
+          },
+        },
+      },
+    },
+    async (request, reply) => {
+      const { username, password, rememberMe } = request.body as any;
+      reply.header('Cache-Control', 'no-store');
 
-    try {
-      const user = await userService.validateCredentials(username, password);
-      if (!user) {
-        // Record failure and apply delay before responding
-        authFailureTracker.recordFailure(request, username);
-        await authFailureTracker.applyDelay(request, username);
+      try {
+        const user = await userService.validateCredentials(username, password);
+        if (!user) {
+          // Record failure and apply delay before responding
+          authFailureTracker.recordFailure(request, username);
+          await authFailureTracker.applyDelay(request, username);
 
-        return reply.status(401).send({
+          return reply.status(401).send({
+            success: false,
+            message: 'Invalid credentials',
+          });
+        }
+
+        totpService.cancel('', request.cookies.totpChallenge ?? '');
+        if (user.totp && authService.getAuthMode() !== 'none') {
+          const challenge = totpService.beginLogin(
+            user,
+            rememberMe === true,
+            request.ip
+          );
+          reply.setCookie('totpChallenge', challenge, {
+            httpOnly: true,
+            secure: isHttps || request.protocol === 'https',
+            sameSite: 'strict',
+            maxAge: 300,
+            path: '/',
+          });
+          return { success: false, totpRequired: true };
+        }
+        // Clear failures on successful authentication. TOTP has independent limits.
+        authFailureTracker.clearFailures(request, username);
+        reply.clearCookie('totpChallenge', { path: '/' });
+        await issueSession(user, rememberMe === true, request, reply);
+
+        return {
+          success: true,
+          user: {
+            username: user.username,
+            role: user.role,
+          },
+        };
+      } catch (error) {
+        if ((error as { statusCode?: number }).statusCode === 429) {
+          return reply
+            .code(429)
+            .header('Retry-After', '600')
+            .send({ success: false, code: 'TOTP_RATE_LIMITED' });
+        }
+        logger.error(`Login error: ${error}`);
+        return reply.status(500).send({
           success: false,
-          message: 'Invalid credentials',
+          message: 'Internal server error',
         });
       }
-
-      // Clear failures on successful authentication
-      authFailureTracker.clearFailures(request, username);
-
-      // Create session
-      const expirationHours = rememberMe ? 7 * 24 : 24; // 7 days or 24 hours
-      const session = await sessionService.createSession({
-        userId: user.id,
-        username: user.username,
-        role: user.role,
-        expirationHours: expirationHours,
-      });
-
-      // Set session cookie
-      reply.setCookie('sessionToken', session.token, {
-        httpOnly: true,
-        secure: request.protocol === 'https',
-        sameSite: 'strict' as const,
-        maxAge: expirationHours * 60 * 60 * 1000,
-        path: '/',
-      });
-
-      return {
-        success: true,
-        user: {
-          username: user.username,
-          role: user.role,
-        },
-      };
-    } catch (error) {
-      logger.error(`Login error: ${error}`);
-      return reply.status(500).send({
-        success: false,
-        message: 'Internal server error',
-      });
     }
-  });
+  );
 
   fastify.post('/api/auth/logout', async (request, reply) => {
     const sessionToken = request.cookies?.sessionToken;
+    totpService.cancel(sessionToken ?? '', request.cookies.totpChallenge ?? '');
+    reply.clearCookie('totpChallenge', { path: '/' });
 
     if (sessionToken) {
       await sessionService.deleteSession(sessionToken);

@@ -62,9 +62,6 @@ describe('build-docker-multiplatform.sh', () => {
     expect(script).toContain('BUILD_JOBS="${BUILD_JOBS:-2}"');
     expect(script).toContain('BUILD_JOBS must be between 1 and 2');
     expect(script).toContain('-j|--jobs');
-    expect(script).toContain(
-      'build_platform_image "$platform" "$platform_image" &'
-    );
   });
 
   it('should allow overriding the base Node image', async () => {
@@ -72,7 +69,6 @@ describe('build-docker-multiplatform.sh', () => {
 
     expect(script).toContain('NODE_IMAGE="${NODE_IMAGE:-node:24-trixie-slim}"');
     expect(script).toContain('--node-image');
-    expect(script).toContain('--build-arg "NODE_IMAGE=${NODE_IMAGE}"');
     expect(script).toContain('--node-image node:22-bookworm-slim');
   });
 });

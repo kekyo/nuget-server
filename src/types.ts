@@ -62,6 +62,8 @@ export interface ServerConfig {
   logLevel?: LogLevel;
   authMode?: AuthMode;
   sessionSecret?: string;
+  /** Path to the persistent TOTP encryption key; defaults to configDir/totp.key. */
+  totpKeyFile?: string;
   passwordMinScore?: number; // 0-4, default: 2 (Good)
   passwordStrengthCheck?: boolean; // default: true
   duplicatePackagePolicy?: DuplicatePackagePolicy; // default: "ignore"
