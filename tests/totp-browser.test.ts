@@ -150,6 +150,8 @@ describe('TOTP browser enrollment through Playwright MCP', () => {
         await client.connect(transport);
         await call('browser_navigate', { url: `http://127.0.0.1:${port}/` });
         if (mode === 'development') {
+          // The realm and account menu appear after the initial configuration loads.
+          await call('browser_wait_for', { text: 'Browser registry' });
           await call('browser_click', {
             target: 'button:has(.MuiAvatar-root)',
           });
