@@ -4,7 +4,7 @@
 
 import { useEffect, useState } from 'react';
 import { TypedMessage, useTypedMessage } from 'typed-message';
-import { messages } from '../../generated/messages';
+import { messages } from '../../generated/messages.ts';
 import {
   Dialog,
   DialogTitle,
@@ -22,7 +22,7 @@ import {
   IconButton,
 } from '@mui/material';
 import { Login as LoginIcon, Close as CloseIcon } from '@mui/icons-material';
-import { apiFetch, resetSessionExpiryHandling } from '../utils/apiClient';
+import { apiFetch, resetSessionExpiryHandling } from '../utils/apiClient.ts';
 
 interface LoginResponse {
   success: boolean;
@@ -78,7 +78,22 @@ const LoginDialog = ({
   ) => {
     event.preventDefault();
 
-    if (!totpRequired && (!username.trim() || !password.trim())) {
+    // Autofill may update the inputs without firing React change events.
+    // Read the form before loading disables its inputs and synchronize the UI.
+    const formData = new FormData(event.currentTarget);
+    const submittedUsername = totpRequired
+      ? username
+      : String(formData.get('username') ?? '').trim();
+    const submittedPassword = String(formData.get('password') ?? '');
+    const submittedCode = String(formData.get('code') ?? '').trim();
+    if (totpRequired) {
+      setCode(submittedCode);
+    } else {
+      setUsername(submittedUsername);
+      setPassword(submittedPassword);
+    }
+
+    if (!totpRequired && (!submittedUsername || !submittedPassword.trim())) {
       setError(getMessage(messages.USERNAME_PASSWORD_REQUIRED));
       return;
     }
@@ -96,10 +111,10 @@ const LoginDialog = ({
           },
           body: JSON.stringify(
             totpRequired
-              ? { code: code.trim(), recovery }
+              ? { code: submittedCode, recovery }
               : {
-                  username: username.trim(),
-                  password,
+                  username: submittedUsername,
+                  password: submittedPassword,
                   rememberMe,
                 }
           ),
@@ -117,7 +132,7 @@ const LoginDialog = ({
       } else if (data.success) {
         resetSessionExpiryHandling();
         // Login successful, call success callback with username
-        const loggedInUsername = data.user?.username || username;
+        const loggedInUsername = data.user?.username || submittedUsername;
         onLoginSuccess(loggedInUsername);
         // Clear form
         setUsername('');
@@ -256,6 +271,7 @@ const LoginDialog = ({
                 fullWidth
                 autoFocus
                 key="totp-code"
+                name="code"
                 label={getMessage(
                   recovery ? messages.TOTP_RECOVERY_CODE : messages.TOTP_CODE
                 )}
