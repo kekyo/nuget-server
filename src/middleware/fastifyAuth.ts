@@ -2,13 +2,13 @@
 // Copyright (c) Kouji Matsui (@kekyo@mi.kekyo.net)
 // License under MIT.
 
-import { FastifyRequest, FastifyReply } from 'fastify';
+import type { FastifyRequest, FastifyReply } from 'fastify';
 import { Strategy as LocalStrategy } from 'passport-local';
 import { BasicStrategy } from 'passport-http';
-import { Logger } from '../types';
-import { UserService } from '../services/userService';
-import { SessionService } from '../services/sessionService';
-import { AuthFailureTracker } from '../services/authFailureTracker';
+import type { Logger } from '../types.ts';
+import type { UserService } from '../services/userService.ts';
+import type { SessionService } from '../services/sessionService.ts';
+import type { AuthFailureTracker } from '../services/authFailureTracker.ts';
 
 /**
  * Fastify authentication middleware configuration

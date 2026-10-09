@@ -12,7 +12,7 @@ import {
 import { open, readFile } from 'fs/promises';
 import { createReaderWriterLock } from 'async-primitives';
 import { Secret, TOTP } from 'otpauth';
-import { TotpCredentials, User, UserService } from './userService';
+import type { TotpCredentials, User, UserService } from './userService.ts';
 
 const pendingLifetime = 5 * 60_000;
 const failureLifetime = 10 * 60_000;

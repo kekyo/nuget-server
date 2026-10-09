@@ -3,8 +3,8 @@
 // License under MIT.
 
 import { createReaderWriterLock } from 'async-primitives';
-import { Logger } from '../types';
-import { generateSessionToken } from '../utils/crypto';
+import type { Logger } from '../types.ts';
+import { generateSessionToken } from '../utils/crypto.ts';
 
 /**
  * Session data structure

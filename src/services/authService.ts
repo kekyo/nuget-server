@@ -2,7 +2,7 @@
 // Copyright (c) Kouji Matsui (@kekyo@mi.kekyo.net)
 // License under MIT.
 
-import { Logger, AuthMode } from '../types';
+import type { Logger, AuthMode } from '../types.ts';
 
 /**
  * Authentication mode service configuration

@@ -2,15 +2,15 @@
 // Copyright (c) Kouji Matsui (@kekyo@mi.kekyo.net)
 // License under MIT.
 
-import { Plugin, ViteDevServer } from 'vite';
-import { FastifyInstance } from 'fastify';
-import { IncomingMessage, ServerResponse } from 'http';
+import type { Plugin, ViteDevServer } from 'vite';
+import type { FastifyInstance } from 'fastify';
+import type { IncomingMessage, ServerResponse } from 'http';
 import { Readable } from 'stream';
 import { createReaderWriterLock } from 'async-primitives';
-import { createFastifyInstance } from '../server';
-import { LogLevel, ServerConfig } from '../types';
-import { createConsoleLogger } from '../logger';
-import { name } from '../generated/packageMetadata';
+import { createFastifyInstance } from '../server.ts';
+import type { LogLevel, ServerConfig } from '../types.ts';
+import { createConsoleLogger } from '../logger.ts';
+import { name } from '../generated/packageMetadata.ts';
 
 // Vite plugin for combining both fastify server and UI on development.
 

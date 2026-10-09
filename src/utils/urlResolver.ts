@@ -2,7 +2,7 @@
 // Copyright (c) Kouji Matsui (@kekyo@mi.kekyo.net)
 // License under MIT.
 
-import { Logger } from '../types';
+import type { Logger } from '../types.ts';
 
 /**
  * Generic request interface for URL resolution

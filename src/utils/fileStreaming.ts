@@ -4,10 +4,10 @@
 
 import { createReadStream } from 'fs';
 import { stat } from 'fs/promises';
-import { FastifyReply } from 'fastify';
+import type { FastifyReply } from 'fastify';
 import { extname } from 'path';
-import { Logger } from '../types';
-import { createDeferred, ReaderWriterLock } from 'async-primitives';
+import type { Logger } from '../types.ts';
+import { createDeferred, type ReaderWriterLock } from 'async-primitives';
 
 /**
  * Options for file streaming

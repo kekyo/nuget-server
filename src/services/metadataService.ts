@@ -6,12 +6,12 @@ import fs from 'fs/promises';
 import path from 'path';
 import xml2js from 'xml2js';
 import { createReaderWriterLock } from 'async-primitives';
-import { Logger, DuplicatePackagePolicy } from '../types';
-import { compareVersions } from '../utils/semver';
+import type { Logger, DuplicatePackagePolicy } from '../types.ts';
+import { compareVersions } from '../utils/semver.ts';
 import {
   extractNuspecTargetFrameworks,
   parseNuspecTags,
-} from '../utils/nuspec';
+} from '../utils/nuspec.ts';
 
 /**
  * Group of package dependencies for a specific target framework

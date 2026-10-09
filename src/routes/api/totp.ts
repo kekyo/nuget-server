@@ -2,10 +2,10 @@
 // Copyright (c) Kouji Matsui (@kekyo@mi.kekyo.net)
 // License under MIT.
 
-import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
-import { User, UserService } from '../../services/userService';
-import { SessionService } from '../../services/sessionService';
-import { TotpService } from '../../services/totpService';
+import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
+import type { User, UserService } from '../../services/userService.ts';
+import type { SessionService } from '../../services/sessionService.ts';
+import type { TotpService } from '../../services/totpService.ts';
 
 /**
  * Registers browser-only second-factor endpoints.
