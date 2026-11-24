@@ -921,3 +921,101 @@ Pull requests are welcome! Please submit them as diffs against the `develop` bra
 ## License
 
 Under MIT.
+
+---
+
+## History
+
+- 1.13.0
+  - Fixed sign-in when a browser or password manager autofilled credentials or a two-step verification code.
+- 1.12.0
+  - Added optional two-step sign-in for the web UI using an authenticator app (TOTP), with single-use recovery codes. Administrators can use `--totp-reset` to reset a user's two-step authentication while the server is stopped.
+  - Preserved login cookies on the development server and fixed a visual jump when closing side panels.
+  - Fixed production npm installs that tried to run a development-only tool.
+- 1.11.0
+  - Fixed the empty results view when no packages matched a filter and restored infinite scrolling for whitespace-only filters.
+  - Dropping more packages onto the bulk upload panel now adds them to the existing selection.
+- 1.10.0
+  - Fixed repeated notifications when a browser session expired.
+  - Removed the npm library entry points and type declarations. The package now exposes only the `nuget-server` CLI.
+- 1.9.0
+  - Fixed an issue that left account or API password changes active when saving `users.json` failed.
+- 1.8.0
+  - Added target frameworks to package details and let users filter packages by target framework or license.
+  - Recognized spaces, commas, and semicolons as tag separators in `.nuspec` files.
+  - Made the repository's command examples collapsible.
+- 1.7.0
+  - Switched the Docker image to Node.js 24 on Debian Trixie slim and added parallel builds for multiple architectures.
+  - Fixed the development server so it applied the configured authentication mode on the first visit.
+- 1.6.0
+  - Added a copyable `curl` command to the web UI for publishing packages.
+  - Fixed ARM builds of the Alpine Docker image and added startup checks for each target architecture.
+- 1.5.0
+  - Advertised versioned search and registration resource types in the NuGet v3 service index to match nuget.org.
+- 1.4.0
+  - Moved package search from `/v3/search` to `/v3/query` so Visual Studio could find packages.
+- 1.3.3
+  - Compiled and bundled the `sodium-native` binaries for the target architecture when building the Alpine Docker image.
+- 1.3.2
+  - Returned the Docker image to Alpine and included `libsodium` at runtime.
+- 1.3.1
+  - Switched the Node.js 20 Docker image to Debian Bullseye to address a `sodium-native` loading error.
+- 1.3.0
+  - Switched the Alpine Docker image to Node.js 20 and used the `.mjs` extension for the CLI and npm ES module entry point.
+  - Fixed plural forms in Japanese upload messages.
+- 1.2.0
+  - Changed the default version-list response for a missing package to an empty list so NuGet clients could continue restoring from other sources. Set `missingPackageResponse` to `not-found` for an HTTP 404.
+- 1.1.0
+  - Fixed expired web sessions triggering the browser's Basic authentication prompt.
+  - Added an inline form for creating named API passwords in the password list.
+- 1.0.0
+  - First stable release. Added `--max-upload-size-mb` to configure the package upload limit, with a default of 100 MB.
+  - Redirected `/v3`, `/v3/`, and `/index.json` to the service index at `/v3/index.json`.
+  - Loaded package metadata in parallel at startup.
+- 0.19.0
+  - Added English and Japanese language options and a choice of light, dark, or system theme in the user menu.
+  - Added `duplicatePackagePolicy` to ignore, overwrite, or reject uploads of an existing package version. The default is `ignore`.
+- 0.18.0
+  - Fixed the Docker startup command so it passed the configuration file and package directory as separate arguments.
+- 0.17.0
+  - Set the Docker configuration path to `/data/config.json` and removed the startup argument that overrode its `usersFile` setting.
+- 0.16.0
+  - Set `--package-dir /packages` and `--users-file /data/users.json` explicitly in the default Docker startup command.
+- 0.15.0
+  - Moved the Docker volume for configuration and user data from `/config` to `/data`.
+  - Added `--protocol-version 3` to the generated `dotnet nuget add source` commands.
+- 0.14.0
+  - Replaced `--config-dir` with `--config-file` and added `--users-file` to select the account file separately.
+  - Added multi-platform Docker builds for `kekyo/nuget-server`.
+- 0.13.0
+  - Switched web UI navigation, API requests, and assets to relative URLs so the UI could run under a subpath.
+- 0.12.0
+  - Fixed script and stylesheet URLs on the main and login pages when the configured base URL contained a path.
+- 0.11.0
+  - Recognized reverse proxy path prefixes from the configured base URL or a trusted proxy's `X-Forwarded-Path` header.
+- 0.10.0
+  - Added `--import-packages` to import packages from another NuGet server.
+  - Added filtering and infinite scrolling to the package list and removed the `--no-ui` option.
+  - Let users create up to ten named API passwords per account on demand.
+  - Resolved relative `packageDir` paths from the directory containing `config.json`.
+- 0.9.0
+  - Switched back to loading the password strength checker at startup.
+- 0.8.0
+  - Fixed a JavaScript loading error that prevented the web UI from opening.
+- 0.7.0
+  - Included the missing web UI assets in the npm package and loaded the password strength checker on demand.
+- 0.6.0
+  - Switched the server to Fastify, moved the service index to `/v3/index.json`, and fixed package downloads with `dotnet restore`.
+  - Added `config.json`, the `none`, `publish`, and `full` authentication modes, and `--auth-init` to create the first administrator in `users.json`.
+  - Added account management, password strength checks, API password generation, and multi-file uploads to the web UI.
+- 0.5.0
+  - Added `--log` to set log verbosity and `--no-ui` to disable the web UI. Fixed the favicon.
+- 0.4.0
+  - Added the NuGet search API and a web UI for browsing package versions, downloading packages, and uploading `.nupkg` files.
+  - Added `--realm` to set the authentication realm and the web UI title.
+- 0.3.0
+  - Redirected `/api` to `/api/index.json` and fixed duplicate timestamps in request logs.
+- 0.2.0
+  - Added timestamps to server logs and fixed missing dependencies in production npm installs.
+- 0.1.0
+  - Initial release with a filesystem-backed NuGet v3 feed, HTTP uploads of `.nupkg` files, and optional Basic authentication using `htpasswd`.
