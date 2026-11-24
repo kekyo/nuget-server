@@ -11,13 +11,21 @@ import {
 
 describe('Nuspec Utilities', () => {
   describe('readNuspecIdentity', () => {
-    it.each(['.', '..', 'nested/name', 'nested\\name', 'C:relative', 'name\n'])(
-      'rejects %j in either storage component',
-      (component) => {
-        expect(() => readNuspecIdentity(component, '1.0')).toThrow();
-        expect(() => readNuspecIdentity('Example', component)).toThrow();
-      }
-    );
+    it.each([
+      '.',
+      '..',
+      'nested/name',
+      'nested\\name',
+      '../x',
+      'a/../b',
+      '..\\x',
+      '../../1',
+      'C:relative',
+      'name\n',
+    ])('rejects %j in either storage component', (component) => {
+      expect(() => readNuspecIdentity(component, '1.0')).toThrow();
+      expect(() => readNuspecIdentity('Example', component)).toThrow();
+    });
 
     it.each(['_Test.Core-2', 'A_B', 'a'.repeat(100)])(
       'retains the spelling of a valid package ID',

@@ -3,12 +3,13 @@
 // License under MIT.
 
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
-import { join } from 'path';
-import { mkdir, mkdtemp, rm, writeFile, copyFile } from 'fs/promises';
-import { tmpdir } from 'os';
 import xml2js from 'xml2js';
 import AdmZip from 'adm-zip';
-import type { PackageMetadata } from '../../../services/metadataService.ts';
+import type {
+  MetadataService,
+  PackageMetadata,
+} from '../../../services/metadataService.ts';
+import { savePackageFiles } from '../../../services/packageStorage.ts';
 import type { Logger, DuplicatePackagePolicy } from '../../../types.ts';
 import type { AuthService } from '../../../services/authService.ts';
 import {
@@ -26,15 +27,7 @@ import {
 /**
  * Service interface for handling package uploads
  */
-export interface PackageUploadService {
-  addPackage(
-    metadata: PackageMetadata,
-    policy?: DuplicatePackagePolicy
-  ): Promise<{
-    action: 'added' | 'overwritten' | 'ignored' | 'error';
-    message?: string;
-  }>;
-}
+export type PackageUploadService = Pick<MetadataService, 'addPackage'>;
 
 /**
  * Configuration for publish routes
@@ -122,8 +115,6 @@ export const registerPublishRoutes = async (
           : [],
     },
     async (request: FastifyRequest, reply: FastifyReply) => {
-      let temporaryDirectory: string | undefined;
-
       try {
         if (!packageUploadService) {
           reply.status(500);
@@ -138,15 +129,10 @@ export const registerPublishRoutes = async (
           return { error: 'No package data received' };
         }
 
-        // A private staging directory protects unpublished bytes without changing the final package mode.
-        temporaryDirectory = await mkdtemp(join(tmpdir(), 'nuget-upload-'));
-        const tempFilePath = join(temporaryDirectory, 'package.nupkg');
-        await writeFile(tempFilePath, packageData, { flag: 'wx' });
-
-        // Validate package format by opening ZIP file directly
+        // Validate the ZIP before using its manifest to select a storage directory.
         let zip: AdmZip;
         try {
-          zip = new AdmZip(tempFilePath);
+          zip = new AdmZip(packageData);
         } catch (error) {
           reply.status(400);
           return { error: 'Invalid package format - not a valid ZIP file' };
@@ -174,10 +160,9 @@ export const registerPublishRoutes = async (
           };
         }
 
-        // Create package directory structure
+        // Use the validated identity for both the content URL and package registration.
         const packageId = packageMetadata.id;
         const version = packageMetadata.version;
-        const packageDir = join(packagesRoot, packageId, version);
 
         try {
           // Update package content URL using urlResolver
@@ -187,7 +172,20 @@ export const registerPublishRoutes = async (
           // Check with metadata service first to handle duplicate policy
           const result = await packageUploadService.addPackage(
             packageMetadata,
-            duplicatePackagePolicy
+            duplicatePackagePolicy,
+            async (id, versionOnDisk) =>
+              await savePackageFiles(
+                packagesRoot,
+                { id, version: versionOnDisk },
+                {
+                  archive: packageData,
+                  nuspec: nuspecContent,
+                  zip,
+                  icon: packageMetadata.icon,
+                },
+                duplicatePackagePolicy === 'overwrite',
+                logger
+              )
           );
 
           // Handle the result based on the action
@@ -215,45 +213,6 @@ export const registerPublishRoutes = async (
             return response;
           }
 
-          // For "added" or "overwritten", save the files
-          await mkdir(packageDir, { recursive: true });
-
-          // Save nupkg file by copying from temp file
-          const nupkgPath = join(packageDir, `${packageId}.${version}.nupkg`);
-          await copyFile(tempFilePath, nupkgPath);
-
-          // Save nuspec file
-          const nuspecPath = join(packageDir, `${packageId}.nuspec`);
-          await writeFile(nuspecPath, nuspecContent);
-
-          // Extract icon if present
-          if (packageMetadata.icon) {
-            try {
-              const iconEntry = zip
-                .getEntries()
-                .find((entry) => entry.entryName === packageMetadata.icon);
-              if (iconEntry) {
-                const iconData = iconEntry.getData();
-                const iconExtension =
-                  packageMetadata.icon.split('.').pop()?.toLowerCase() || 'png';
-                const iconFileName = `icon.${iconExtension}`;
-                const iconPath = join(packageDir, iconFileName);
-                await writeFile(iconPath, iconData);
-                logger.info(
-                  `Extracted icon: ${iconFileName} for package ${packageId} ${version}`
-                );
-              } else {
-                logger.warn(
-                  `Icon file ${packageMetadata.icon} specified in nuspec but not found in package ${packageId} ${version}`
-                );
-              }
-            } catch (error) {
-              logger.error(
-                `Failed to extract icon for package ${packageId} ${version}: ${error}`
-              );
-            }
-          }
-
           // Prepare response based on action
           const response: PublishResponse = {
             message:
@@ -279,17 +238,6 @@ export const registerPublishRoutes = async (
         logger.error(`Package upload error: ${error}`);
         reply.status(500);
         return { error: 'Internal server error' };
-      } finally {
-        // Clean up our staging directory, including after a partial write.
-        if (temporaryDirectory) {
-          try {
-            await rm(temporaryDirectory, { recursive: true, force: true });
-          } catch (error) {
-            logger.error(
-              `Failed to clean up temporary directory: ${temporaryDirectory} - ${error}`
-            );
-          }
-        }
       }
     }
   );

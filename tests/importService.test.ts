@@ -278,6 +278,42 @@ describe('ImportService', () => {
       expect(result.failures).toHaveLength(0);
     });
 
+    it('checks the downloaded identity against the feed, allowing normalized NuGet versions', async () => {
+      const AdmZip = (await import('adm-zip')).default;
+      const zip = new AdmZip();
+      zip.addFile(
+        'Example.nuspec',
+        Buffer.from(
+          '<package><metadata><id>Example</id><version>01.2.0.0-RC.1+local</version></metadata></package>'
+        )
+      );
+      mockClient.getServiceIndex.mockResolvedValueOnce({
+        resources: [
+          {
+            '@id': 'https://api.test.com/package',
+            '@type': 'PackageBaseAddress/3.0.0',
+          },
+        ],
+      });
+      mockClient.downloadPackage.mockResolvedValue(zip.toBuffer());
+      const service = createImportService({
+        sourceUrl: 'https://api.test.com',
+        packageDir: testDir,
+        logger: mockLogger,
+      });
+      const result = await service.importPackages([
+        { id: 'Other', versions: ['1.2.0-rc.1'] },
+        { id: 'example', versions: ['2.0.0', '1.2.0-rc.1'] },
+      ]);
+      expect(result.successfulVersions).toBe(1);
+      expect(
+        result.failures.map(({ packageId, version }) => [packageId, version])
+      ).toEqual([
+        ['Other', '1.2.0-rc.1'],
+        ['example', '2.0.0'],
+      ]);
+    });
+
     it('should handle package download failures', async () => {
       mockClient.getServiceIndex.mockResolvedValueOnce({
         version: '3.0.0',
@@ -322,18 +358,6 @@ describe('ImportService', () => {
 
     it('should report progress during import', async () => {
       const AdmZip = (await import('adm-zip')).default;
-      const zip = new AdmZip();
-
-      const nuspecContent = `<?xml version="1.0"?>
-<package>
-  <metadata>
-    <id>TestPackage</id>
-    <version>1.0.0</version>
-  </metadata>
-</package>`;
-
-      zip.addFile('TestPackage.nuspec', Buffer.from(nuspecContent));
-      const packageBuffer = zip.toBuffer();
 
       mockClient.getServiceIndex.mockResolvedValueOnce({
         version: '3.0.0',
@@ -345,7 +369,14 @@ describe('ImportService', () => {
         ],
       });
 
-      mockClient.downloadPackage.mockResolvedValue(packageBuffer);
+      mockClient.downloadPackage.mockImplementation(
+        async (_url: string, id: string, version: string) => {
+          const zip = new AdmZip();
+          const manifest = `<package><metadata><id>${id}</id><version>${version}</version></metadata></package>`;
+          zip.addFile(`${id}.nuspec`, Buffer.from(manifest));
+          return zip.toBuffer();
+        }
+      );
 
       const progressReports: any[] = [];
       const onProgress = vi.fn((progress) => {
