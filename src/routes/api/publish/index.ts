@@ -20,6 +20,7 @@ import type { createUrlResolver } from '../../../utils/urlResolver.ts';
 import {
   extractNuspecTargetFrameworks,
   parseNuspecTags,
+  readNuspecIdentity,
 } from '../../../utils/nuspec.ts';
 
 /**
@@ -313,9 +314,7 @@ const parseNuspec = async (nuspecContent: string): Promise<PackageMetadata> => {
     throw new Error('Invalid nuspec format - missing metadata section');
   }
 
-  if (!metadata.id || !metadata.version) {
-    throw new Error('Invalid nuspec format - missing id or version');
-  }
+  const identity = readNuspecIdentity(metadata.id, metadata.version);
 
   // Extract dependencies
   const dependencies = extractDependencies(metadata.dependencies);
@@ -329,8 +328,7 @@ const parseNuspec = async (nuspecContent: string): Promise<PackageMetadata> => {
   const targetFrameworks = extractNuspecTargetFrameworks(metadata);
 
   return {
-    id: metadata.id,
-    version: metadata.version,
+    ...identity,
     authors: metadata.authors,
     description: metadata.description,
     licenseUrl: metadata.licenseUrl,

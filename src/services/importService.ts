@@ -9,6 +9,7 @@ import AdmZip from 'adm-zip';
 import xml2js from 'xml2js';
 import { createNuGetClient } from './nugetClient';
 import { Logger } from '../types';
+import { readNuspecIdentity } from '../utils/nuspec.ts';
 
 /**
  * Package information for import
@@ -86,8 +87,7 @@ const parseNuspec = async (
   }
 
   return {
-    id: metadata.id,
-    version: metadata.version,
+    ...readNuspecIdentity(metadata.id, metadata.version),
     icon: metadata.icon,
   };
 };
@@ -100,11 +100,12 @@ const packageExists = async (
   packageId: string,
   version: string
 ): Promise<boolean> => {
+  const identity = readNuspecIdentity(packageId, version);
   const packagePath = join(
     packageDir,
-    packageId,
-    version,
-    `${packageId}.${version}.nupkg`
+    identity.id,
+    identity.version,
+    `${identity.id}.${identity.version}.nupkg`
   );
 
   try {
