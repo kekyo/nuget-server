@@ -943,6 +943,13 @@ Under MIT.
 
 ## History
 
+- 1.14.0
+  - Fixed path traversal in package publishing and bulk imports. Uploads now preserve published versions when `duplicatePackagePolicy` is set to `ignore` or `error`. Rathnadeepan (HotWater) / HotWater-015 reported the publishing issue.
+  - New uploads appear in the feed after their files have been saved. Publishing and importing now extract only PNG and JPEG package icons.
+  - The bulk importer now checks that each download matches the requested package ID and version, sends credentials only to the configured feed's origin, and applies `--max-upload-size-mb` to each source response.
+  - Login passwords now use scrypt hashes and generated NuGet API passwords use SHA-256 hashes. Existing credentials migrate on their next successful use. Stop the server and back up `users.json` before upgrading. [Upgrade instructions](#upgrading-an-existing-user-store)
+  - Added credential migration status to the web UI. Administrators can also reset a user's login password with `--password-reset <username>` while the server is stopped.
+  - Restricted post-login redirects to the registry's origin and UI asset requests to the configured directories. Added per-IP rate limits for sign-in, configuration, and package icon requests.
 - 1.13.0
   - Fixed sign-in when a browser or password manager autofilled credentials or a two-step verification code.
 - 1.12.0
