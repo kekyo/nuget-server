@@ -24,7 +24,7 @@ import {
   getBaseUrlFromEnv,
   getTrustedProxiesFromEnv,
 } from './utils/urlResolver';
-import { runAuthInit } from './authInit';
+import { runAuthInit, runPasswordReset } from './authInit.ts';
 import { runTotpReset } from './totpReset';
 import { runImportPackages } from './importPackages';
 import { loadConfigFromPath } from './utils/configLoader';
@@ -164,7 +164,7 @@ program
   .addOption(
     new Option(
       '--max-upload-size-mb <size>',
-      'maximum package upload size in MB (1-10000)'
+      'maximum upload or import response size in MB (1-10000)'
     )
   )
   .addOption(
@@ -184,6 +184,12 @@ program
       '--totp-reset <username>',
       "reset a user's two-factor authentication (stop the server first)"
     ).conflicts(['authInit', 'importPackages'])
+  )
+  .addOption(
+    new Option(
+      '--password-reset <username>',
+      "reset a user's password (stop the server first)"
+    ).conflicts(['authInit', 'totpReset', 'importPackages'])
   )
   .addOption(
     new Option(
@@ -362,6 +368,16 @@ program
       missingPackageResponse:
         missingPackageResponse as MissingPackageResponseMode,
     };
+
+    if (options.passwordReset) {
+      try {
+        await runPasswordReset(config, logger, options.passwordReset);
+      } catch (error) {
+        logger.error(`Failed to reset password: ${error}`);
+        process.exitCode = 1;
+      }
+      return;
+    }
 
     // Handle offline second-factor recovery
     if (options.totpReset) {

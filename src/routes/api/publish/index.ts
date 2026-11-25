@@ -4,9 +4,8 @@
 
 import type { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { join } from 'path';
-import { mkdir, unlink, writeFile, copyFile } from 'fs/promises';
+import { mkdir, mkdtemp, rm, writeFile, copyFile } from 'fs/promises';
 import { tmpdir } from 'os';
-import { randomUUID } from 'crypto';
 import xml2js from 'xml2js';
 import AdmZip from 'adm-zip';
 import type { PackageMetadata } from '../../../services/metadataService.ts';
@@ -99,6 +98,7 @@ export const registerPublishRoutes = async (
   fastify.post(
     '/publish',
     {
+      config: { rateLimit: { max: 60 } },
       preHandler:
         authPreHandler.length > 0
           ? ([
@@ -121,34 +121,34 @@ export const registerPublishRoutes = async (
           : [],
     },
     async (request: FastifyRequest, reply: FastifyReply) => {
-      let tempFilePath: string | null = null;
+      let temporaryDirectory: string | undefined;
 
       try {
         if (!packageUploadService) {
-          return reply
-            .status(500)
-            .send({ error: 'Package upload service not initialized' });
+          reply.status(500);
+          return { error: 'Package upload service not initialized' };
         }
 
         // Get the parsed buffer body
         const packageData = request.body as Buffer;
 
         if (!packageData || packageData.length === 0) {
-          return reply.status(400).send({ error: 'No package data received' });
+          reply.status(400);
+          return { error: 'No package data received' };
         }
 
-        // Create temporary file for the package data
-        tempFilePath = join(tmpdir(), `nuget-upload_${randomUUID()}.tmp`);
-        await writeFile(tempFilePath, packageData);
+        // A private staging directory protects unpublished bytes without changing the final package mode.
+        temporaryDirectory = await mkdtemp(join(tmpdir(), 'nuget-upload-'));
+        const tempFilePath = join(temporaryDirectory, 'package.nupkg');
+        await writeFile(tempFilePath, packageData, { flag: 'wx' });
 
         // Validate package format by opening ZIP file directly
         let zip: AdmZip;
         try {
           zip = new AdmZip(tempFilePath);
         } catch (error) {
-          return reply
-            .status(400)
-            .send({ error: 'Invalid package format - not a valid ZIP file' });
+          reply.status(400);
+          return { error: 'Invalid package format - not a valid ZIP file' };
         }
 
         // Extract nuspec file
@@ -156,9 +156,8 @@ export const registerPublishRoutes = async (
           .getEntries()
           .find((entry) => entry.entryName.endsWith('.nuspec'));
         if (!nuspecEntry) {
-          return reply
-            .status(400)
-            .send({ error: 'Package does not contain a .nuspec file' });
+          reply.status(400);
+          return { error: 'Package does not contain a .nuspec file' };
         }
 
         // Parse nuspec
@@ -168,9 +167,10 @@ export const registerPublishRoutes = async (
         try {
           packageMetadata = await parseNuspec(nuspecContent);
         } catch (error) {
-          return reply.status(400).send({
+          reply.status(400);
+          return {
             error: 'Failed to parse .nuspec file: ' + (error as Error).message,
-          });
+          };
         }
 
         // Create package directory structure
@@ -192,11 +192,12 @@ export const registerPublishRoutes = async (
           // Handle the result based on the action
           if (result.action === 'error') {
             // For "error" policy, return 409 Conflict
-            return reply.status(409).send({
+            reply.status(409);
+            return {
               error:
                 result.message ||
                 `Package ${packageId} version ${version} already exists`,
-            });
+            };
           }
 
           if (result.action === 'ignored') {
@@ -209,7 +210,8 @@ export const registerPublishRoutes = async (
             logger.info(
               `Package already exists, ignored: ${packageId} ${version}`
             );
-            return reply.status(200).send(response);
+            reply.status(200);
+            return response;
           }
 
           // For "added" or "overwritten", save the files
@@ -264,23 +266,26 @@ export const registerPublishRoutes = async (
           logger.info(
             `Package ${result.action === 'overwritten' ? 'overwritten' : 'uploaded'} successfully: ${packageId} ${version}`
           );
-          return reply.status(201).send(response);
+          reply.status(201);
+          return response;
         } catch (error) {
-          return reply.status(500).send({
+          reply.status(500);
+          return {
             error: 'Failed to save package: ' + (error as Error).message,
-          });
+          };
         }
       } catch (error) {
         logger.error(`Package upload error: ${error}`);
-        return reply.status(500).send({ error: 'Internal server error' });
+        reply.status(500);
+        return { error: 'Internal server error' };
       } finally {
-        // Clean up temporary file
-        if (tempFilePath) {
+        // Clean up our staging directory, including after a partial write.
+        if (temporaryDirectory) {
           try {
-            await unlink(tempFilePath);
+            await rm(temporaryDirectory, { recursive: true, force: true });
           } catch (error) {
             logger.error(
-              `Failed to clean up temporary file: ${tempFilePath} - ${error}`
+              `Failed to clean up temporary directory: ${temporaryDirectory} - ${error}`
             );
           }
         }

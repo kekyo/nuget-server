@@ -36,6 +36,10 @@ import {
   shouldShowAddSourceCommandInApiPasswordExamples,
   shouldShowPublishCommandInApiPasswordExamples,
 } from '../utils/commandBuilder';
+import type {
+  ApiPasswordListResponse,
+  ApiPasswordAddResponse,
+} from '../../services/userService.ts';
 import { apiFetch } from '../utils/apiClient';
 import { TypedMessage, useTypedMessage } from 'typed-message';
 import { useSnackbar } from 'notistack';
@@ -47,21 +51,6 @@ interface ApiPasswordDrawerProps {
   serverConfig: any;
 }
 
-interface ApiPassword {
-  label: string;
-  createdAt: string;
-}
-
-interface ApiPasswordListResponse {
-  apiPasswords: ApiPassword[];
-}
-
-interface ApiPasswordAddResponse {
-  label: string;
-  apiPassword: string;
-  createdAt: string;
-}
-
 const ApiPasswordDrawer = ({
   open,
   onClose,
@@ -70,7 +59,9 @@ const ApiPasswordDrawer = ({
   const getMessage = useTypedMessage();
   const { enqueueSnackbar } = useSnackbar();
   const [loading, setLoading] = useState(false);
-  const [apiPasswords, setApiPasswords] = useState<ApiPassword[]>([]);
+  const [apiPasswords, setApiPasswords] = useState<
+    ApiPasswordListResponse['apiPasswords']
+  >([]);
   const [newLabel, setNewLabel] = useState('');
   const [newApiPassword, setNewApiPassword] =
     useState<ApiPasswordAddResponse | null>(null);
@@ -496,6 +487,17 @@ const ApiPasswordDrawer = ({
                         <Typography variant="caption" color="text.secondary">
                           {formatDate(apiPwd.createdAt)}
                         </Typography>
+                        {apiPwd.migrationStatus && (
+                          <Typography variant="body2">
+                            <TypedMessage
+                              message={
+                                apiPwd.migrationStatus === 'pending'
+                                  ? messages.API_PASSWORD_MIGRATION_PENDING
+                                  : messages.API_PASSWORD_MIGRATION_UPGRADED
+                              }
+                            />
+                          </Typography>
+                        )}
                       </TableCell>
                       <TableCell align="right">
                         <IconButton

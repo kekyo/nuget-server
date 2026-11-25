@@ -37,6 +37,23 @@ describe('userService', () => {
     userService.destroy();
   });
 
+  it('preserves a linked user store when it cannot replace the configured file', async () => {
+    const target = join(testDir, 'accounts.json');
+    const file = join(testDir, 'users.json');
+    await fs.writeFile(target, '[]');
+    await fs.symlink(target, file);
+    await expect(
+      userService.createUser({
+        username: 'testuser',
+        password: 'Test123!@#',
+        role: 'publish',
+      })
+    ).rejects.toThrow();
+    expect((await fs.lstat(file)).isSymbolicLink()).toBe(true);
+    expect(await fs.readFile(target, 'utf8')).toBe('[]');
+    expect(await userService.getUserCount()).toBe(0);
+  });
+
   it('should rollback user creation when users.json cannot be persisted', async () => {
     const usersFilePath = join(testDir, 'users.json');
 

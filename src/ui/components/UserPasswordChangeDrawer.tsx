@@ -2,7 +2,7 @@
 // Copyright (c) Kouji Matsui (@kekyo@mi.kekyo.net)
 // License under MIT.
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Drawer,
   Box,
@@ -27,7 +27,7 @@ import { messages } from '../../generated/messages';
 
 interface UserPasswordChangeDrawerProps {
   open: boolean;
-  onClose: () => void;
+  onClose: (passwordChanged: boolean) => void;
 }
 
 interface PasswordChangeResult {
@@ -64,9 +64,19 @@ const UserPasswordChangeDrawer = ({
   const handleClose = () => {
     if (!loading) {
       resetForm();
-      onClose();
+      onClose(result?.success === true);
     }
   };
+
+  useEffect(() => {
+    if (!open || !result?.success) return;
+    // Auto-close drawer after success; cancel if the user closes it first.
+    const timer = setTimeout(() => {
+      resetForm();
+      onClose(true);
+    }, 2000);
+    return () => clearTimeout(timer);
+  }, [open, result, onClose]);
 
   const validateForm = (): boolean => {
     if (!currentPassword) {
@@ -129,11 +139,6 @@ const UserPasswordChangeDrawer = ({
           message:
             data.message || getMessage(messages.PASSWORD_CHANGED_SUCCESS),
         });
-
-        // Auto-close drawer after success
-        setTimeout(() => {
-          handleClose();
-        }, 2000);
       } else {
         setResult({
           success: false,
@@ -204,6 +209,8 @@ const UserPasswordChangeDrawer = ({
 
           <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
             <TextField
+              name="currentPassword"
+              autoComplete="current-password"
               label={getMessage(messages.CURRENT_PASSWORD)}
               type={showCurrentPassword ? 'text' : 'password'}
               value={currentPassword}
@@ -236,6 +243,8 @@ const UserPasswordChangeDrawer = ({
             />
 
             <TextField
+              name="newPassword"
+              autoComplete="new-password"
               label={getMessage(messages.NEW_PASSWORD)}
               type={showNewPassword ? 'text' : 'password'}
               value={newPassword}
@@ -269,6 +278,8 @@ const UserPasswordChangeDrawer = ({
             )}
 
             <TextField
+              name="confirmPassword"
+              autoComplete="new-password"
               label={getMessage(messages.CONFIRM_PASSWORD)}
               type={showConfirmPassword ? 'text' : 'password'}
               value={confirmPassword}

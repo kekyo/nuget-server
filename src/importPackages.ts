@@ -143,6 +143,7 @@ export const runImportPackages = async (
     // Create import service
     let lastPercentage = -1;
     const importService = createImportService({
+      maxResponseBytes: (config.maxUploadSizeMb ?? 100) * 1024 * 1024,
       sourceUrl,
       username,
       password,

@@ -18,6 +18,8 @@ export interface Session {
   createdAt: Date;
   /** Credential revision at authentication time. */
   authVersion: number;
+  /** Whether this signed-in user should choose a new password. */
+  passwordChangeRecommended?: true;
 }
 
 /**
@@ -30,6 +32,8 @@ export interface CreateSessionRequest {
   expirationHours?: number; // Default: 24 hours
   /** Credential revision at authentication time; defaults to zero. */
   authVersion?: number;
+  /** Whether this signed-in user should choose a new password. */
+  passwordChangeRecommended?: true;
 }
 
 /**
@@ -198,6 +202,7 @@ export const createSessionService = (
 
         const session: Session = {
           authVersion: request.authVersion ?? 0,
+          passwordChangeRecommended: request.passwordChangeRecommended,
           token,
           userId: request.userId,
           username: request.username,

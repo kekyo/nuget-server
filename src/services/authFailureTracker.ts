@@ -31,10 +31,16 @@ export interface AuthFailureTrackerConfig {
  * Implements progressive delays to prevent brute force attacks
  */
 export interface AuthFailureTracker {
-  readonly recordFailure: (request: any, username?: string) => void;
-  readonly applyDelay: (request: any, username?: string) => Promise<number>;
-  readonly clearFailures: (request: any, username?: string) => void;
-  readonly getFailureCount: (request: any, username?: string) => number;
+  readonly recordFailure: (request: { ip: string }, username?: string) => void;
+  readonly applyDelay: (
+    request: { ip: string },
+    username?: string
+  ) => Promise<number>;
+  readonly clearFailures: (request: { ip: string }, username?: string) => void;
+  readonly getFailureCount: (
+    request: { ip: string },
+    username?: string
+  ) => number;
   readonly getStats: () => {
     ipCount: number;
     userCount: number;
@@ -61,28 +67,15 @@ export const createAuthFailureTracker = (
   const userFailures = new Map<string, FailureEntry>();
   let cleanupTimer: NodeJS.Timeout | undefined = undefined;
 
-  /**
-   * Get client IP address from request
-   */
-  const getClientIp = (request: any): string => {
-    // Check X-Forwarded-For header first (for proxied requests)
-    const forwardedFor = request.headers['x-forwarded-for'];
-    if (forwardedFor) {
-      // Take the first IP in the chain
-      const ips = forwardedFor.split(',').map((ip: string) => ip.trim());
-      if (ips.length > 0 && ips[0]) {
-        return ips[0];
-      }
-    }
-
-    // Check X-Real-IP header
-    const realIp = request.headers['x-real-ip'];
-    if (realIp) {
-      return realIp;
-    }
-
-    // Fall back to socket remote address
-    return request.socket?.remoteAddress || 'unknown';
+  // Retain only the most recent failures in each window.
+  const remember = (
+    entries: Map<string, FailureEntry>,
+    key: string,
+    entry: FailureEntry
+  ): void => {
+    entries.delete(key);
+    if (entries.size >= 5000) entries.delete(entries.keys().next().value!);
+    entries.set(key, entry);
   };
 
   /**
@@ -142,13 +135,13 @@ export const createAuthFailureTracker = (
     /**
      * Record a failed authentication attempt
      */
-    recordFailure: (request: any, username?: string): void => {
+    recordFailure: (request: { ip: string }, username?: string): void => {
       if (!enabled) {
         return;
       }
 
       const now = Date.now();
-      const ip = getClientIp(request);
+      const ip = request.ip;
 
       // Track by IP
       if (ip && ip !== 'unknown') {
@@ -166,7 +159,7 @@ export const createAuthFailureTracker = (
 
         ipEntry.count++;
         ipEntry.lastAttempt = now;
-        ipFailures.set(ip, ipEntry);
+        remember(ipFailures, ip, ipEntry);
 
         logger.warn(
           `Auth failure recorded for IP ${ip}: attempt #${ipEntry.count}`
@@ -189,7 +182,7 @@ export const createAuthFailureTracker = (
 
         userEntry.count++;
         userEntry.lastAttempt = now;
-        userFailures.set(username, userEntry);
+        remember(userFailures, username, userEntry);
 
         logger.warn(
           `Auth failure recorded for user ${username}: attempt #${userEntry.count}`
@@ -201,12 +194,15 @@ export const createAuthFailureTracker = (
      * Apply delay based on failure count
      * Returns the delay in milliseconds that was applied
      */
-    applyDelay: async (request: any, username?: string): Promise<number> => {
+    applyDelay: async (
+      request: { ip: string },
+      username?: string
+    ): Promise<number> => {
       if (!enabled) {
         return 0;
       }
 
-      const ip = getClientIp(request);
+      const ip = request.ip;
       let failureCount = 0;
 
       // Get max failure count from IP or username
@@ -245,12 +241,12 @@ export const createAuthFailureTracker = (
     /**
      * Clear failure records for successful authentication
      */
-    clearFailures: (request: any, username?: string): void => {
+    clearFailures: (request: { ip: string }, username?: string): void => {
       if (!enabled) {
         return;
       }
 
-      const ip = getClientIp(request);
+      const ip = request.ip;
 
       // Clear IP failures
       if (ip && ip !== 'unknown' && ipFailures.has(ip)) {
@@ -268,12 +264,12 @@ export const createAuthFailureTracker = (
     /**
      * Get current failure count for diagnostics
      */
-    getFailureCount: (request: any, username?: string): number => {
+    getFailureCount: (request: { ip: string }, username?: string): number => {
       if (!enabled) {
         return 0;
       }
 
-      const ip = getClientIp(request);
+      const ip = request.ip;
       let failureCount = 0;
 
       if (ip && ip !== 'unknown') {

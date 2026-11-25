@@ -17,11 +17,13 @@ const mockLogger: Logger = {
 };
 
 const mockRequest = {
+  ip: '192.168.1.100',
   headers: {},
   socket: { remoteAddress: '192.168.1.100' },
 };
 
 const mockRequestWithHeaders = {
+  ip: '192.168.1.100',
   headers: {
     'x-forwarded-for': '203.0.113.195',
     'x-real-ip': '198.51.100.178',
@@ -115,11 +117,11 @@ describe('AuthFailureTracker - Basic Functionality', () => {
     );
   });
 
-  it('should extract IP from X-Forwarded-For header', () => {
+  it('should use the client IP resolved by Fastify', () => {
     tracker.recordFailure(mockRequestWithHeaders);
 
     expect(mockLogger.warn).toHaveBeenCalledWith(
-      expect.stringContaining('Auth failure recorded for IP 203.0.113.195')
+      expect.stringContaining('Auth failure recorded for IP 192.168.1.100')
     );
   });
 

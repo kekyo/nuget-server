@@ -2,12 +2,12 @@
 // Copyright (c) Kouji Matsui (@kekyo@mi.kekyo.net)
 // License under MIT.
 
-import { createReadStream } from 'fs';
-import { stat } from 'fs/promises';
+import { constants } from 'node:fs';
+import { lstat, open, realpath, type FileHandle } from 'node:fs/promises';
+import { extname, resolve, sep } from 'node:path';
 import type { FastifyReply } from 'fastify';
-import { extname } from 'path';
 import type { Logger } from '../types.ts';
-import { createDeferred, type ReaderWriterLock } from 'async-primitives';
+import type { ReaderWriterLock } from 'async-primitives';
 
 /**
  * Options for file streaming
@@ -20,6 +20,105 @@ export interface StreamFileOptions {
   /** Set Cache-Control header */
   cacheControl?: string;
 }
+
+/**
+ * Opens a regular file beneath an operator-configured directory.
+ * @param root - Trusted directory (it may itself be a configured symlink).
+ * @param filePath - Relative path within the directory.
+ * @returns The open descriptor. The caller must close the descriptor.
+ * @throws ENOENT for paths outside the directory or non-regular files.
+ */
+const openUiFile = async (
+  root: string,
+  filePath: string
+): Promise<FileHandle> => {
+  const unavailable = () =>
+    Object.assign(new Error('File not found'), { code: 'ENOENT' });
+  if (filePath.includes('\0')) throw unavailable();
+  const directory = await realpath(root);
+  const candidate = resolve(directory, filePath);
+  if (
+    !candidate.startsWith(directory.endsWith(sep) ? directory : directory + sep)
+  )
+    throw unavailable();
+  if ((await realpath(candidate)) !== candidate) throw unavailable();
+  const file = await open(
+    candidate,
+    constants.O_RDONLY |
+      (constants.O_NOFOLLOW ?? 0) |
+      (constants.O_NONBLOCK ?? 0)
+  );
+  try {
+    const stats = await file.stat();
+    if (!stats.isFile()) throw unavailable();
+    // Check that the descriptor belongs to the validated directory entry even
+    // when another writer replaces a file between path resolution and open.
+    const entry = await lstat(candidate);
+    if (
+      entry.dev !== stats.dev ||
+      entry.ino !== stats.ino ||
+      (await realpath(candidate)) !== candidate
+    )
+      throw unavailable();
+    return file;
+  } catch (error) {
+    await file.close();
+    throw error;
+  }
+};
+
+// Use the same descriptor for Content-Length and the response body, including with Fastify inject.
+const sendFile = async (
+  logger: Logger,
+  locker: ReaderWriterLock,
+  filePath: string,
+  openFile: () => Promise<FileHandle>,
+  reply: FastifyReply,
+  options: StreamFileOptions,
+  signal: AbortSignal | undefined
+): Promise<void> => {
+  // Acquire reader lock with signal support
+  const handle = await locker.readLock(signal);
+  try {
+    const file = await openFile();
+    try {
+      const stats = await file.stat();
+      if (!stats.isFile())
+        return await reply.status(404).send({ error: 'Not a file' });
+      // Determine Content-Type (use provided type or auto-detect from extension)
+      reply.header(
+        'Content-Type',
+        options.contentType ?? getMimeTypeFromExtension(extname(filePath))
+      );
+      reply.header('Content-Length', stats.size);
+      // Set optional headers if provided
+      if (options.contentDisposition)
+        reply.header('Content-Disposition', options.contentDisposition);
+      if (options.cacheControl)
+        reply.header('Cache-Control', options.cacheControl);
+      logger.debug('Streaming ' + filePath);
+      const stream = file.createReadStream({ signal, autoClose: false });
+      try {
+        await reply.send(stream);
+      } finally {
+        stream.destroy();
+      }
+    } finally {
+      await file.close();
+    }
+  } catch (error) {
+    const code = (error as NodeJS.ErrnoException).code;
+    // Handle file not found and permission errors
+    if (code === 'ENOENT' || code === 'ENOTDIR' || code === 'ELOOP')
+      return await reply.status(404).send({ error: 'File not found' });
+    if (code === 'EACCES')
+      return await reply.status(403).send({ error: 'Permission denied' });
+    throw error;
+  } finally {
+    // Release reader lock
+    handle.release();
+  }
+};
 
 /**
  * Stream a file to the client using createReadStream
@@ -40,7 +139,7 @@ export interface StreamFileOptions {
  * @param reply - Fastify reply object
  * @param options - Optional headers and configuration
  * @param signal - Optional AbortSignal for cancellation support
- * @returns Promise that resolves to the FastifyReply
+ * @returns Resolves when the response has been sent
  */
 export const streamFile = async (
   logger: Logger,
@@ -49,131 +148,44 @@ export const streamFile = async (
   reply: FastifyReply,
   options: StreamFileOptions = {},
   signal?: AbortSignal
-): Promise<void> => {
-  // Acquire reader lock with signal support
-  const handler = await locker.readLock(signal);
-  try {
-    // Check if file exists and get its stats
-    const stats = await stat(filePath);
+): Promise<void> =>
+  await sendFile(
+    logger,
+    locker,
+    filePath,
+    () => open(filePath, 'r'),
+    reply,
+    options,
+    signal
+  );
 
-    if (!stats.isFile()) {
-      return reply.status(404).send({ error: 'Not a file' });
-    }
-
-    // Determine Content-Type (use provided type or auto-detect from extension)
-    const contentType =
-      options.contentType || getMimeTypeFromExtension(extname(filePath));
-
-    // Set response headers
-    reply.header('Content-Type', contentType);
-    reply.header('Content-Length', stats.size);
-
-    // Set optional headers if provided
-    if (options.contentDisposition) {
-      reply.header('Content-Disposition', options.contentDisposition);
-    }
-
-    if (options.cacheControl) {
-      reply.header('Cache-Control', options.cacheControl);
-    }
-
-    // Add stream event logging for debugging
-    const streamId = `stream-${Date.now()}`;
-    const shortPath = filePath.split('/').slice(-3).join('/');
-    logger.debug(`[${streamId}] Creating stream for ${shortPath}`);
-
-    // Also log when reply is sent
-    logger.debug(`[${streamId}] Sending stream to reply at ${Date.now()}`);
-
-    // Create and send file stream
-    const deferred = createDeferred<void>();
-    const stream = createReadStream(filePath);
-
-    // Prevent multiple resolutions
-    let resolved = false;
-    const resolveOnce = () => {
-      if (!resolved) {
-        resolved = true;
-        deferred.resolve();
-      }
-    };
-
-    // Handle abort signal if provided
-    if (signal) {
-      const abortHandler = () => {
-        logger.info(
-          `[${streamId}] Stream aborted by client disconnect for ${shortPath}`
-        );
-        stream.destroy();
-        resolveOnce();
-      };
-
-      // Check if already aborted
-      if (signal.aborted) {
-        abortHandler();
-        return;
-      }
-
-      // Listen for abort event
-      signal.addEventListener('abort', abortHandler);
-    }
-
-    stream.on('open', () => {
-      logger.debug(`[${streamId}] Event: open at ${Date.now()}`);
-    });
-
-    stream.on('data', (chunk) => {
-      logger.debug(
-        `[${streamId}] Event: data (${chunk.length} bytes) at ${Date.now()}`
-      );
-    });
-
-    // Resolve on 'end' event (stream read complete)
-    stream.on('end', () => {
-      logger.debug(`[${streamId}] Event: end (read complete) at ${Date.now()}`);
-      //resolveOnce(); // Resolve here to avoid waiting for close event
-    });
-
-    stream.on('finish', () => {
-      logger.debug(`[${streamId}] Event: finish at ${Date.now()}`);
-    });
-
-    // Also resolve on 'close' event as a fallback
-    stream.on('close', () => {
-      logger.debug(`[${streamId}] Event: close at ${Date.now()}`);
-      resolveOnce();
-    });
-
-    // Handle stream errors
-    stream.on('error', (error) => {
-      logger.debug(`[${streamId}] Event: error at ${Date.now()}`);
-      deferred.reject(error);
-    });
-
-    try {
-      await reply.send(stream);
-      await deferred.promise;
-    } finally {
-      stream.destroy(); // Use destroy instead of close for more reliable cleanup
-    }
-  } catch (error: any) {
-    // Handle file not found error
-    if (error.code === 'ENOENT') {
-      return reply.status(404).send({ error: 'File not found' });
-    }
-
-    // Handle permission errors
-    if (error.code === 'EACCES') {
-      return reply.status(403).send({ error: 'Permission denied' });
-    }
-
-    // Handle other errors
-    throw error;
-  } finally {
-    // Release reader lock
-    handler.release();
-  }
-};
+/**
+ * Streams a UI resource from its configured asset directory.
+ * @param logger - Stream logger.
+ * @param locker - Reader lock held until the response completes.
+ * @param root - Trusted directory for this class of UI assets.
+ * @param filePath - Relative asset name.
+ * @param reply - HTTP response.
+ * @param signal - Cancellation on disconnect.
+ * @returns Resolves after sending the asset or its HTTP error.
+ */
+export const streamUiFile = async (
+  logger: Logger,
+  locker: ReaderWriterLock,
+  root: string,
+  filePath: string,
+  reply: FastifyReply,
+  signal: AbortSignal | undefined
+): Promise<void> =>
+  await sendFile(
+    logger,
+    locker,
+    filePath,
+    () => openUiFile(root, filePath),
+    reply,
+    {},
+    signal
+  );
 
 /**
  * Get MIME type based on file extension
