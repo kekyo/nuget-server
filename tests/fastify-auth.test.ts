@@ -317,6 +317,7 @@ describe('Fastify Authentication - Phase 2 Tests', () => {
         user: {
           username: 'testadmin',
           role: 'admin',
+          passwordChangeRecommended: true,
         },
       });
     });
@@ -373,6 +374,7 @@ describe('Fastify Authentication - Phase 2 Tests', () => {
         username: 'testpublish',
         role: 'publish',
         authenticated: true,
+        passwordChangeRecommended: true,
       });
     });
   });
