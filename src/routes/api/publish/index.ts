@@ -99,6 +99,7 @@ export const registerPublishRoutes = async (
   fastify.post(
     '/publish',
     {
+      config: { rateLimit: { max: 60 } },
       preHandler:
         authPreHandler.length > 0
           ? ([

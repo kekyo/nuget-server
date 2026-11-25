@@ -103,6 +103,7 @@ export const fastifyHost = (config: ServerConfig): Plugin => {
               const response = await fastify.inject({
                 method: (req.method || 'GET') as HTTPMethods,
                 url: url,
+                remoteAddress: req.socket.remoteAddress,
                 headers: req.headers as any,
                 payload: requestToStream(req),
               });

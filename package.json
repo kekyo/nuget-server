@@ -44,6 +44,7 @@
     "@emotion/react": ">=11.14.0",
     "@emotion/styled": ">=11.14.0",
     "@fastify/passport": ">=2.4.0",
+    "@fastify/rate-limit": "11.3.0",
     "@fastify/secure-session": ">=7.5.0",
     "@fastify/static": ">=7.0.0",
     "@mui/icons-material": ">=7.3.0",
