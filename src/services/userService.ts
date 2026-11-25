@@ -185,7 +185,8 @@ export interface UserService {
   ) => Promise<User | undefined>;
   readonly deleteUser: (username: string) => Promise<boolean>;
   readonly regenerateApiPassword: (
-    username: string
+    username: string,
+    expected?: Pick<User, 'id' | 'authVersion'>
   ) => Promise<RegenerateApiPasswordResponse | undefined>;
   readonly validateCredentials: (
     username: string,
@@ -208,7 +209,8 @@ export interface UserService {
   ) => Promise<ApiPasswordAddResponse | undefined>;
   readonly deleteApiPassword: (
     username: string,
-    label: string
+    label: string,
+    expected?: Pick<User, 'id' | 'authVersion'>
   ) => Promise<ApiPasswordDeleteResponse>;
   readonly validateAnyApiPassword: (
     username: string,
@@ -605,12 +607,13 @@ export const createUserService = (config: UserServiceConfig): UserService => {
      * @returns New API password or undefined if user not found
      */
     regenerateApiPassword: async (
-      username: string
+      username: string,
+      expected?: Pick<User, 'id' | 'authVersion'>
     ): Promise<RegenerateApiPasswordResponse | undefined> => {
       const handle = await fileLock.writeLock();
       try {
         const user = users.get(username);
-        if (!user) {
+        if (!user || !matchesRevision(user, expected)) {
           return undefined;
         }
 
@@ -889,12 +892,13 @@ export const createUserService = (config: UserServiceConfig): UserService => {
      */
     deleteApiPassword: async (
       username: string,
-      label: string
+      label: string,
+      expected?: Pick<User, 'id' | 'authVersion'>
     ): Promise<ApiPasswordDeleteResponse> => {
       const handle = await fileLock.writeLock();
       try {
         const user = users.get(username);
-        if (!user) {
+        if (!user || !matchesRevision(user, expected)) {
           return {
             success: false,
             message: 'User not found',
