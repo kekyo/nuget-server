@@ -4,6 +4,8 @@ import {
   generateSalt,
   hashPassword,
   generateApiPassword,
+  encodeApiPasswordDigest,
+  apiPasswordDigest,
   generateUserId,
 } from '../../src/utils/crypto';
 
@@ -22,28 +24,32 @@ export const createUsersJsonFile = async (
   configDir: string,
   users: JsonUser[]
 ): Promise<void> => {
-  const usersData = users.map((user) => {
-    const passwordSalt = generateSalt();
-    const passwordHash = hashPassword(user.password, passwordSalt);
+  const usersData = await Promise.all(
+    users.map(async (user) => {
+      const passwordSalt = generateSalt();
+      const passwordHash = await hashPassword(user.password, passwordSalt);
 
-    const apiPassword = generateApiPassword();
-    const apiPasswordSalt = generateSalt();
-    const apiPasswordHash = hashPassword(apiPassword, apiPasswordSalt);
+      const apiPassword = generateApiPassword();
+      const apiPasswordHash = encodeApiPasswordDigest(
+        apiPasswordDigest(apiPassword)
+      );
 
-    const now = new Date().toISOString();
+      const now = new Date().toISOString();
 
-    return {
-      id: generateUserId(),
-      username: user.username,
-      passwordHash,
-      salt: passwordSalt,
-      apiPasswordHash,
-      apiPasswordSalt,
-      role: user.role,
-      createdAt: now,
-      updatedAt: now,
-    };
-  });
+      return {
+        id: generateUserId(),
+        username: user.username,
+        passwordHash,
+        salt: passwordSalt,
+        apiPasswords: [
+          { label: 'default', passwordHash: apiPasswordHash, createdAt: now },
+        ],
+        role: user.role,
+        createdAt: now,
+        updatedAt: now,
+      };
+    })
+  );
 
   const filePath = path.join(configDir, 'users.json');
   await fs.writeFile(filePath, JSON.stringify(usersData, null, 2));
