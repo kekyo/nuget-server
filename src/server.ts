@@ -25,7 +25,7 @@ import {
   version,
   git_commit_hash,
 } from './generated/packageMetadata.ts';
-import { streamFile } from './utils/fileStreaming.ts';
+import { streamUiFile } from './utils/fileStreaming.ts';
 import { createMetadataService } from './services/metadataService.ts';
 import { createAuthService } from './services/authService.ts';
 import { createUserService, type User } from './services/userService.ts';
@@ -737,16 +737,6 @@ export const createFastifyInstance = async (
   const uiPath = resolveEnvironmentPath(['ui'], ['ui']);
   const publicPath = resolveEnvironmentPath(['ui', 'public'], ['ui']);
 
-  // Helper function to serve static files using streaming
-  const serveStaticFile = (
-    filePath: string,
-    reply: FastifyReply,
-    signal?: AbortSignal
-  ) => {
-    // Use the unified file streaming helper
-    return streamFile(logger, locker, filePath, reply, {}, signal);
-  };
-
   // Serve UI at root path with Content Negotiation
   fastify.get('/', (request, reply) => {
     // Check if client accepts JSON (for NuGet API clients)
@@ -762,40 +752,76 @@ export const createFastifyInstance = async (
     }
 
     // Serve UI for non-JSON requests
-    const indexPath = path.join(uiPath, 'index.html');
-    return serveStaticFile(indexPath, reply, request.abortSignal);
+    return streamUiFile(
+      logger,
+      locker,
+      uiPath,
+      'index.html',
+      reply,
+      request.abortSignal
+    );
   });
 
   // Serve login page
   fastify.get('/login', (request, reply) => {
-    const loginPath = path.join(uiPath, 'login.html');
-    return serveStaticFile(loginPath, reply, request.abortSignal);
+    return streamUiFile(
+      logger,
+      locker,
+      uiPath,
+      'login.html',
+      reply,
+      request.abortSignal
+    );
   });
 
   // Serve other UI assets
   fastify.get('/assets/*', (request, reply) => {
     const assetPath = (request.params as any)['*'];
-    const fullPath = path.join(uiPath, 'assets', assetPath);
-    return serveStaticFile(fullPath, reply, request.abortSignal);
+    return streamUiFile(
+      logger,
+      locker,
+      path.join(uiPath, 'assets'),
+      assetPath,
+      reply,
+      request.abortSignal
+    );
   });
 
   // Serve favicon
   fastify.get('/favicon.ico', (request, reply) => {
-    const faviconPath = path.join(publicPath, 'favicon.ico');
-    return serveStaticFile(faviconPath, reply, request.abortSignal);
+    return streamUiFile(
+      logger,
+      locker,
+      publicPath,
+      'favicon.ico',
+      reply,
+      request.abortSignal
+    );
   });
 
   // Serve icon
   fastify.get('/icon.png', (request, reply) => {
-    const iconPath = path.join(publicPath, 'icon.png');
-    return serveStaticFile(iconPath, reply, request.abortSignal);
+    return streamUiFile(
+      logger,
+      locker,
+      publicPath,
+      'icon.png',
+      reply,
+      request.abortSignal
+    );
   });
 
   // Serve locale files for internationalization
   fastify.get('/locale/*', (request, reply) => {
     const localePath = (request.params as any)['*'];
-    const fullPath = path.join(publicPath, 'locale', localePath);
-    return serveStaticFile(fullPath, reply, request.abortSignal);
+    return streamUiFile(
+      logger,
+      locker,
+      path.join(publicPath, 'locale'),
+      localePath,
+      reply,
+      request.abortSignal
+    );
   });
 
   // Store services on fastify instance for cleanup
