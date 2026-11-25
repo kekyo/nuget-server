@@ -420,6 +420,22 @@ curl -X POST http://localhost:5963/api/publish \
 
 パッケージ公開では、`Authorization` ヘッダにBasic認証を設定することで、パッケージを送信可能です。
 
+### 以前のバージョンからのパスワード移行
+
+アップグレードの前にサーバーを停止し、 `users.json` をバックアップしてください。旧バージョンに戻す場合は、バックアップした `users.json` も復元してください。移行中はサーバーの実行ユーザーに `users.json` とその親ディレクトリへの書き込み権限が必要です。
+
+アップグレード後も、利用者はこれまでのパスワードでログインできます。サーバーがパスワードを確認すると、保存形式が更新されます。登録済みの二段階認証もそのまま使えます。ログイン後に変更を勧めるメッセージが表示されたら、「パスワード変更」から新しいパスワードを設定できます。
+
+NuGet クライアントの API パスワードも、認証に使ったものから順に保存形式が更新されます。`NuGet.config` の変更は不要です。「APIパスワード」で各パスワードの移行状況を確認できます。新しい API パスワードに切り替える場合は、クライアントで動作を確認してから古い方を削除してください。
+
+管理者は「パスワードリセット」で、旧形式のまま残っているログイン用パスワードと API パスワードの件数を確認できます。ログインできない利用者のパスワードをコマンドラインで再設定する場合は、サーバーを停止し、普段と同じ設定ファイルを指定して次のコマンドを実行してください。
+
+```bash
+nuget-server --config-file ./config.json --password-reset alice
+```
+
+新しいパスワードを2回入力すると、指定した利用者のパスワードが更新されます。API パスワードと二段階認証の設定は引き続き使えます。
+
 ### パスワード強度要件
 
 nuget-serverは `zxcvbn` ライブラリを使用して強力なパスワード要件を強制します：
@@ -882,12 +898,13 @@ https://github.com/NuGet/Home/issues/6373
 | N/A                                 | `NUGET_SERVER_PASSWORD_MIN_SCORE`         | `passwordMinScore`       | パスワードの最小強度スコア                           | 0-4                                        | 2                        |
 | N/A                                 | `NUGET_SERVER_PASSWORD_STRENGTH_CHECK`    | `passwordStrengthCheck`  | パスワード強度チェックを有効にする                   | `true`, `false`                            | `true`                   |
 | N/A                                 | `NUGET_SERVER_DUPLICATE_PACKAGE_POLICY`   | `duplicatePackagePolicy` | 重複パッケージアップロードの処理ポリシー             | `overwrite`, `ignore`, `error`             | `ignore`                 |
-| `--max-upload-size-mb <size>`       | `NUGET_SERVER_MAX_UPLOAD_SIZE_MB`         | `maxUploadSizeMb`        | 最大パッケージアップロードサイズ (MB)                | 1-10000                                    | 100                      |
+| `--max-upload-size-mb <size>`       | `NUGET_SERVER_MAX_UPLOAD_SIZE_MB`         | `maxUploadSizeMb`        | アップロードまたはインポート元からの応答1件のサイズ上限 (MB)                | 1-10000                                    | 100                      |
 | `--missing-package-response <mode>` | `NUGET_SERVER_MISSING_PACKAGE_RESPONSE`   | `missingPackageResponse` | 存在しないパッケージのレスポンスモード               | `empty-array`, `not-found`                 | `empty-array`            |
 | N/A                                 | `NUGET_SERVER_AUTH_FAILURE_DELAY_ENABLED` | N/A                      | 認証失敗時の段階的遅延を有効にする                   | `true`, `false`                            | `true`                   |
 | N/A                                 | `NUGET_SERVER_AUTH_FAILURE_MAX_DELAY`     | N/A                      | 認証失敗時の最大遅延時間 (ms)                        | 数値                                       | 10000                    |
 | N/A | `NUGET_SERVER_TOTP_KEY_FILE` | `totpKeyFile` | TOTP登録キーを暗号化する鍵の保存先 | ファイルパス | config.jsonと同じディレクトリのtotp.key |
 | `--totp-reset <username>` | N/A | N/A | サーバー停止中に指定ユーザーのTOTPをリセット | ユーザー名 | N/A |
+| `--password-reset <username>` | N/A | N/A | サーバー停止中に指定ユーザーのログイン用パスワードを再設定 | ユーザー名 | N/A |
 | `--auth-init`                       | N/A                                       | N/A                      | 対話的な管理者ユーザー作成で認証を初期化             | フラグ                                     | N/A                      |
 | `--import-packages`                 | N/A                                       | N/A                      | 他のNuGetサーバーから対話的にパッケージをインポート  | フラグ                                     | N/A                      |
 

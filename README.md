@@ -423,6 +423,22 @@ curl -X POST http://localhost:5963/api/publish \
 
 When publishing a package, you can send the package by setting Basic authentication in the `Authorization` header.
 
+### Upgrading an existing user store
+
+Stop the server and back up `users.json` before upgrading. To roll back to an older release, restore its copy of `users.json` as well. During migration, the server account needs write access to the file and its parent directory.
+
+Users can sign in with their existing passwords. The server upgrades each password hash when it verifies the password. Enrolled authenticators keep working. After signing in, users who see the migration reminder can select “Change Password” to choose a new password.
+
+Each NuGet API password is upgraded when a client first uses it. Existing `NuGet.config` files continue to work. Users can check the status of each credential under “API Password”. To rotate one, verify that the client works with the replacement before deleting the old one.
+
+Administrators can see how many passwords and API passwords still use the legacy format under “Reset Password”. To reset a password from the command line, stop the server and use its usual configuration file.
+
+```bash
+nuget-server --config-file ./config.json --password-reset alice
+```
+
+Enter the new password twice. The selected user's API passwords and second factor remain valid.
+
 ### Password strength requirements
 
 nuget-server uses the `zxcvbn` library to enforce strong password requirements:
@@ -890,12 +906,13 @@ All configuration options can be set via CLI arguments, environment variables, o
 | N/A                                 | `NUGET_SERVER_PASSWORD_MIN_SCORE`         | `passwordMinScore`       | Minimum password strength score                                | 0-4                                        | 2                        |
 | N/A                                 | `NUGET_SERVER_PASSWORD_STRENGTH_CHECK`    | `passwordStrengthCheck`  | Enable password strength checking                              | `true`, `false`                            | `true`                   |
 | N/A                                 | `NUGET_SERVER_DUPLICATE_PACKAGE_POLICY`   | `duplicatePackagePolicy` | Policy for handling duplicate package uploads                  | `overwrite`, `ignore`, `error`             | `ignore`                 |
-| `--max-upload-size-mb <size>`       | `NUGET_SERVER_MAX_UPLOAD_SIZE_MB`         | `maxUploadSizeMb`        | Maximum package upload size in MB                              | 1-10000                                    | 100                      |
+| `--max-upload-size-mb <size>`       | `NUGET_SERVER_MAX_UPLOAD_SIZE_MB`         | `maxUploadSizeMb`        | Maximum size of an upload or individual import response in MB                              | 1-10000                                    | 100                      |
 | `--missing-package-response <mode>` | `NUGET_SERVER_MISSING_PACKAGE_RESPONSE`   | `missingPackageResponse` | Response mode for missing packages                             | `empty-array`, `not-found`                 | `empty-array`            |
 | N/A                                 | `NUGET_SERVER_AUTH_FAILURE_DELAY_ENABLED` | N/A                      | Enable progressive delays for failed auth attempts             | `true`, `false`                            | `true`                   |
 | N/A                                 | `NUGET_SERVER_AUTH_FAILURE_MAX_DELAY`     | N/A                      | Maximum delay for failed auth attempts (ms)                    | Number                                     | 10000                    |
 | N/A | `NUGET_SERVER_TOTP_KEY_FILE` | `totpKeyFile` | Encryption key file for TOTP setup keys | File path | totp.key alongside config.json |
 | `--totp-reset <username>` | N/A | N/A | Reset a user's TOTP while the server is stopped | Username | N/A |
+| `--password-reset <username>` | N/A | N/A | Reset a user’s login password while the server is stopped | Username | N/A |
 | `--auth-init`                       | N/A                                       | N/A                      | Initialize authentication with interactive admin user creation | Flag                                       | N/A                      |
 | `--import-packages`                 | N/A                                       | N/A                      | Import packages from another NuGet server interactively        | Flag                                       | N/A                      |
 
