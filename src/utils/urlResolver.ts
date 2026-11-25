@@ -94,14 +94,18 @@ export const createUrlResolver = (
    * @param forwarded - Forwarded header value
    * @returns Parsed forwarded information
    */
-  const parseForwardedHeader = (forwarded: string): Record<string, string> => {
-    const parsed: Record<string, string> = {};
+  const parseForwardedHeader = (forwarded: string) => {
+    const parsed: { proto?: string; host?: string; port?: string } = {};
 
     const pairs = forwarded.split(';').map((s) => s.trim());
     for (const pair of pairs) {
       const [key, value] = pair.split('=').map((s) => s.trim());
-      if (key && value) {
-        parsed[key.toLowerCase()] = value.replace(/"/g, '');
+      const field = key?.toLowerCase();
+      if (
+        value &&
+        (field === 'proto' || field === 'host' || field === 'port')
+      ) {
+        parsed[field] = value.replace(/"/g, '');
       }
     }
 
@@ -133,7 +137,10 @@ export const createUrlResolver = (
       const forwardedProto = req.headers['x-forwarded-proto'] as string;
       const forwardedHost = req.headers['x-forwarded-host'] as string;
       const forwardedPort = req.headers['x-forwarded-port'] as string;
-      const forwarded = req.headers['forwarded'] as string;
+      const forwardedValues = req.headers.forwarded;
+      const forwarded = Array.isArray(forwardedValues)
+        ? forwardedValues[0]
+        : forwardedValues;
 
       logger.debug(`resolveUrl: x-forwarded-proto: ${forwardedProto}`);
       logger.debug(`resolveUrl: x-forwarded-host: ${forwardedHost}`);
