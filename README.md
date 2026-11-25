@@ -457,7 +457,7 @@ Configure password requirements in `config.json`:
 }
 ```
 
-The NuGet server stores both "password" and "API password" as SALT hashed information, so no plaintext passwords are ever saved.
+The server stores a hash of each login password and API password in `users.json`.
 However, if you do not use HTTPS (TLS), be aware that the `Authorization` header will contain the plaintext password, making it vulnerable to sniffing.
 When makes public endpoint, protect communications using HTTPS.
 
