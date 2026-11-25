@@ -35,6 +35,8 @@ export interface ImportProgress {
  */
 export interface ImportServiceConfig {
   sourceUrl: string;
+  /** Maximum decoded bytes per upstream response. */
+  maxResponseBytes?: number;
   username?: string;
   password?: string;
   packageDir: string;
@@ -195,6 +197,7 @@ export const createImportService = (
 
   const client = createNuGetClient({
     baseUrl: sourceUrl,
+    maxResponseBytes: config.maxResponseBytes,
     username,
     password,
   });

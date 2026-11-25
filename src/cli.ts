@@ -164,7 +164,7 @@ program
   .addOption(
     new Option(
       '--max-upload-size-mb <size>',
-      'maximum package upload size in MB (1-10000)'
+      'maximum upload or import response size in MB (1-10000)'
     )
   )
   .addOption(
