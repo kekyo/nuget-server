@@ -49,7 +49,7 @@ const matchesDigest = (
   prefix: string,
   digest: Buffer
 ): boolean => {
-  if (!stored.startsWith(prefix)) return false;
+  if (typeof stored !== 'string' || !stored.startsWith(prefix)) return false;
   const encoded = stored.slice(prefix.length);
   if (!/^[0-9a-f]{64}$/.test(encoded)) return false;
   return timingSafeEqual(digest, Buffer.from(encoded, 'hex'));
@@ -80,6 +80,8 @@ export const verifyPassword = async (
   salt: string
 ): Promise<boolean> =>
   typeof hash === 'string' &&
+  typeof salt === 'string' &&
+  salt.length > 0 &&
   (hash.startsWith(passwordPrefix)
     ? matchesDigest(hash, passwordPrefix, await derivePassword(password, salt))
     : matchesLegacyCredential(password, hash, salt));

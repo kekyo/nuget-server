@@ -219,6 +219,7 @@ it('updates only the matching legacy API password and keeps its value, identity 
     salt: 'different-salt',
     label: 'release',
   };
+  const incomplete = { label: 'incomplete', createdAt: '' };
   const user = {
     id: 'old-user',
     username: 'alice',
@@ -226,9 +227,18 @@ it('updates only the matching legacy API password and keeps its value, identity 
     salt: 'legacy-salt',
     passwordHash: 'SOvUmqH2BOLjR7bnt38nsurOooc=',
     authVersion: 8,
-    apiPasswords: [unused, original],
+    apiPasswords: [incomplete, unused, original],
   };
-  await writeFile(file, JSON.stringify([user]));
+  const incompletePassword = {
+    ...user,
+    id: 'incomplete-password',
+    username: 'bob',
+    passwordHash: await hashPassword('example-password', 'missing-salt'),
+    salt: undefined,
+    apiPasswords: [],
+  };
+  const accounts = [user, incompletePassword];
+  await writeFile(file, JSON.stringify(accounts));
   const users = createUserService({
     configDir: dir,
     logger: { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() },
@@ -236,21 +246,24 @@ it('updates only the matching legacy API password and keeps its value, identity 
   try {
     await users.initialize();
     expect(
+      await users.validateCredentials('bob', 'example-password')
+    ).toBeUndefined();
+    expect(
       await users.validateApiPassword('alice', 'invalid-token')
     ).toBeUndefined();
-    expect(JSON.parse(await readFile(file, 'utf8'))).toEqual([user]);
+    expect(JSON.parse(await readFile(file, 'utf8'))).toEqual(accounts);
     expect(
       (await users.validateApiPassword('alice', 'build-api-key'))?.id
     ).toBe(user.id);
     const [saved] = JSON.parse(await readFile(file, 'utf8'));
-    expect(saved.apiPasswords[0]).toEqual(unused);
-    expect(saved.apiPasswords[1]).toMatchObject({
+    expect(saved.apiPasswords.slice(0, 2)).toEqual([incomplete, unused]);
+    expect(saved.apiPasswords[2]).toMatchObject({
       label: original.label,
       createdAt: original.createdAt,
       rotationRecommended: true,
       passwordHash: expect.stringMatching(/^sha256\$/),
     });
-    expect(saved.apiPasswords[1]).not.toHaveProperty('salt');
+    expect(saved.apiPasswords[2]).not.toHaveProperty('salt');
     expect(saved.passwordHash).toBe(user.passwordHash);
     expect(saved.authVersion).toBe(8);
     users.destroy();
