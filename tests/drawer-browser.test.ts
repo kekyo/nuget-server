@@ -18,6 +18,8 @@ describe('Drawer animations through Playwright MCP', () => {
       'drawer-browser',
       'close-right'
     );
+    const recordings = join(directory, 'recordings');
+    await mkdir(recordings);
     const password = 'DrawerBrowserPassword!123';
     const users = createUserService({
       configDir: directory,
@@ -128,7 +130,7 @@ describe('Drawer animations through Playwright MCP', () => {
         await call('browser_resize', { width: viewportWidth, height: 800 });
         for (const scenario of cases) {
           const name = `${viewportWidth}-${scenario.menu}-${scenario.close}`;
-          const video = join(directory, `${name}.webm`);
+          const video = join(recordings, `${name}.webm`);
           await call('browser_start_video', { filename: video });
           try {
             if (scenario.menu === 'Upload') {
@@ -143,8 +145,8 @@ describe('Drawer animations through Playwright MCP', () => {
                 target: `role=menuitem[name="${scenario.menu}"]`,
               });
             }
-            // Wait for the actual entrance animation, then record every rendered frame
-            // until the drawer is removed. Fixed sleeps can miss a fast exit entirely.
+            // Observe both the browser's exit transition and the frames it presents.
+            // Under load the drawer can unmount between two animation frames.
             await evaluate(`async () => {
               const paper = document.querySelector('.MuiDrawer-paper');
               await Promise.all(paper.getAnimations().map(async (animation) => {
@@ -152,14 +154,37 @@ describe('Drawer animations through Playwright MCP', () => {
               }));
               const rect = paper.getBoundingClientRect();
               const motion = window.drawerMotion = {
-                initialLeft: rect.left, width: rect.width, viewportWidth: innerWidth,
-                samples: [], done: false
+                initialLeft: rect.left, width: rect.width,
+                samples: [], done: false, closeAt: null, hiddenAt: null,
+                duration: null, targetLeft: null
               };
-              const sample = () => {
+              document.addEventListener('${scenario.close === 'escape' ? 'keydown' : 'click'}', () => {
+                motion.closeAt = performance.now();
+              }, {capture: true, once: true});
+              const observe = () => {
+                if (motion.done) return;
                 if (!paper.isConnected || getComputedStyle(paper).visibility === 'hidden') {
+                  motion.hiddenAt = performance.now();
                   motion.done = true;
+                  observer.disconnect();
                   return;
                 }
+                if (motion.closeAt !== null && motion.targetLeft === null) {
+                  const exit = paper.getAnimations().find(a => a.transitionProperty === 'transform');
+                  if (exit) {
+                    const target = exit.effect.getKeyframes().at(-1).transform;
+                    motion.targetLeft = rect.left + new DOMMatrixReadOnly(target).m41;
+                    motion.duration = exit.effect.getComputedTiming().endTime;
+                  }
+                }
+              };
+              const observer = new MutationObserver(observe);
+              observer.observe(document.body, {
+                subtree: true, childList: true, attributes: true, attributeFilter: ['style', 'class']
+              });
+              const sample = () => {
+                observe();
+                if (motion.done) return;
                 motion.samples.push({ time: performance.now(), left: paper.getBoundingClientRect().left });
                 requestAnimationFrame(sample);
               };
@@ -178,7 +203,10 @@ describe('Drawer animations through Playwright MCP', () => {
             const motion = await evaluate<{
               initialLeft: number;
               width: number;
-              viewportWidth: number;
+              duration: number;
+              closeAt: number;
+              hiddenAt: number;
+              targetLeft: number;
               samples: { time: number; left: number }[];
               done: boolean;
             }>(`async () => {
@@ -188,22 +216,25 @@ describe('Drawer animations through Playwright MCP', () => {
               return window.drawerMotion;
             }`);
             await writeFile(
-              join(directory, `${name}.json`),
+              join(recordings, `${name}.json`),
               JSON.stringify(motion, null, 2)
             );
             expect.soft(motion.width, name).toBe(scenario.width);
             expect
               .soft(motion.initialLeft, name)
               .toBe(viewportWidth - scenario.width);
-            expect.soft(motion.samples.length, name).toBeGreaterThan(2);
+            expect.soft(motion.duration, name).toBeGreaterThan(0);
+            expect
+              .soft(motion.hiddenAt - motion.closeAt + 1, name)
+              .toBeGreaterThanOrEqual(motion.duration);
+            expect.soft(motion.targetLeft, name).toBeCloseTo(viewportWidth, 0);
             const lefts = motion.samples.map((sample) => sample.left);
             expect
               .soft(Math.min(...lefts), name)
               .toBeGreaterThanOrEqual(motion.initialLeft - 1);
-            // Allow the final frame to precede unmounting by one refresh interval.
             expect
               .soft(Math.max(...lefts), name)
-              .toBeGreaterThan(viewportWidth - scenario.width * 0.1);
+              .toBeGreaterThan(motion.initialLeft);
             for (let index = 1; index < lefts.length; index++) {
               expect
                 .soft(lefts[index], name)

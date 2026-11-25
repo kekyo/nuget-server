@@ -1,8 +1,19 @@
-import { describe, expect, test } from 'vitest';
+import { describe, expect, test, vi } from 'vitest';
 import path from 'path';
 import { createDotNetEnvironment } from './dotnet';
 
 describe('dotnet helper', () => {
+  test('runs the SDK selected by the build environment', () => {
+    vi.stubEnv('DOTNET_ROOT', '/opt/test-dotnet');
+    try {
+      const { env } = createDotNetEnvironment(undefined);
+      expect(env.DOTNET_ROOT).toBe('/opt/test-dotnet');
+      expect(env.PATH.split(path.delimiter)[0]).toBe('/opt/test-dotnet');
+    } finally {
+      vi.unstubAllEnvs();
+    }
+  });
+
   test('should isolate NuGet local resource paths under the project directory', () => {
     const projectDir = path.join('tmp', 'dotnet-project');
     const environment = createDotNetEnvironment(projectDir);
