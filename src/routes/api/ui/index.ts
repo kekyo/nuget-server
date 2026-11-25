@@ -736,7 +736,12 @@ export const registerUiRoutes = async (
         const lowerVersion = version.toLowerCase();
 
         // Look for icon file in package directory (preserve original packageId case)
-        const packageDir = join(packagesRoot, packageId, lowerVersion);
+        const entry = metadataService.getPackageEntry(packageId, lowerVersion);
+        const packageDir = join(
+          packagesRoot,
+          entry?.storage.dirName ?? packageId,
+          entry?.storage.versionDirName ?? lowerVersion
+        );
         const iconExtensions = ['png', 'jpg', 'jpeg', 'gif', 'svg'];
 
         for (const ext of iconExtensions) {
@@ -780,7 +785,7 @@ export const registerUiRoutes = async (
           const latestPackageDir = join(
             packagesRoot,
             latestEntry.storage.dirName,
-            latestEntry.metadata.version
+            latestEntry.storage.versionDirName
           );
 
           for (const ext of iconExtensions) {

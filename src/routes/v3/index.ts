@@ -531,7 +531,7 @@ export const registerV3Routes = async (
 
           const packagePath = await packageService.getPackageFilePath(
             actualDirName,
-            lowerVersion
+            entry?.storage.versionDirName ?? lowerVersion
           );
 
           if (!packagePath) {

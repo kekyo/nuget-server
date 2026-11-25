@@ -9,6 +9,8 @@
 
 import { describe, test, expect, beforeEach, afterEach } from 'vitest';
 import { promises as fs } from 'fs';
+import { createHash } from 'node:crypto';
+import AdmZip from 'adm-zip';
 import path from 'path';
 import { FastifyInstance } from 'fastify';
 import { startFastifyServer } from '../src/server.js';
@@ -99,9 +101,10 @@ describe('Duplicate Package Policy Tests', () => {
 
   const uploadPackage = async (
     port: number,
-    packagePath: string
+    source: string | Buffer
   ): Promise<{ status: number; body: any }> => {
-    const packageBuffer = await fs.readFile(packagePath);
+    const packageBuffer =
+      typeof source === 'string' ? await fs.readFile(source) : source;
 
     const response = await fetch(`http://localhost:${port}/api/publish`, {
       method: 'POST',
@@ -114,6 +117,23 @@ describe('Duplicate Package Policy Tests', () => {
 
     const body = await response.json();
     return { status: response.status, body };
+  };
+
+  const digest = (bytes: Buffer) =>
+    createHash('sha256').update(bytes).digest('hex');
+  const downloadHash = async () => {
+    const id = packageId.toLowerCase();
+    const response = await fetch(
+      `http://localhost:${serverPort}/v3/package/${id}/${packageVersion}/${id}.${packageVersion}.nupkg`
+    );
+    expect(response.status).toBe(200);
+    return digest(Buffer.from(await response.arrayBuffer()));
+  };
+
+  const makeReplacement = async () => {
+    const zip = new AdmZip(await fs.readFile(testPackagePath));
+    zip.addFile('release-notes.txt', Buffer.from('Second publication'));
+    return zip.toBuffer();
   };
 
   describe('ignore policy (default)', () => {
@@ -153,20 +173,13 @@ describe('Duplicate Package Policy Tests', () => {
       const result1 = await uploadPackage(serverPort, testPackagePath);
       expect(result1.status).toBe(201);
 
-      // Get file modification time before second upload
-      const packageFilePath = path.join(
-        testPackagesDir,
-        packageId,
-        packageVersion,
-        `${packageId}.${packageVersion}.nupkg`
-      );
-      const statBefore = await fs.stat(packageFilePath);
-
-      // Wait a bit to ensure different timestamp if file were to be modified
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      // Confirm that the second upload has distinct bytes under the same package identity.
+      const before = await downloadHash();
+      const replacement = await makeReplacement();
+      expect(digest(replacement)).not.toBe(before);
 
       // Second upload - should be ignored
-      const result2 = await uploadPackage(serverPort, testPackagePath);
+      const result2 = await uploadPackage(serverPort, replacement);
 
       expect(result2.status).toBe(200);
       expect(result2.body.message).toBe(
@@ -175,13 +188,31 @@ describe('Duplicate Package Policy Tests', () => {
       expect(result2.body.id).toBe(packageId);
       expect(result2.body.version).toBe(packageVersion);
 
-      // Verify file was not modified
-      const statAfter = await fs.stat(packageFilePath);
-      expect(statAfter.mtime.getTime()).toBe(statBefore.mtime.getTime());
+      // Verify that the download URL still serves the original archive.
+      expect(await downloadHash()).toBe(before);
     });
   });
 
   describe('overwrite policy', () => {
+    test('serves the replacement icon when its format changes', async () => {
+      const setup = await startServerWithPolicy('overwrite', 'overwrite-icon');
+      server = setup.server;
+      for (const extension of ['png', 'jpeg']) {
+        const archive = new AdmZip();
+        const manifest = `<package><metadata><id>Example</id><version>1.0</version><icon>logo.${extension}</icon></metadata></package>`;
+        archive.addFile('Example.nuspec', Buffer.from(manifest));
+        archive.addFile(`logo.${extension}`, Buffer.from(extension));
+        expect(
+          (await uploadPackage(setup.serverPort, archive.toBuffer())).status
+        ).toBe(201);
+        const icon = await fetch(
+          `http://localhost:${setup.serverPort}/api/ui/icon/Example/1.0`
+        );
+        expect(icon.status).toBe(200);
+        expect(await icon.text()).toBe(extension);
+      }
+    });
+
     test('should upload new package successfully', async () => {
       const setup = await startServerWithPolicy('overwrite', 'overwrite-new');
       server = setup.server;
@@ -221,20 +252,13 @@ describe('Duplicate Package Policy Tests', () => {
       const result1 = await uploadPackage(serverPort, testPackagePath);
       expect(result1.status).toBe(201);
 
-      // Get file modification time before second upload
-      const packageFilePath = path.join(
-        testPackagesDir,
-        packageId,
-        packageVersion,
-        `${packageId}.${packageVersion}.nupkg`
-      );
-      const statBefore = await fs.stat(packageFilePath);
-
-      // Wait a bit to ensure different timestamp
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      // Confirm that the second upload has distinct bytes under the same package identity.
+      const before = await downloadHash();
+      const replacement = await makeReplacement();
+      expect(digest(replacement)).not.toBe(before);
 
       // Second upload - should overwrite
-      const result2 = await uploadPackage(serverPort, testPackagePath);
+      const result2 = await uploadPackage(serverPort, replacement);
 
       expect(result2.status).toBe(201);
       expect(result2.body.message).toBe(
@@ -243,11 +267,8 @@ describe('Duplicate Package Policy Tests', () => {
       expect(result2.body.id).toBe(packageId);
       expect(result2.body.version).toBe(packageVersion);
 
-      // Verify file was modified (new timestamp)
-      const statAfter = await fs.stat(packageFilePath);
-      expect(statAfter.mtime.getTime()).toBeGreaterThan(
-        statBefore.mtime.getTime()
-      );
+      // Verify that the download URL serves exactly the replacement.
+      expect(await downloadHash()).toBe(digest(replacement));
     });
   });
 
@@ -288,29 +309,21 @@ describe('Duplicate Package Policy Tests', () => {
       const result1 = await uploadPackage(serverPort, testPackagePath);
       expect(result1.status).toBe(201);
 
-      // Get file modification time before second upload
-      const packageFilePath = path.join(
-        testPackagesDir,
-        packageId,
-        packageVersion,
-        `${packageId}.${packageVersion}.nupkg`
-      );
-      const statBefore = await fs.stat(packageFilePath);
-
-      // Wait a bit to ensure timestamp would be different if modified
-      await new Promise((resolve) => setTimeout(resolve, 100));
+      // Confirm that the second upload has distinct bytes under the same package identity.
+      const before = await downloadHash();
+      const replacement = await makeReplacement();
+      expect(digest(replacement)).not.toBe(before);
 
       // Second upload - should return error
-      const result2 = await uploadPackage(serverPort, testPackagePath);
+      const result2 = await uploadPackage(serverPort, replacement);
 
       expect(result2.status).toBe(409);
       expect(result2.body.error).toBe(
         `Package ${packageId} version ${packageVersion} already exists`
       );
 
-      // Verify file was not modified
-      const statAfter = await fs.stat(packageFilePath);
-      expect(statAfter.mtime.getTime()).toBe(statBefore.mtime.getTime());
+      // Verify that the download URL still serves the original archive.
+      expect(await downloadHash()).toBe(before);
     });
   });
 
