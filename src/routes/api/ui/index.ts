@@ -7,7 +7,12 @@ import { promises as fs } from 'fs';
 import { join } from 'path';
 import type { ReaderWriterLock } from 'async-primitives';
 import type { Logger } from '../../../types.ts';
-import type { UserService } from '../../../services/userService.ts';
+import { isLegacyCredentialHash } from '../../../utils/legacyCredentials.ts';
+import {
+  getApiPasswordRecords,
+  type User,
+  type UserService,
+} from '../../../services/userService.ts';
 import type { SessionService } from '../../../services/sessionService.ts';
 import type { AuthService } from '../../../services/authService.ts';
 import type { MetadataService } from '../../../services/metadataService.ts';
@@ -17,6 +22,7 @@ import {
   version,
   git_commit_hash,
 } from '../../../generated/packageMetadata.ts';
+import { publicReadRateLimit } from '../../../services/requestLimits.ts';
 import { streamFile } from '../../../utils/fileStreaming.ts';
 
 /**
@@ -67,6 +73,8 @@ export interface ConfigResponse {
     username: string;
     role: string;
     authenticated: boolean;
+    /** Whether to recommend changing a previously migrated password. */
+    passwordChangeRecommended?: true;
   } | null;
 }
 
@@ -84,6 +92,13 @@ export interface UserManagementRequest {
  * User list response
  */
 export interface UserListResponse {
+  /** Number of credentials that still use the legacy verifier. */
+  credentialMigration: {
+    /** Accounts with passwords awaiting first use or reset. */
+    passwords: number;
+    /** Active API passwords awaiting first use or revocation. */
+    apiPasswords: number;
+  };
   users: Array<{
     id: string;
     username: string;
@@ -146,6 +161,10 @@ export interface PasswordChangeResponse {
   message: string;
 }
 
+type SessionRequest = FastifyRequest & {
+  user: Pick<User, 'id' | 'authVersion'> & { username: string; role: string };
+};
+
 /**
  * Session-only authentication middleware
  */
@@ -168,7 +187,8 @@ const createSessionOnlyAuthMiddleware = (
     }
 
     // Add user info to request
-    (request as any).user = {
+    (request as SessionRequest).user = {
+      authVersion: session.authVersion,
       id: session.userId,
       username: session.username,
       role: session.role,
@@ -222,6 +242,7 @@ export const registerUiRoutes = async (
   // POST /api/ui/config - Application configuration (public endpoint)
   fastify.post(
     '/config',
+    { config: { rateLimit: publicReadRateLimit } },
     async (request: FastifyRequest, reply: FastifyReply) => {
       try {
         let currentUser = null;
@@ -235,6 +256,7 @@ export const registerUiRoutes = async (
               currentUser = {
                 username: session.username,
                 role: session.role,
+                passwordChangeRecommended: session.passwordChangeRecommended,
                 authenticated: true,
               };
             }
@@ -322,6 +344,19 @@ export const registerUiRoutes = async (
             const users = await userService.getAllUsers();
 
             const response: UserListResponse = {
+              credentialMigration: {
+                passwords: users.filter((user) =>
+                  isLegacyCredentialHash(user.passwordHash)
+                ).length,
+                apiPasswords: users.reduce(
+                  (count, user) =>
+                    count +
+                    getApiPasswordRecords(user).filter((entry) =>
+                      isLegacyCredentialHash(entry.passwordHash)
+                    ).length,
+                  0
+                ),
+              },
               users: users.map((user) => ({
                 id: user.id,
                 username: user.username,
@@ -455,7 +490,8 @@ export const registerUiRoutes = async (
         );
 
         const result = await userService.regenerateApiPassword(
-          authRequest.user?.username || ''
+          authRequest.user?.username || '',
+          (request as SessionRequest).user
         );
         if (!result) {
           return reply.status(404).send({ error: 'User not found' });
@@ -526,7 +562,8 @@ export const registerUiRoutes = async (
             try {
               const result = await userService.addApiPassword(
                 username,
-                body.label
+                body.label,
+                (request as SessionRequest).user
               );
               if (!result) {
                 return reply.status(404).send({ error: 'User not found' });
@@ -555,7 +592,8 @@ export const registerUiRoutes = async (
 
             const result = await userService.deleteApiPassword(
               username,
-              body.label
+              body.label,
+              (request as SessionRequest).user
             );
 
             if (!result.success) {
@@ -642,10 +680,9 @@ export const registerUiRoutes = async (
           );
 
           const updated = await userService.updateUser(
-            authRequest.user?.username || '',
-            {
-              password: body.newPassword,
-            }
+            user.username,
+            { password: body.newPassword },
+            user
           );
           if (!updated) {
             return reply.status(404).send({ error: 'User not found' });
@@ -676,6 +713,7 @@ export const registerUiRoutes = async (
   fastify.get(
     '/icon/:id/:version',
     {
+      config: { rateLimit: publicReadRateLimit },
       preHandler: async (request: FastifyRequest, reply: FastifyReply) => {
         const authMode = authService.getAuthMode();
         if (authMode === 'full') {
@@ -698,7 +736,12 @@ export const registerUiRoutes = async (
         const lowerVersion = version.toLowerCase();
 
         // Look for icon file in package directory (preserve original packageId case)
-        const packageDir = join(packagesRoot, packageId, lowerVersion);
+        const entry = metadataService.getPackageEntry(packageId, lowerVersion);
+        const packageDir = join(
+          packagesRoot,
+          entry?.storage.dirName ?? packageId,
+          entry?.storage.versionDirName ?? lowerVersion
+        );
         const iconExtensions = ['png', 'jpg', 'jpeg', 'gif', 'svg'];
 
         for (const ext of iconExtensions) {
@@ -742,7 +785,7 @@ export const registerUiRoutes = async (
           const latestPackageDir = join(
             packagesRoot,
             latestEntry.storage.dirName,
-            latestEntry.metadata.version
+            latestEntry.storage.versionDirName
           );
 
           for (const ext of iconExtensions) {

@@ -597,6 +597,15 @@ describe('dotnet restore V3 API Integration Tests', () => {
         packageVersion
       );
       expect(packageRestored).toBe(true);
+      // A real restore presents the original single API password and upgrades only that credential.
+      const [account] = JSON.parse(
+        await fs.readFile(path.join(testBaseDir, 'users.json'), 'utf8')
+      );
+      expect(account.apiPasswords).toMatchObject([
+        { label: 'default', passwordHash: expect.stringMatching(/^sha256\$/) },
+      ]);
+      expect(account).not.toHaveProperty('apiPasswordHash');
+      expect(account.passwordHash).toBe('pq1IBF6VQHli4o6e3rSbU1S8gDw=');
     } finally {
       await server.close();
     }

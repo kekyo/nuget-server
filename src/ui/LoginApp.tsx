@@ -11,6 +11,7 @@ import {
   Box,
   Container,
 } from '@mui/material';
+import { resolveLoginRedirect } from './utils/loginRedirect.ts';
 import LoginDialog from './components/LoginDialog';
 import { apiFetch } from './utils/apiClient';
 
@@ -31,7 +32,7 @@ const resolveRedirectPath = (): string => {
   const requestedPath = new URL(window.location.href).searchParams.get(
     'redirect'
   );
-  return requestedPath && requestedPath.startsWith('/') ? requestedPath : '/';
+  return resolveLoginRedirect(window.location.href, requestedPath);
 };
 
 /**

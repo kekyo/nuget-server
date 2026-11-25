@@ -18,6 +18,34 @@ describe('NuGetClient', () => {
     vi.clearAllMocks();
   });
 
+  it('bounds metadata and archive responses even without a content length', async () => {
+    const baseUrl = 'https://registry.example.test/v3';
+    const client = createNuGetClient({ baseUrl, maxResponseBytes: 4 });
+    fetchMock.mockResolvedValueOnce(new Response('{"v":0}'));
+    await expect(client.getServiceIndex()).rejects.toThrow(/size limit/i);
+    fetchMock.mockResolvedValueOnce(
+      new Response(new Uint8Array(5), { headers: { 'content-length': '5' } })
+    );
+    await expect(client.downloadPackage(baseUrl, 'test', '1')).rejects.toThrow(
+      /size limit/i
+    );
+    fetchMock.mockResolvedValueOnce(new Response(new Uint8Array(4)));
+    expect(await client.downloadPackage(baseUrl, 'test', '1')).toHaveLength(4);
+  });
+
+  it('keeps source credentials on the configured origin when following service links', async () => {
+    const client = createNuGetClient({
+      baseUrl: 'https://registry.example.test/v3',
+      username: 'reader',
+      password: 'fixture',
+    });
+    fetchMock.mockResolvedValueOnce(Response.json({ versions: [] }));
+    await client.getPackageVersions('https://cdn.example.test/v3', 'example');
+    expect(fetchMock.mock.calls[0][1].headers).not.toHaveProperty(
+      'Authorization'
+    );
+  });
+
   describe('getServiceIndex', () => {
     it('should fetch service index successfully', async () => {
       const mockServiceIndex = {
@@ -30,10 +58,7 @@ describe('NuGetClient', () => {
         ],
       };
 
-      fetchMock.mockResolvedValueOnce({
-        ok: true,
-        json: vi.fn().mockResolvedValueOnce(mockServiceIndex),
-      });
+      fetchMock.mockResolvedValueOnce(Response.json(mockServiceIndex));
 
       const client = createNuGetClient({ baseUrl: 'https://api.nuget.org/v3' });
       const result = await client.getServiceIndex();
@@ -54,10 +79,7 @@ describe('NuGetClient', () => {
         resources: [],
       };
 
-      fetchMock.mockResolvedValueOnce({
-        ok: true,
-        json: vi.fn().mockResolvedValueOnce(mockServiceIndex),
-      });
+      fetchMock.mockResolvedValueOnce(Response.json(mockServiceIndex));
 
       const client = createNuGetClient({
         baseUrl: 'https://api.nuget.org/v3',
@@ -79,11 +101,9 @@ describe('NuGetClient', () => {
     });
 
     it('should handle HTTP errors', async () => {
-      fetchMock.mockResolvedValueOnce({
-        ok: false,
-        status: 404,
-        statusText: 'Not Found',
-      });
+      fetchMock.mockResolvedValueOnce(
+        new Response(null, { status: 404, statusText: 'Not Found' })
+      );
 
       const client = createNuGetClient({ baseUrl: 'https://api.nuget.org/v3' });
 
@@ -99,19 +119,12 @@ describe('NuGetClient', () => {
       };
 
       // First call returns redirect
-      fetchMock.mockResolvedValueOnce({
-        ok: false,
-        status: 301,
-        headers: {
-          get: vi.fn().mockReturnValue('https://new-location.com/index.json'),
-        },
-      });
+      fetchMock.mockResolvedValueOnce(
+        Response.redirect('https://new-location.com/index.json', 301)
+      );
 
       // Second call returns success
-      fetchMock.mockResolvedValueOnce({
-        ok: true,
-        json: vi.fn().mockResolvedValueOnce(mockServiceIndex),
-      });
+      fetchMock.mockResolvedValueOnce(Response.json(mockServiceIndex));
 
       const client = createNuGetClient({ baseUrl: 'https://api.nuget.org/v3' });
       const result = await client.getServiceIndex();
@@ -139,10 +152,7 @@ describe('NuGetClient', () => {
         ],
       };
 
-      fetchMock.mockResolvedValueOnce({
-        ok: true,
-        json: vi.fn().mockResolvedValueOnce(mockSearchResult),
-      });
+      fetchMock.mockResolvedValueOnce(Response.json(mockSearchResult));
 
       const client = createNuGetClient({ baseUrl: 'https://api.nuget.org/v3' });
       const result = await client.searchPackages(
@@ -167,10 +177,9 @@ describe('NuGetClient', () => {
     it('should get package versions with normalized ID', async () => {
       const mockVersions = ['1.0.0', '1.1.0', '2.0.0'];
 
-      fetchMock.mockResolvedValueOnce({
-        ok: true,
-        json: vi.fn().mockResolvedValueOnce({ versions: mockVersions }),
-      });
+      fetchMock.mockResolvedValueOnce(
+        Response.json({ versions: mockVersions })
+      );
 
       const client = createNuGetClient({ baseUrl: 'https://api.nuget.org/v3' });
       const result = await client.getPackageVersions(
@@ -190,10 +199,7 @@ describe('NuGetClient', () => {
     it('should download package with normalized ID and version', async () => {
       const mockPackageData = new ArrayBuffer(100);
 
-      fetchMock.mockResolvedValueOnce({
-        ok: true,
-        arrayBuffer: vi.fn().mockResolvedValueOnce(mockPackageData),
-      });
+      fetchMock.mockResolvedValueOnce(new Response(mockPackageData));
 
       const client = createNuGetClient({ baseUrl: 'https://api.nuget.org/v3' });
       const result = await client.downloadPackage(

@@ -2,6 +2,45 @@
 // Copyright (c) Kouji Matsui (@kekyo@mi.kekyo.net)
 // License under MIT.
 
+// NuGet's restricted package ID grammar, also used by nuget.org.
+const packageIdPattern = /^\w+(?:[.-]\w+)*$/;
+const reservedDeviceName = /^(?:con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\.|$)/i;
+// NuGet accepts up to four numeric components, with SemVer 2 release and build labels.
+const packageVersionPattern =
+  /^(\d+(?:\.\d+){0,3})(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?$/;
+
+/**
+ * Reads the package identity used for both registration and filesystem storage.
+ * @param id - Package ID from a nuspec or feed.
+ * @param version - Package version from the same source.
+ * @returns The original spelling of two validated, portable path components.
+ * @throws If either field is malformed or unsuitable as a directory name.
+ */
+export const readNuspecIdentity = (
+  id: unknown,
+  version: unknown
+): { id: string; version: string } => {
+  if (
+    typeof id !== 'string' ||
+    id.length > 100 ||
+    !packageIdPattern.test(id) ||
+    reservedDeviceName.test(id)
+  ) {
+    throw new Error('Invalid NuGet package ID');
+  }
+
+  const match =
+    typeof version === 'string' && packageVersionPattern.exec(version);
+  if (
+    !match ||
+    match[1]!.split('.').some((part) => Number(part) > 2147483647) ||
+    match[2]?.split('.').some((label) => /^0\d+$/.test(label))
+  ) {
+    throw new Error('Invalid NuGet package version');
+  }
+  return { id, version };
+};
+
 /**
  * Parses a nuspec tags string into individual tag values.
  * @param tags - Raw tags string from nuspec metadata

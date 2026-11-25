@@ -44,6 +44,8 @@ export interface NuGetClientConfig {
   username?: string;
   password?: string;
   timeout?: number;
+  /** Maximum decoded bytes in a single metadata or archive response. Defaults to 100 MiB. */
+  maxResponseBytes?: number;
 }
 
 /**
@@ -73,62 +75,85 @@ export interface NuGetClient {
  * @returns NuGet client instance
  */
 export const createNuGetClient = (config: NuGetClientConfig): NuGetClient => {
-  const { baseUrl, username, password, timeout = 60000 } = config;
-
-  // Create authorization header if credentials provided
+  const {
+    baseUrl,
+    username,
+    password,
+    timeout = 60_000,
+    maxResponseBytes = 100 * 1024 * 1024,
+  } = config;
+  if (!Number.isSafeInteger(maxResponseBytes) || maxResponseBytes < 1)
+    throw new Error('Invalid source response size limit');
+  const origin = new URL(baseUrl).origin;
+  // Keep credentials on the configured feed's origin. A service index may name a separate public CDN.
   const authHeader =
     username && password
-      ? `Basic ${Buffer.from(`${username}:${password}`).toString('base64')}`
+      ? 'Basic ' + Buffer.from(username + ':' + password).toString('base64')
       : undefined;
 
-  // Helper to make fetch requests with auth and timeout
-  const fetchWithAuth = async (
-    url: string,
-    options: RequestInit = {}
-  ): Promise<Response> => {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), timeout);
-
-    try {
-      const headers: Record<string, string> = {
-        ...(options.headers as Record<string, string>),
-      };
-
-      if (authHeader) {
-        headers['Authorization'] = authHeader;
-      }
-
-      const response = await fetch(url, {
-        ...options,
-        headers,
-        signal: controller.signal,
-      });
-
-      clearTimeout(timeoutId);
-
-      // Handle redirects manually if needed
-      if (response.status === 301 || response.status === 302) {
-        const location = response.headers.get('Location');
-        if (location) {
-          return fetchWithAuth(location, options);
-        }
-      }
-
-      if (!response.ok) {
+  const fetchWithAuth = async (value: string): Promise<Buffer> => {
+    let url = new URL(value);
+    const signal = AbortSignal.timeout(timeout);
+    for (let redirects = 0; redirects <= 10; redirects++) {
+      if (
+        !['http:', 'https:'].includes(url.protocol) ||
+        url.username ||
+        url.password
+      )
         throw new Error(
-          `HTTP ${response.status}: ${response.statusText} for ${url}`
+          'Expected an HTTP(S) source URL without embedded credentials'
         );
+      const headers: Record<string, string> = {};
+      if (authHeader && url.origin === origin)
+        headers.Authorization = authHeader;
+      const response = await fetch(url.href, {
+        headers,
+        signal,
+        redirect: 'manual',
+      });
+      if ([301, 302, 303, 307, 308].includes(response.status)) {
+        await response.body?.cancel();
+        const location = response.headers.get('location');
+        if (!location) throw new Error('Source redirect has no location');
+        const next = new URL(location, url);
+        if (url.protocol === 'https:' && next.protocol !== 'https:')
+          throw new Error('Source redirect downgrades HTTPS');
+        url = next;
+        continue;
       }
-
-      return response;
-    } catch (error: any) {
-      clearTimeout(timeoutId);
-      if (error.name === 'AbortError') {
-        throw new Error(`Request timeout after ${timeout}ms for ${url}`);
+      if (!response.ok) {
+        await response.body?.cancel();
+        throw new Error('HTTP ' + response.status + ': ' + response.statusText);
       }
-      throw error;
+      const tooLarge = new Error('Source response exceeds the size limit');
+      if (Number(response.headers.get('content-length')) > maxResponseBytes) {
+        await response.body?.cancel();
+        throw tooLarge;
+      }
+      if (!response.body) return Buffer.alloc(0);
+      const reader = response.body.getReader();
+      const chunks: Uint8Array[] = [];
+      let size = 0;
+      try {
+        for (;;) {
+          const { value: chunk, done } = await reader.read();
+          if (done) return Buffer.concat(chunks, size);
+          size += chunk.byteLength;
+          if (size > maxResponseBytes) {
+            await reader.cancel();
+            throw tooLarge;
+          }
+          chunks.push(chunk);
+        }
+      } finally {
+        reader.releaseLock();
+      }
     }
+    throw new Error('Too many source redirects');
   };
+
+  const readJson = async <T>(url: string): Promise<T> =>
+    JSON.parse(new TextDecoder().decode(await fetchWithAuth(url))) as T;
 
   return {
     /**
@@ -139,8 +164,7 @@ export const createNuGetClient = (config: NuGetClientConfig): NuGetClient => {
         ? `${baseUrl}index.json`
         : `${baseUrl}/index.json`;
 
-      const response = await fetchWithAuth(indexUrl);
-      return await response.json();
+      return await readJson<NuGetServiceIndex>(indexUrl);
     },
 
     /**
@@ -158,8 +182,7 @@ export const createNuGetClient = (config: NuGetClientConfig): NuGetClient => {
       url.searchParams.set('prerelease', 'true');
       url.searchParams.set('semVerLevel', '2.0.0');
 
-      const response = await fetchWithAuth(url.toString());
-      return await response.json();
+      return await readJson<SearchResult>(url.toString());
     },
 
     /**
@@ -172,8 +195,7 @@ export const createNuGetClient = (config: NuGetClientConfig): NuGetClient => {
       const normalizedId = packageId.toLowerCase();
       const url = `${packageBaseUrl}/${normalizedId}/index.json`;
 
-      const response = await fetchWithAuth(url);
-      const data = (await response.json()) as PackageVersionsResponse;
+      const data = await readJson<PackageVersionsResponse>(url);
       return data.versions;
     },
 
@@ -189,9 +211,7 @@ export const createNuGetClient = (config: NuGetClientConfig): NuGetClient => {
       const normalizedVersion = version.toLowerCase();
       const url = `${contentUrl}/${normalizedId}/${normalizedVersion}/${normalizedId}.${normalizedVersion}.nupkg`;
 
-      const response = await fetchWithAuth(url);
-      const arrayBuffer = await response.arrayBuffer();
-      return Buffer.from(arrayBuffer);
+      return await fetchWithAuth(url);
     },
   };
 };

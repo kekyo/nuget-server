@@ -11,6 +11,7 @@ import { compareVersions } from '../utils/semver.ts';
 import {
   extractNuspecTargetFrameworks,
   parseNuspecTags,
+  readNuspecIdentity,
 } from '../utils/nuspec.ts';
 
 /**
@@ -56,6 +57,7 @@ export interface PackageMetadata {
  */
 export interface PackageStorage {
   dirName: string; // Actual directory name (e.g., "FlashCap")
+  versionDirName: string; // Version spelling used on disk
   fileName: string; // Actual nupkg file name (e.g., "FlashCap.1.10.0.nupkg")
   nuspecName: string; // Actual nuspec file name (e.g., "FlashCap.nuspec")
 }
@@ -89,7 +91,8 @@ export interface MetadataService {
   readonly updateBaseUrl: (baseUrl: string) => Promise<void>;
   readonly addPackage: (
     metadata: PackageMetadata,
-    policy?: DuplicatePackagePolicy
+    policy?: DuplicatePackagePolicy,
+    saveFiles?: (id: string, version: string) => Promise<boolean>
   ) => Promise<{
     action: 'added' | 'overwritten' | 'ignored' | 'error';
     message?: string;
@@ -189,6 +192,7 @@ export const createMetadataService = (
     versionPath: string
   ): Promise<PackageEntry | undefined> => {
     try {
+      readNuspecIdentity(packageId, version);
       const nuspecPath = path.join(versionPath, `${packageId}.nuspec`);
       const nuspecContent = await fs.readFile(nuspecPath, 'utf-8');
 
@@ -212,11 +216,13 @@ export const createMetadataService = (
         : [];
       const targetFrameworks = extractNuspecTargetFrameworks(metadata);
 
-      const actualPackageId = metadata.id || packageId;
+      const identity = readNuspecIdentity(
+        metadata.id ?? packageId,
+        metadata.version ?? version
+      );
 
       const packageMetadata: PackageMetadata = {
-        id: actualPackageId,
-        version: metadata.version || version,
+        ...identity,
         authors: metadata.authors,
         description: metadata.description,
         licenseUrl: metadata.licenseUrl,
@@ -232,18 +238,21 @@ export const createMetadataService = (
         dependencies,
         published: new Date(), // Use current date as we don't have publish info
         listed: true,
-        packageContentUrl: `${currentBaseUrl}/v3/package/${actualPackageId.toLowerCase()}/${version}/${actualPackageId.toLowerCase()}.${version}.nupkg`,
+        packageContentUrl: `${currentBaseUrl}/v3/package/${identity.id.toLowerCase()}/${version}/${identity.id.toLowerCase()}.${version}.nupkg`,
       };
 
       // Read actual file names from directory
-      const files = await fs.readdir(versionPath);
-      const actualNupkgFile = files.find((file) => file.endsWith('.nupkg'));
-      const actualNuspecFile = files.find((file) => file.endsWith('.nuspec'));
+      const files = await fs.readdir(versionPath, { withFileTypes: true });
+      const actualNupkgFile = files.find(
+        (file) => file.isFile() && file.name.endsWith('.nupkg')
+      );
+      if (!actualNupkgFile) return undefined;
 
       const packageStorage: PackageStorage = {
         dirName: packageId, // Actual directory name (e.g., "FlashCap")
-        fileName: actualNupkgFile || `${packageId}.${version}.nupkg`, // Use actual file name
-        nuspecName: actualNuspecFile || `${packageId}.nuspec`, // Use actual nuspec name
+        versionDirName: version,
+        fileName: actualNupkgFile.name, // Use actual file name
+        nuspecName: path.basename(nuspecPath), // Use actual nuspec name
       };
 
       return {
@@ -268,22 +277,18 @@ export const createMetadataService = (
     packagePath: string
   ): Promise<void> => {
     try {
-      const versionDirs = await fs.readdir(packagePath);
-
-      const versionPromises = versionDirs.map(async (version) => {
-        const versionPath = path.join(packagePath, version);
-        const stat = await fs.stat(versionPath);
-
-        if (stat.isDirectory()) {
-          const entry = await loadPackageMetadata(
-            packageId,
-            version,
-            versionPath
-          );
-          return entry;
-        }
-        return undefined;
+      const versionDirs = await fs.readdir(packagePath, {
+        withFileTypes: true,
       });
+      const versionPromises = versionDirs
+        .filter((dir) => dir.isDirectory() && !dir.name.startsWith('.'))
+        .map((dir) =>
+          loadPackageMetadata(
+            packageId,
+            dir.name,
+            path.join(packagePath, dir.name)
+          )
+        );
 
       const results = await Promise.all(versionPromises);
       const entries = results.filter(
@@ -306,16 +311,14 @@ export const createMetadataService = (
    */
   const scanPackages = async (): Promise<void> => {
     try {
-      const packageDirs = await fs.readdir(packagesRoot);
-
-      const packagePromises = packageDirs.map(async (packageId) => {
-        const packagePath = path.join(packagesRoot, packageId);
-        const stat = await fs.stat(packagePath);
-
-        if (stat.isDirectory()) {
-          await scanPackageVersions(packageId, packagePath);
-        }
+      const packageDirs = await fs.readdir(packagesRoot, {
+        withFileTypes: true,
       });
+      const packagePromises = packageDirs
+        .filter((dir) => dir.isDirectory())
+        .map((dir) =>
+          scanPackageVersions(dir.name, path.join(packagesRoot, dir.name))
+        );
 
       await Promise.all(packagePromises);
     } catch (error) {
@@ -378,7 +381,8 @@ export const createMetadataService = (
       // Simple read operation - no lock needed for atomic Map.get
       const entries = packagesCache.get(packageId.toLowerCase()) || [];
       const metadata = entries.map((entry) => entry.metadata);
-      return metadata.find((v) => v.version === version);
+      const key = version.toLowerCase();
+      return metadata.find((v) => v.version.toLowerCase() === key);
     },
 
     /**
@@ -393,7 +397,10 @@ export const createMetadataService = (
     ): PackageEntry | undefined => {
       // Simple read operation - no lock needed for atomic Map.get
       const entries = packagesCache.get(packageId.toLowerCase()) || [];
-      return entries.find((entry) => entry.metadata.version === version);
+      const key = version.toLowerCase();
+      return entries.find(
+        (entry) => entry.metadata.version.toLowerCase() === key
+      );
     },
 
     /**
@@ -445,87 +452,66 @@ export const createMetadataService = (
      * Adds a new package to the cache (for uploaded packages)
      * @param metadata - Package metadata to add
      * @param policy - Duplicate package handling policy (default: "ignore")
+     * @param saveFiles - Persists the package under the selected on-disk identity, returning false on a duplicate.
      */
     addPackage: async (
       metadata: PackageMetadata,
-      policy: DuplicatePackagePolicy = 'ignore'
+      policy: DuplicatePackagePolicy = 'ignore',
+      saveFiles?: (id: string, version: string) => Promise<boolean>
     ): Promise<{
       action: 'added' | 'overwritten' | 'ignored' | 'error';
       message?: string;
     }> => {
       const handle = await cacheLock.writeLock();
       try {
-        // Create a simple storage entry for uploaded packages
-        const packageStorage: PackageStorage = {
-          dirName: metadata.id, // Use the actual package ID from nuspec
-          fileName: `${metadata.id}.${metadata.version}.nupkg`,
-          nuspecName: `${metadata.id}.nuspec`,
-        };
-
-        const packageEntry: PackageEntry = {
-          metadata: metadata,
-          storage: packageStorage,
-        };
-
-        // Inline the addPackageEntry logic to avoid circular reference
-        const packageId = packageEntry.metadata.id.toLowerCase();
-        const existingEntries = packagesCache.get(packageId) || [];
-
-        // Check if this exact version already exists
-        const existingVersion = existingEntries.find(
-          (e) => e.metadata.version === packageEntry.metadata.version
+        const key = metadata.id.toLowerCase();
+        const versionKey = metadata.version.toLowerCase();
+        const entries = packagesCache.get(key) ?? [];
+        const existing = entries.find(
+          (entry) => entry.metadata.version.toLowerCase() === versionKey
         );
+        const dirName =
+          existing?.storage.dirName ??
+          entries[0]?.storage.dirName ??
+          metadata.id;
+        const versionDirName =
+          existing?.storage.versionDirName ?? metadata.version;
 
-        if (existingVersion) {
-          // Package version already exists - apply policy
-          switch (policy) {
-            case 'overwrite':
-              // Remove existing version and add new one
-              const filteredEntries = existingEntries.filter(
-                (e) => e.metadata.version !== packageEntry.metadata.version
-              );
-              filteredEntries.push(packageEntry);
-              filteredEntries.sort((a, b) =>
-                compareVersions(b.metadata.version, a.metadata.version)
-              ); // Descending order (newest first)
-              packagesCache.set(packageId, filteredEntries);
-
-              logger.info(
-                `Package overwritten in cache: ${packageEntry.metadata.id} ${packageEntry.metadata.version}`
-              );
-              return { action: 'overwritten' };
-
-            case 'ignore':
-              logger.info(
-                `Package already exists in cache, ignored: ${packageEntry.metadata.id} ${packageEntry.metadata.version}`
-              );
-              return { action: 'ignored' };
-
-            case 'error':
-              const errorMessage = `Package ${packageEntry.metadata.id} version ${packageEntry.metadata.version} already exists`;
-              logger.warn(errorMessage);
-              return { action: 'error', message: errorMessage };
-
-            default:
-              // Default to ignore for safety
-              logger.info(
-                `Package already exists in cache, ignored (default policy): ${packageEntry.metadata.id} ${packageEntry.metadata.version}`
-              );
-              return { action: 'ignored' };
+        // Decide the duplicate policy and finish saving before making the version visible.
+        const duplicate = existing && policy !== 'overwrite';
+        if (
+          duplicate ||
+          (saveFiles && !(await saveFiles(dirName, versionDirName)))
+        ) {
+          const message = `Package ${metadata.id} version ${metadata.version} already exists`;
+          if (policy === 'error') {
+            logger.warn(message);
+            return { action: 'error', message };
           }
-        } else {
-          // New version - add it
-          existingEntries.push(packageEntry);
-          existingEntries.sort((a, b) =>
-            compareVersions(b.metadata.version, a.metadata.version)
-          ); // Descending order (newest first)
-          packagesCache.set(packageId, existingEntries);
-
           logger.info(
-            `Package added to cache: ${packageEntry.metadata.id} ${packageEntry.metadata.version}`
+            `Package already exists in cache, ignored: ${metadata.id} ${metadata.version}`
           );
-          return { action: 'added' };
+          return { action: 'ignored' };
         }
+
+        // Create a storage entry with the on-disk spelling used by the writer.
+        const storage: PackageStorage = {
+          dirName,
+          versionDirName,
+          fileName: `${dirName}.${versionDirName}.nupkg`,
+          nuspecName: `${dirName}.nuspec`,
+        };
+        const next = entries.filter((entry) => entry !== existing);
+        next.push({ metadata, storage });
+        next.sort((a, b) =>
+          compareVersions(b.metadata.version, a.metadata.version)
+        );
+        packagesCache.set(key, next);
+        const action = existing ? 'overwritten' : 'added';
+        logger.info(
+          `Package ${action} in cache: ${metadata.id} ${metadata.version}`
+        );
+        return { action };
       } finally {
         handle.release();
       }
@@ -542,8 +528,9 @@ export const createMetadataService = (
         const existingEntries = packagesCache.get(packageId) || [];
 
         // Remove existing version if it exists (for overwrite)
+        const versionKey = entry.metadata.version.toLowerCase();
         const filteredEntries = existingEntries.filter(
-          (e) => e.metadata.version !== entry.metadata.version
+          (e) => e.metadata.version.toLowerCase() !== versionKey
         );
 
         // Add new version

@@ -139,6 +139,23 @@ describe('urlResolver - resolveUrl without fixed baseUrl', () => {
     expect(result.isFixed).toBe(false);
   });
 
+  it('reads URL fields from the first forwarded header value', () => {
+    const resolver = createUrlResolver(mockLogger, {
+      trustedProxies: ['192.0.2.1'],
+    });
+    const result = resolver.resolveUrl({
+      protocol: 'http',
+      socket: { remoteAddress: '192.0.2.1' },
+      headers: {
+        forwarded: [
+          'Proto=https;Host=feed.example.test;ext=one',
+          'host=internal',
+        ],
+      },
+    });
+    expect(result.baseUrl).toBe('https://feed.example.test');
+  });
+
   it('should handle X-Forwarded-For in trusted proxy check', () => {
     const resolver = createUrlResolver(mockLogger, {
       trustedProxies: ['192.168.1.100'],

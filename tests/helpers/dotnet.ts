@@ -24,9 +24,11 @@ export const createDotNetEnvironment = (
   nugetScratchPath: string | undefined;
   nugetPluginsCachePath: string | undefined;
 } => {
-  const dotnetPath = process.env.HOME
-    ? `${process.env.HOME}/.dotnet`
-    : '/usr/local/share/dotnet';
+  const dotnetPath =
+    process.env.DOTNET_ROOT ??
+    (process.env.HOME
+      ? path.join(process.env.HOME, '.dotnet')
+      : '/usr/local/share/dotnet');
   const nugetBasePath =
     projectDir !== undefined ? path.join(projectDir, '.nuget') : undefined;
   const nugetPackagesPath =

@@ -209,3 +209,59 @@ export const runAuthInit = async (
     process.exit(1);
   }
 };
+
+/**
+ * Resets one account's password in the offline user store.
+ * @param config - Server configuration identifying the user file and password policy.
+ * @param logger - Destination for the account recovery audit message.
+ * @param username - Account whose password is being replaced.
+ * @remarks Stop the server first. The account ID, role and second factor are preserved.
+ */
+export const runPasswordReset = async (
+  config: ServerConfig,
+  logger: Logger,
+  username: string
+): Promise<void> => {
+  const users = createUserService({
+    configDir: config.configDir ?? './',
+    usersFile: config.usersFile,
+    serverConfig: config,
+    logger,
+  });
+  try {
+    await users.initialize();
+    if (!(await users.getUser(username)))
+      throw new Error(`User not found: ${username}`);
+
+    let password: string;
+    let confirmation: string;
+    if (process.stdin.isTTY) {
+      password = await promptPassword('New password');
+      confirmation = await promptPassword('Confirm new password');
+    } else {
+      const input = readline.createInterface({
+        input: process.stdin,
+        crlfDelay: Infinity,
+      });
+      try {
+        // A single reader preserves both lines when they arrive in one pipe write.
+        const lines = input[Symbol.asyncIterator]();
+        const first = await lines.next();
+        const second = await lines.next();
+        if (first.done || second.done)
+          throw new Error(
+            'Expected a new password and confirmation on separate lines'
+          );
+        password = first.value;
+        confirmation = second.value;
+      } finally {
+        input.close();
+      }
+    }
+    if (password !== confirmation) throw new Error('Passwords do not match');
+    await users.updateUser(username, { password });
+    logger.info(`Password reset for ${username}`);
+  } finally {
+    users.destroy();
+  }
+};
